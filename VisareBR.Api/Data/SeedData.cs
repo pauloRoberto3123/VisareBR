@@ -37,7 +37,7 @@ public static class SeedData
         {
             context.Settings.Add(new SiteSettings
             {
-                WhatsappNumber = "5511948130382",
+                WhatsappNumber = "5519998448417",
                 WhatsappDefaultMessage = "Olá! Vi o site da VisareBR e gostaria de iniciar meu processo de visto.",
                 CompanyEmail = "contato@visarebr.com.br",
                 Cnpj = "00.000.000/0001-00",
