@@ -1,7 +1,10 @@
 import { ShieldCheck, CheckCircle2, MessageSquare, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Home() {
+  const { whatsappUrl } = useSettings();
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -16,7 +19,7 @@ export default function Home() {
               Processo simplificado, seguro e com acompanhamento completo.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <a href="https://wa.me/your-number" className="bg-green-500 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-green-600 transition-all text-center flex items-center justify-center gap-2">
+              <a href={whatsappUrl} className="bg-green-500 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-green-600 transition-all text-center flex items-center justify-center gap-2">
                 Solicitar via WhatsApp
               </a>
               <Link to="/vistos" className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-blue-50 transition-all text-center">

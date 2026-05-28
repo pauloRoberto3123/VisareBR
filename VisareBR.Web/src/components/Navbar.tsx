@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Menu, X, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { whatsappUrl } = useSettings();
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -23,7 +25,7 @@ export default function Navbar() {
             <Link to="/como-funciona" className="text-gray-700 hover:text-blue-600 font-medium">Passo a Passo</Link>
             <Link to="/blog" className="text-gray-700 hover:text-blue-600 font-medium">Blog</Link>
             <Link to="/avaliacoes" className="text-gray-700 hover:text-blue-600 font-medium">Depoimentos</Link>
-            <Link to="/contato" className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors">Falar com Especialista</Link>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors">Falar com Especialista</a>
           </div>
 
           {/* Mobile menu button */}
@@ -44,7 +46,7 @@ export default function Navbar() {
             <Link to="/como-funciona" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 rounded-md">Passo a Passo</Link>
             <Link to="/blog" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 rounded-md">Blog</Link>
             <Link to="/avaliacoes" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 rounded-md">Depoimentos</Link>
-            <Link to="/contato" className="block px-3 py-2 text-blue-600 font-bold">Falar com Especialista</Link>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block px-3 py-2 text-blue-600 font-bold">Falar com Especialista</a>
           </div>
         </div>
       )}
