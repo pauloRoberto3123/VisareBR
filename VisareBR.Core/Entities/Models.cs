@@ -39,3 +39,20 @@ public class SiteSettings
     public string Address { get; set; } = string.Empty;
     public string Cnpj { get; set; } = string.Empty;
 }
+
+public class Ds160Submission
+{
+    public int Id { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string MaritalStatus { get; set; } = string.Empty;
+    public DateTime BirthDate { get; set; }
+    public string PassportNumber { get; set; } = string.Empty; // Will be encrypted in DB
+    public DateTime PassportIssueDate { get; set; }
+    public DateTime PassportExpiryDate { get; set; }
+    public string TripPurpose { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
