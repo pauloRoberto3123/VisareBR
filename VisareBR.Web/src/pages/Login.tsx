@@ -28,12 +28,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-sm">
+    <div className="min-h-[80vh] flex items-center justify-center bg-light-gray py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-secondary p-10 rounded-2xl shadow-sm">
         <div className="text-center">
-          <ShieldAlert className="mx-auto h-12 w-12 text-blue-600" />
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Acesso Restrito</h2>
-          <p className="mt-2 text-sm text-gray-600">Painel Administrativo VisareBR</p>
+          <ShieldAlert className="mx-auto h-12 w-12 text-accent-gold" />
+          <h2 className="mt-6 text-3xl font-extrabold text-primary">Acesso Restrito</h2>
+          <p className="mt-2 text-sm text-dark-gray">Painel Administrativo VisareBR</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg text-center">{error}</div>}
@@ -42,7 +42,7 @@ export default function Login() {
               <input
                 type="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-primary rounded-t-md focus:outline-none focus:ring-accent-gold focus:border-accent-gold focus:z-10 sm:text-sm"
                 placeholder="Endereço de Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -52,7 +52,7 @@ export default function Login() {
               <input
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-primary rounded-b-md focus:outline-none focus:ring-accent-gold focus:border-accent-gold focus:z-10 sm:text-sm"
                 placeholder="Senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -64,7 +64,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:bg-blue-300"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-primary bg-accent-gold hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-gold transition-colors disabled:bg-gray-300"
             >
               {loading ? 'Entrando...' : 'Entrar no Painel'}
             </button>
@@ -74,5 +74,3 @@ export default function Login() {
     </div>
   );
 }
-
-
