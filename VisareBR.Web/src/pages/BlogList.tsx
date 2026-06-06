@@ -32,22 +32,22 @@ export default function BlogList() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post) => (
-              <article key={post.id} className="flex flex-col bg-secondary border border-light-gray rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="h-48 bg-light-gray">
+              <article key={post.id} className="flex flex-col bg-secondary border border-light-gray rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
+                <div className="h-48 bg-light-gray flex items-center justify-center text-dark-gray overflow-hidden">
                   {post.imageUrl ? (
                     <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-dark-gray">Sem imagem</div>
+                    <span className="text-lg">Sem imagem</span>
                   )}
                 </div>
                 <div className="p-6 flex flex-col flex-grow">
                   <div className="flex items-center gap-4 text-sm text-dark-gray mb-3">
-                    <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
-                    {post.author && <span className="flex items-center gap-1"><User size={14} /> {post.author.fullName}</span>}
+                    <span className="flex items-center gap-1"><Calendar size={14} className="text-gray-500" /> {new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
+                    {post.author && <span className="flex items-center gap-1"><User size={14} className="text-gray-500" /> {post.author.fullName}</span>}
                   </div>
-                  <h2 className="text-xl font-bold text-primary mb-3 line-clamp-2">{post.title}</h2>
+                  <h2 className="text-xl font-bold text-primary mb-3 line-clamp-2 hover:text-accent-gold transition-colors duration-200">{post.title}</h2>
                   <p className="text-dark-gray mb-6 line-clamp-3">{post.summary}</p>
-                  <Link to={`/blog/${post.id}`} className="mt-auto text-accent-gold font-bold hover:text-dark-gray">
+                  <Link to={`/blog/${post.id}`} className="mt-auto text-accent-gold font-bold hover:underline">
                     Ler mais →
                   </Link>
                 </div>
@@ -59,3 +59,4 @@ export default function BlogList() {
     </div>
   );
 }
+

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../api/blogService';
+import type { BlogPost, Evaluation } from '../api/blogService';
 import { Plus, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'blog' | 'evaluations' | 'settings'>('blog'); // Added 'settings' to activeTab type
-  const [posts, setPosts] = useState<any[]>([]);
-  const [evals, setEvals] = useState<any[]>([]);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [evals, setEvals] = useState<Evaluation[]>([]);
   
   // Blog Form State
   const [newPost, setNewPost] = useState({ title: '', summary: '', content: '', imageUrl: '' });

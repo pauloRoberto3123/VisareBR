@@ -52,9 +52,9 @@ export default function Services() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {services.map((service) => (
-              <div key={service.id} className="bg-light-gray rounded-3xl p-8 hover:shadow-xl transition-all border border-transparent hover:border-dark-gray group">
+              <div key={service.id} className="bg-light-gray rounded-3xl p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-accent-gold group">
                 <div className="flex flex-col md:flex-row gap-6 items-start">
-                  <div className="bg-secondary p-4 rounded-2xl shadow-sm group-hover:scale-110 transition-transform">
+                  <div className="bg-secondary p-4 rounded-2xl shadow-sm group-hover:scale-110 transition-transform border border-light-gray">
                     {service.icon}
                   </div>
                   <div className="flex-1">
@@ -87,11 +87,11 @@ export default function Services() {
       {/* Call to Action */}
       <section className="bg-light-gray py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">Não sabe qual visto solicitar?</h2>
+          <h2 className="text-3xl font-bold mb-6 text-primary">Não sabe qual visto solicitar?</h2>
           <p className="text-dark-gray text-lg mb-10">
             Nossos especialistas podem analisar seu perfil e indicar a melhor categoria para o seu caso específico.
           </p>
-          <a href={whatsappUrl} className="bg-primary text-secondary px-10 py-4 rounded-full text-lg font-bold hover:bg-dark-gray transition-all shadow-lg shadow-gray-200">
+          <a href={whatsappUrl} className="bg-accent-gold text-primary px-10 py-4 rounded-full text-lg font-bold hover:bg-opacity-90 transition-all shadow-lg shadow-dark-gray">
             Falar com um Consultor Grátis
           </a>
         </div>

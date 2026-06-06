@@ -2,7 +2,7 @@ import { Outlet, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import WhatsAppButton from '../components/WhatsAppButton';
 import { useSettings } from '../context/SettingsContext';
-import { ShieldCheck, Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
 
 export default function MainLayout() {
   const { settings } = useSettings();
@@ -22,7 +22,7 @@ export default function MainLayout() {
             {/* Brand column */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="VisareBR Logo" className="h-28 w-auto filter invert brightness-0" />
+                <img src="/logo.png" alt="VisareBR Logo" className="h-20 w-auto filter invert brightness-0" />
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Assessoria especializada em vistos americanos. Segurança, agilidade e alta taxa de aprovação para sua viagem aos Estados Unidos.
@@ -31,7 +31,7 @@ export default function MainLayout() {
 
             {/* Links column */}
             <div>
-              <h3 className="text-lg font-bold mb-6">Navegação</h3>
+              <h3 className="text-lg font-bold mb-6 text-accent-gold">Navegação</h3>
               <ul className="space-y-3">
                 <li><Link to="/" className="text-gray-400 hover:text-accent-gold transition-colors">Início</Link></li>
                 <li><Link to="/vistos" className="text-gray-400 hover:text-accent-gold transition-colors">Tipos de Vistos</Link></li>
@@ -43,7 +43,7 @@ export default function MainLayout() {
 
             {/* Services column */}
             <div>
-              <h3 className="text-lg font-bold mb-6">Serviços</h3>
+              <h3 className="text-lg font-bold mb-6 text-accent-gold">Serviços</h3>
               <ul className="space-y-3 text-gray-400">
                 <li>Visto de Turismo (B2)</li>
                 <li>Visto de Negócios (B1)</li>
@@ -55,7 +55,7 @@ export default function MainLayout() {
 
             {/* Contact column */}
             <div>
-              <h3 className="text-lg font-bold mb-6">Contato</h3>
+              <h3 className="text-lg font-bold mb-6 text-accent-gold">Contato</h3>
               <ul className="space-y-4">
                 {settings?.whatsappNumber && (
                   <li className="flex items-center gap-3 text-gray-400">
@@ -81,14 +81,14 @@ export default function MainLayout() {
           </div>
 
           {/* Bottom strip */}
-          <div className="border-t border-gray-800 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
+          <div className="border-t border-dark-gray pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
             <div className="mb-4 md:mb-0 text-center md:text-left">
               <p>© {new Date().getFullYear()} VisareBR Assessoria de Vistos. Todos os direitos reservados.</p>
               {settings?.cnpj && <p className="mt-1">CNPJ: {settings.cnpj}</p>}
             </div>
             <div className="flex gap-6">
               <Link to="/login" className="hover:text-accent-gold transition-colors">Área Restrita</Link>
-              <a href="#" className="hover:text-accent-gold transition-colors">Política de Privacidade</a>
+              <Link to="/privacidade" className="hover:text-accent-gold transition-colors">Política de Privacidade</Link>
             </div>
           </div>
         </div>
@@ -96,4 +96,3 @@ export default function MainLayout() {
     </div>
   );
 }
-

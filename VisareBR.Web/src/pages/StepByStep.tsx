@@ -5,8 +5,8 @@ const steps = [
   {
     title: '1. Atendimento Inicial',
     description: 'Você entra em contato conosco via WhatsApp ou formulário. Entendemos seu objetivo de viagem e tiramos suas primeiras dúvidas.',
-    icon: <MessageSquare className="w-10 h-10 text-secondary" />,
-    color: 'bg-primary'
+    icon: <MessageSquare className="w-10 h-10 text-primary" />,
+    color: 'bg-accent-gold'
   },
   {
     title: '2. Análise de Perfil',
@@ -35,7 +35,7 @@ const steps = [
   {
     title: '6. Simulado de Entrevista',
     description: 'Preparamos você com um treinamento personalizado, simulando as perguntas que o oficial consular poderá fazer.',
-    icon: <ShieldCheck className="w-10 h-10 text-secondary" />,
+    icon: <ShieldCheck className="w-10 h-10 text-primary" />,
     color: 'bg-accent-gold' // Using accent gold for the final step
   }
 ];
@@ -58,7 +58,7 @@ export default function StepByStep() {
       {/* Timeline Section */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-12 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-dark-gray before:to-transparent">
+          <div className="space-y-12 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-300 before:to-transparent">
             
             {steps.map((step, index) => (
               <div key={index} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
@@ -100,4 +100,3 @@ export default function StepByStep() {
     </div>
   );
 }
-

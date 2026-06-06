@@ -24,8 +24,8 @@ export default function BlogPost() {
   return (
     <article className="bg-secondary py-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link to="/blog" className="inline-flex items-center gap-2 text-accent-gold font-medium mb-8 hover:underline">
-          <ArrowLeft size={18} /> Voltar para o blog
+        <Link to="/blog" className="inline-flex items-center gap-2 text-accent-gold font-medium mb-8 hover:underline hover:text-primary transition-colors duration-200">
+          <ArrowLeft size={18} className="text-accent-gold" /> Voltar para o blog
         </Link>
         
         <h1 className="text-4xl md:text-5xl font-bold text-primary mb-6 leading-tight">
@@ -34,12 +34,12 @@ export default function BlogPost() {
 
         <div className="flex items-center gap-6 text-dark-gray mb-10 border-b border-light-gray pb-6">
           <div className="flex items-center gap-2">
-            <Calendar size={18} />
+            <Calendar size={18} className="text-dark-gray" />
             {new Date(post.createdAt).toLocaleDateString('pt-BR')}
           </div>
           {post.author && (
             <div className="flex items-center gap-2">
-              <User size={18} />
+              <User size={18} className="text-dark-gray" />
               {post.author.fullName}
             </div>
           )}
@@ -56,3 +56,4 @@ export default function BlogPost() {
     </article>
   );
 }
+

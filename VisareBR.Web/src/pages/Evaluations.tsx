@@ -46,7 +46,7 @@ export default function Evaluations() {
           
           <button 
             onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-2 bg-primary text-secondary px-6 py-3 rounded-full font-bold hover:bg-dark-gray transition-all"
+            className="inline-flex items-center gap-2 bg-accent-gold text-primary px-6 py-3 rounded-full font-bold hover:bg-opacity-90 transition-all"
           >
             <MessageSquarePlus size={20} />
             Deixar meu depoimento
@@ -59,18 +59,18 @@ export default function Evaluations() {
             <h2 className="text-2xl font-bold text-primary mb-6">Compartilhe sua experiência</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-dark-gray mb-1">Seu Nome</label>
+                <label className="block text-sm font-medium text-primary mb-1">Seu Nome</label>
                 <input 
                   required
-                  className="w-full p-3 border border-gray-200 rounded-xl"
+                  className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold text-primary"
                   value={formData.userName}
                   onChange={e => setFormData({...formData, userName: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-dark-gray mb-1">Sua Avaliação</label>
+                <label className="block text-sm font-medium text-primary mb-1">Sua Avaliação</label>
                 <select 
-                  className="w-full p-3 border border-gray-200 rounded-xl"
+                  className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold text-primary"
                   value={formData.rating}
                   onChange={e => setFormData({...formData, rating: parseInt(e.target.value)})}
                 >
@@ -82,16 +82,16 @@ export default function Evaluations() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-dark-gray mb-1">Seu Comentário</label>
+                <label className="block text-sm font-medium text-primary mb-1">Seu Comentário</label>
                 <textarea 
                   required
                   rows={4}
-                  className="w-full p-3 border border-gray-200 rounded-xl"
+                  className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold text-primary"
                   value={formData.comment}
                   onChange={e => setFormData({...formData, comment: e.target.value})}
                 />
               </div>
-              <button type="submit" className="w-full bg-accent-gold text-primary py-3 rounded-xl font-bold">
+              <button type="submit" className="w-full bg-accent-gold text-primary py-3 rounded-xl font-bold hover:bg-opacity-90 transition-colors">
                 Enviar Depoimento
               </button>
             </form>
@@ -100,7 +100,7 @@ export default function Evaluations() {
 
         {/* Success Message */}
         {submitted && (
-          <div className="max-w-2xl mx-auto mb-20 bg-secondary p-8 rounded-3xl border border-accent-gold text-center">
+          <div className="max-w-2xl mx-auto mb-20 bg-light-gray p-8 rounded-3xl border border-accent-gold text-center">
             <CheckCircle className="mx-auto text-accent-gold mb-4" size={48} />
             <h2 className="text-2xl font-bold text-primary mb-2">Depoimento Enviado!</h2>
             <p className="text-dark-gray">Obrigado por compartilhar! Sua avaliação passará por uma breve moderação antes de aparecer no site.</p>
@@ -120,7 +120,7 @@ export default function Evaluations() {
                     <Star 
                       key={i} 
                       size={18} 
-                      className={i < ev.rating ? "fill-accent-gold text-accent-gold" : "text-gray-300"} 
+                      className={i < ev.rating ? "fill-accent-gold text-accent-gold" : "text-dark-gray"}
                     />
                   ))}
                 </div>
@@ -137,3 +137,4 @@ export default function Evaluations() {
     </div>
   );
 }
+

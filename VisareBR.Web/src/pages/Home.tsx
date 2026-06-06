@@ -19,7 +19,7 @@ export default function Home() {
               Processo simplificado, seguro e com acompanhamento completo.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <a href={whatsappUrl} className="bg-primary text-secondary px-8 py-4 rounded-lg font-bold text-lg hover:bg-dark-gray transition-all text-center flex items-center justify-center gap-2">
+              <a href={whatsappUrl} className="bg-accent-gold text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-opacity-90 transition-all text-center flex items-center justify-center gap-2">
                 Solicitar via WhatsApp
               </a>
               <Link to="/vistos" className="bg-secondary text-primary border-2 border-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-light-gray transition-all text-center">
@@ -40,21 +40,21 @@ export default function Home() {
               <div className="bg-light-gray p-4 rounded-2xl mb-6">
                 <CheckCircle2 className="w-10 h-10 text-accent-gold" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">+5000</h3>
+              <h3 className="text-2xl font-bold mb-2 text-primary">+5000</h3>
               <p className="text-dark-gray">Vistos Aprovados</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="bg-light-gray p-4 rounded-2xl mb-6">
                 <ShieldCheck className="w-10 h-10 text-accent-gold" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">98%</h3>
+              <h3 className="text-2xl font-bold mb-2 text-primary">98%</h3>
               <p className="text-dark-gray">Índice de Sucesso</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="bg-light-gray p-4 rounded-2xl mb-6">
                 <MessageSquare className="w-10 h-10 text-accent-gold" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">Suporte 24/7</h3>
+              <h3 className="text-2xl font-bold mb-2 text-primary">Suporte 24/7</h3>
               <p className="text-dark-gray">Atendimento Especializado</p>
             </div>
           </div>
@@ -72,17 +72,17 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* We'll make this dynamic later with the API */}
-            <div className="bg-secondary p-8 rounded-2xl shadow-sm">
+            <div className="bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray">
               <p className="text-dark-gray italic mb-6">"Experiência excelente com a VisareBR! Renovei meu visto com total tranquilidade. Atendimento claro e rápido."</p>
-              <div className="font-bold">Ana Paula Moreira</div>
+              <div className="font-bold text-primary">Ana Paula Moreira</div>
             </div>
             <div className="bg-secondary p-8 rounded-2xl shadow-sm border-t-4 border-accent-gold">
               <p className="text-dark-gray italic mb-6">"Tive meu visto aprovado sem transtorno. Os meninos foram incríveis e prestativos em todo o processo."</p>
-              <div className="font-bold">Carolina Reese</div>
+              <div className="font-bold text-primary">Carolina Reese</div>
             </div>
-            <div className="bg-secondary p-8 rounded-2xl shadow-sm">
+            <div className="bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray">
               <p className="text-dark-gray italic mb-6">"A assessoria foi impecável do início ao fim. Me orientaram em cada etapa, não tive nenhuma preocupação."</p>
-              <div className="font-bold">Isabela Clebis</div>
+              <div className="font-bold text-primary">Isabela Clebis</div>
             </div>
           </div>
           <div className="text-center mt-12">
@@ -93,4 +93,5 @@ export default function Home() {
     </div>
   );
 }
+
 
