@@ -22,6 +22,7 @@ export interface Evaluation {
   comment: string;
   rating: number;
   createdAt: string;
+  isApproved: boolean;
 }
 
 export const getPosts = () => api.get<BlogPost[]>('/blog');
