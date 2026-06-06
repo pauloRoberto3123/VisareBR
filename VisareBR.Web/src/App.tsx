@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Evaluations from './pages/Evaluations';
 import Services from './pages/Services';
 import StepByStep from './pages/StepByStep';
+import Ds160Form from './pages/Ds160Form';
 import './App.css';
 
 // Simple guard to check for token
@@ -36,6 +37,7 @@ function App() {
           <Route path="vistos" element={<Services />} />
           <Route path="como-funciona" element={<StepByStep />} />
           <Route path="avaliacoes" element={<Evaluations />} />
+          <Route path="ds-160" element={<Ds160Form />} />
 
         </Route>
       </Routes>
