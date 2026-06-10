@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import api from '../api/blogService';
-import type { BlogPost, Evaluation } from '../api/blogService';
+import type { BlogPost, Evaluation, Ds160Submission } from '../api/blogService';
 import { Plus, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'blog' | 'evaluations' | 'settings'>('blog'); // Added 'settings' to activeTab type
+  const [activeTab, setActiveTab] = useState<'blog' | 'evaluations' | 'settings' | 'ds160'>('blog');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [evals, setEvals] = useState<Evaluation[]>([]);
+  const [ds160Forms, setDs160Forms] = useState<Ds160Submission[]>([]);
+  const [selectedDs160, setSelectedDs160] = useState<Ds160Submission | null>(null);
   
   // Blog Form State
   const [newPost, setNewPost] = useState({ title: '', summary: '', content: '', imageUrl: '' });
@@ -27,6 +29,9 @@ export default function AdminDashboard() {
       } else if (activeTab === 'evaluations') {
         const res = await api.get('/evaluations/admin');
         setEvals(res.data);
+      } else if (activeTab === 'ds160') {
+        const res = await api.get('/ds160/admin');
+        setDs160Forms(res.data);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -98,6 +103,12 @@ export default function AdminDashboard() {
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'settings' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Configurações do Site
+        </button>
+        <button 
+          onClick={() => { setActiveTab('ds160'); setSelectedDs160(null); }}
+          className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'ds160' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
+        >
+          Formulários DS-160
         </button>
       </div>
 
@@ -245,6 +256,79 @@ export default function AdminDashboard() {
               Salvar Configurações
             </button>
           </form>
+        </div>
+      )}
+
+      {activeTab === 'ds160' && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold mb-6 text-primary">Formulários DS-160 Recebidos</h2>
+          
+          {selectedDs160 ? (
+            <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
+              <button onClick={() => setSelectedDs160(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline">
+                ← Voltar para a lista
+              </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pb-8 border-b border-light-gray">
+                <div>
+                  <p className="text-sm text-dark-gray">Requerente</p>
+                  <p className="font-bold text-primary text-lg">{selectedDs160.applicantName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-dark-gray">E-mail</p>
+                  <p className="font-bold text-primary text-lg break-all">{selectedDs160.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-dark-gray">Passaporte (Descriptografado)</p>
+                  <p className="font-bold text-primary text-lg">{selectedDs160.passportNumber}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-dark-gray">Data de Envio</p>
+                  <p className="font-bold text-primary text-lg">{new Date(selectedDs160.createdAt).toLocaleString('pt-BR')}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-bold text-primary mb-4 text-lg">Dados Completos do Formulário</h3>
+                <pre className="bg-light-gray p-6 rounded-xl text-sm text-dark-gray overflow-auto max-h-[600px] border border-gray-200 shadow-inner">
+                  {JSON.stringify(JSON.parse(selectedDs160.jsonData), null, 2)}
+                </pre>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-secondary rounded-2xl border border-light-gray shadow-sm overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-light-gray text-primary text-sm border-b border-gray-200">
+                    <th className="p-4 font-bold">Requerente</th>
+                    <th className="p-4 font-bold">Email</th>
+                    <th className="p-4 font-bold">Passaporte</th>
+                    <th className="p-4 font-bold">Data</th>
+                    <th className="p-4 font-bold">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ds160Forms.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-dark-gray">Nenhum formulário recebido ainda.</td>
+                    </tr>
+                  ) : (
+                    ds160Forms.map(form => (
+                      <tr key={form.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="p-4 font-medium text-primary">{form.applicantName}</td>
+                        <td className="p-4 text-dark-gray">{form.email}</td>
+                        <td className="p-4 text-dark-gray font-mono text-xs">{form.passportNumber}</td>
+                        <td className="p-4 text-dark-gray">{new Date(form.createdAt).toLocaleDateString('pt-BR')}</td>
+                        <td className="p-4">
+                          <button onClick={() => setSelectedDs160(form)} className="bg-primary text-secondary px-4 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors text-sm">
+                            Ver Completo
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -9,8 +9,7 @@ public static class SeedData
 {
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
-        using var context = new ApplicationDbContext(
-            serviceProvider.GetRequiredService<DbContextOptions<ApplicationDbContext>>());
+        using var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 

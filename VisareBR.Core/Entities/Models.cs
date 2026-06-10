@@ -43,16 +43,10 @@ public class SiteSettings
 public class Ds160Submission
 {
     public int Id { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string MaritalStatus { get; set; } = string.Empty;
-    public DateTime BirthDate { get; set; }
+    public string ApplicantName { get; set; } = string.Empty; // Extracted for easy Admin viewing
+    public string Email { get; set; } = string.Empty; // Extracted for easy Admin viewing
     public string PassportNumber { get; set; } = string.Empty; // Will be encrypted in DB
-    public DateTime PassportIssueDate { get; set; }
-    public DateTime PassportExpiryDate { get; set; }
-    public string TripPurpose { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
-    public string Address { get; set; } = string.Empty;
+    public string JsonData { get; set; } = string.Empty; // The entire 8-step form payload stored as JSONB
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsReviewed { get; set; } = false;
 }
