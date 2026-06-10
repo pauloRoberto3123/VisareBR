@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text;
 using VisareBR.Core.Entities;
@@ -9,9 +10,12 @@ namespace VisareBR.Core.Data;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly IConfiguration _configuration;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IConfiguration configuration)
         : base(options)
     {
+        _configuration = configuration;
     }
 
     public DbSet<BlogPost> BlogPosts { get; set; }
@@ -34,8 +38,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .IsRequired();
 
         // Security: Configure AES Encryption for the PassportNumber column
-        // Note: In a real production scenario, load this key from IConfiguration or Azure Key Vault!
-        var encryptionKey = "VisareBR_Super_Secret_Key_2026!!";
+        // The key is now securely loaded from Render Environment Variables
+        var encryptionKey = _configuration["EncryptionKey"] ?? "VisareBR_Super_Secret_Key_2026!!"; // Fallback for local dev
 
         var passportEncryptor = new ValueConverter<string, string>(
             v => Encrypt(v, encryptionKey),
@@ -45,6 +49,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Ds160Submission>()
             .Property(e => e.PassportNumber)
             .HasConversion(passportEncryptor);
+
+        // Store the deeply nested form data natively as JSONB in PostgreSQL
+        builder.Entity<Ds160Submission>()
+            .Property(e => e.JsonData)
+            .HasColumnType("jsonb");
     }
 
     private static string Encrypt(string clearText, string key)

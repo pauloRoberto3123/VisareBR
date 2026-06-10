@@ -44,6 +44,8 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        await context.Database.MigrateAsync(); // Auto-apply migrations on Render startup
         await SeedData.Initialize(services);
     }
     catch (Exception ex)

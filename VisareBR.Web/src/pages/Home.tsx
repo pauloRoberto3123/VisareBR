@@ -19,7 +19,7 @@ export default function Home() {
               Processo simplificado, seguro e com acompanhamento completo.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <a href={whatsappUrl} className="bg-accent-gold text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-opacity-90 transition-all text-center flex items-center justify-center gap-2">
+              <a href={whatsappUrl} className="bg-accent-red text-secondary px-8 py-4 rounded-lg font-bold text-lg hover:bg-opacity-90 transition-all text-center flex items-center justify-center gap-2">
                 Solicitar via WhatsApp
               </a>
               <Link to="/vistos" className="bg-secondary text-primary border-2 border-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-light-gray transition-all text-center">

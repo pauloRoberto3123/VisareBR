@@ -1,42 +1,96 @@
 import { useState } from 'react';
 import { ChevronRight, ChevronLeft, ShieldCheck, CheckCircle } from 'lucide-react';
 import api from '../api/blogService';
+import { Ds160Provider, useDs160 } from '../context/Ds160Context';
+import type { Ds160Data } from '../context/Ds160Context';
+import Step1PersonalInfo from '../context/Step1PersonalInfo';
+import Step2AddressContact from '../context/Step2AddressContact';
+import Step3Passport from '../context/Step3Passport';
+import Step4Travel from '../context/Step4Travel';
+import Step5History from '../context/Step5History';
+import Step6Family from '../context/Step6Family';
+import Step7WorkEducation from '../context/Step7WorkEducation';
+import Step8Security from '../context/Step8Security';
 
 const STEPS = [
-  'Dados Pessoais',
-  'Passaporte e Viagem',
-  'Contato',
-  'Revisão e Envio'
+  'Informações Pessoais',
+  'Endereço e Contato',
+  'Passaporte',
+  'Viagem',
+  'Histórico',
+  'Família',
+  'Trabalho & Estudo',
+  'Segurança'
 ];
 
-export default function Ds160Form() {
+const validateDs160Data = (data: Ds160Data): boolean => {
+  const s1 = data.step1;
+  if (!s1.fullName || !s1.nativeName || !s1.usedOtherNames || !s1.gender || !s1.maritalStatus || !s1.birthDate || !s1.otherNationality || !s1.cpf || !s1.rg) return false;
+  if (s1.usedOtherNames === 'Yes' && !s1.otherNames) return false;
+  if (s1.maritalStatus === 'Other' && !s1.maritalStatusExplain) return false;
+  if (s1.otherNationality === 'Yes' && !s1.otherNationalityCountry) return false;
+
+  const s2 = data.step2;
+  if (!s2.homeAddress || !s2.sameMailingAddress || !s2.primaryPhone || !s2.primaryEmail || !s2.hasSocialMedia) return false;
+  if (s2.sameMailingAddress === 'No' && !s2.mailingAddress) return false;
+  if (s2.hasSocialMedia === 'Yes' && (!s2.socialMediaProfiles.length || s2.socialMediaProfiles.some(p => !p.platform || !p.identifier))) return false;
+
+  const s3 = data.step3;
+  if (!s3.passportType || !s3.passportNumber || !s3.passportIssuerCountry || !s3.passportIssuerState || !s3.passportIssuerCity || !s3.passportIssueDate || !s3.passportExpiryDate || !s3.hasPreviousPassport || !s3.hasLostPassport) return false;
+  if (s3.hasPreviousPassport === 'Yes' && (!s3.previousPassportNumber || !s3.previousPassportIssuerCountry || !s3.previousPassportIssueDate || !s3.previousPassportExpiryDate)) return false;
+  if (s3.hasLostPassport === 'Yes' && !s3.lostPassportExplanation) return false;
+
+  const s4 = data.step4;
+  if (!s4.consularPost || !s4.tripPurpose || !s4.hasSpecificTravelPlans || !s4.usAddressStreet || !s4.usAddressCity || !s4.usAddressState || !s4.payingParty || !s4.hasTravelCompanions) return false;
+  if (s4.hasSpecificTravelPlans === 'No' && (!s4.intendedArrivalDate || !s4.intendedStayLength)) return false;
+  if ((s4.payingParty === 'Other' || s4.payingParty === 'Company') && (!s4.payingPartyName || !s4.payingPartyPhone || !s4.payingPartyEmail || !s4.payingPartyRelationship)) return false;
+  if (s4.hasTravelCompanions === 'Yes' && (!s4.travelCompanions.length || s4.travelCompanions.some(c => !c.fullName || !c.relationship))) return false;
+
+  const s5 = data.step5;
+  if (!s5.hasBeenToUS || !s5.hasUSVisa || !s5.hasRefusedUSVisa || !s5.hasImmigrationPetition || !s5.hasTraveledInternationally || !s5.hasUSContact) return false;
+  if (s5.hasBeenToUS === 'Yes' && (!s5.lastUSVisitDate || !s5.lastUSVisitLength)) return false;
+  if (s5.hasUSVisa === 'Yes' && (!s5.usVisaNumber || !s5.usVisaIssueDate || !s5.usVisaExpiryDate)) return false;
+  if (s5.hasRefusedUSVisa === 'Yes' && !s5.refusedUSVisaExplanation) return false;
+  if (s5.hasImmigrationPetition === 'Yes' && !s5.immigrationPetitionExplanation) return false;
+  if (s5.hasTraveledInternationally === 'Yes' && (!s5.countriesVisited.length || s5.countriesVisited.some(c => !c))) return false;
+  if (s5.hasUSContact === 'Yes' && (!s5.usContactName || !s5.usContactAddress || !s5.usContactPhone || !s5.usContactEmail || !s5.usContactRelationship)) return false;
+
+  const s6 = data.step6;
+  if (!s6.fatherFullName || !s6.fatherBirthDate || !s6.isFatherInUS || !s6.motherFullName || !s6.motherBirthDate || !s6.isMotherInUS || !s6.hasImmediateRelativesInUS) return false;
+  if (s6.isFatherInUS === 'Yes' && !s6.fatherUSStatus) return false;
+  if (s6.isMotherInUS === 'Yes' && !s6.motherUSStatus) return false;
+  if (s6.hasImmediateRelativesInUS === 'Yes' && (!s6.immediateRelatives.length || s6.immediateRelatives.some(r => !r.fullName || !r.relationship || !r.status))) return false;
+
+  const s7 = data.step7;
+  if (!s7.primaryOccupation || !s7.hasPreviousEmployment || !s7.hasHigherEducation) return false;
+  if (['Employed', 'Student', 'Self-employed'].includes(s7.primaryOccupation) && (!s7.currentEmployerSchoolName || !s7.currentEmployerSchoolAddress || !s7.currentEmployerSchoolPhone || !s7.currentStartDate || !s7.currentDuties)) return false;
+  if (['Employed', 'Self-employed'].includes(s7.primaryOccupation) && !s7.currentMonthlySalary) return false;
+  if (s7.hasPreviousEmployment === 'Yes' && (!s7.previousEmployers.length || s7.previousEmployers.some(e => !e.employerName || !e.employerAddress || !e.supervisorName || !e.jobTitle || !e.startDate || !e.endDate || !e.duties))) return false;
+  if (s7.hasHigherEducation === 'Yes' && (!s7.educationHistory.length || s7.educationHistory.some(e => !e.schoolName || !e.schoolAddress || !e.courseOfStudy || !e.startDate || !e.endDate))) return false;
+
+  const s8 = data.step8;
+  if (!s8.disease || !s8.criminal || !s8.terrorism || !s8.fraud || !s8.deported) return false;
+  if (s8.disease === 'Yes' && !s8.diseaseExplain) return false;
+  if (s8.criminal === 'Yes' && !s8.criminalExplain) return false;
+  if (s8.terrorism === 'Yes' && !s8.terrorismExplain) return false;
+  if (s8.fraud === 'Yes' && !s8.fraudExplain) return false;
+  if (s8.deported === 'Yes' && !s8.deportedExplain) return false;
+  if (!s8.declarationAccepted || !s8.signature) return false;
+
+  return true;
+};
+
+function Ds160FormContent() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const { data } = useDs160();
   
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    maritalStatus: '',
-    birthDate: '',
-    passportNumber: '',
-    passportIssueDate: '',
-    passportExpiryDate: '',
-    tripPurpose: 'B2',
-    email: '',
-    phone: '',
-    address: ''
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
-  // Check if all fields in formData have a value
-  const isFormValid = Object.values(formData).every(val => val.trim() !== '');
+  // Comprehensive validation across all conditional steps
+  const isFormValid = validateDs160Data(data); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +104,7 @@ export default function Ds160Form() {
     setIsSubmitting(true);
     
     try {
-      await api.post('/ds160', formData);
+      await api.post('/ds160', data);
       setIsSuccess(true);
     } catch (error) {
       console.error("Erro ao enviar o formulário DS-160:", error);
@@ -92,14 +146,14 @@ export default function Ds160Form() {
           <div className="flex items-center justify-between relative">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-light-gray -z-10"></div>
             <div 
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-accent-gold -z-10 transition-all duration-500"
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-accent-red -z-10 transition-all duration-500"
               style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
             ></div>
             
             {STEPS.map((step, index) => (
               <div key={index} className="flex flex-col items-center cursor-pointer group" onClick={() => setCurrentStep(index)}>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors duration-300 ${
-                  index <= currentStep ? 'bg-accent-gold border-accent-gold text-white' : 'bg-white border-light-gray text-dark-gray group-hover:border-accent-gold/[0.5]'
+                  index <= currentStep ? 'bg-accent-red border-accent-gold text-white' : 'bg-white border-light-gray text-dark-gray group-hover:border-accent-gold/[0.5]'
                 }`}>
                   {index + 1}
                 </div>
@@ -113,90 +167,38 @@ export default function Ds160Form() {
         <div className="bg-white shadow-xl border border-light-gray rounded-3xl p-8 md:p-10">
           <form onSubmit={handleSubmit}>
             
-            {/* STEP 1: Personal Data */}
             {currentStep === 0 && (
-              <div className="space-y-6 animate-fade-in">
-                <h2 className="text-2xl font-bold text-primary border-b border-light-gray pb-4">Dados Pessoais</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Nome(s) (First Name)</label>
-                    <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Sobrenome(s) (Surnames)</label>
-                    <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Data de Nascimento</label>
-                    <input type="date" name="birthDate" value={formData.birthDate} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Estado Civil</label>
-                    <select name="maritalStatus" value={formData.maritalStatus} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold bg-white">
-                      <option value="">Selecione...</option>
-                      <option value="single">Solteiro(a)</option>
-                      <option value="married">Casado(a)</option>
-                      <option value="divorced">Divorciado(a)</option>
-                      <option value="widowed">Viúvo(a)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+              <Step1PersonalInfo />
             )}
 
-            {/* STEP 2: Passport & Travel */}
             {currentStep === 1 && (
-              <div className="space-y-6 animate-fade-in">
-                <h2 className="text-2xl font-bold text-primary border-b border-light-gray pb-4">Passaporte e Viagem</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Número do Passaporte</label>
-                    <input type="text" name="passportNumber" value={formData.passportNumber} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Propósito da Viagem</label>
-                    <select name="tripPurpose" value={formData.tripPurpose} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold bg-white">
-                      <option value="B2">Turismo / Férias (B2)</option>
-                      <option value="B1">Negócios (B1)</option>
-                      <option value="F1">Estudante (F1)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Data de Emissão</label>
-                    <input type="date" name="passportIssueDate" value={formData.passportIssueDate} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Data de Expiração</label>
-                    <input type="date" name="passportExpiryDate" value={formData.passportExpiryDate} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                </div>
-              </div>
+              <Step2AddressContact />
             )}
 
-            {/* STEP 3: Contact Info */}
             {currentStep === 2 && (
-              <div className="space-y-6 animate-fade-in">
-                <h2 className="text-2xl font-bold text-primary border-b border-light-gray pb-4">Informações de Contato</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">E-mail</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-1">Telefone / WhatsApp</label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-primary mb-1">Endereço Completo</label>
-                    <input type="text" name="address" value={formData.address} onChange={handleInputChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold" />
-                  </div>
-                </div>
-              </div>
+              <Step3Passport />
+            )}
+
+            {currentStep === 3 && (
+              <Step4Travel />
+            )}
+
+            {currentStep === 4 && (
+              <Step5History />
+            )}
+
+            {currentStep === 5 && (
+              <Step6Family />
+            )}
+
+            {currentStep === 6 && (
+              <Step7WorkEducation />
             )}
 
             {/* STEP 4: Review */}
-            {currentStep === 3 && (
-              <div className="space-y-6 animate-fade-in">
+            {currentStep === 7 && (
+              <>
+                <Step8Security />
                 <h2 className="text-2xl font-bold text-primary border-b border-light-gray pb-4">Termos e Envio</h2>
                 {!isFormValid && (
                   <div className="bg-red-50 p-4 rounded-xl text-red-600 text-sm font-medium border border-red-200">
@@ -211,7 +213,7 @@ export default function Ds160Form() {
                     🔒 Suas informações são criptografadas e mantidas em sigilo absoluto de acordo com a LGPD.
                   </p>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Navigation Buttons */}
@@ -230,7 +232,7 @@ export default function Ds160Form() {
                   Próximo <ChevronRight size={20} />
                 </button>
               ) : (
-                <button type="submit" disabled={isSubmitting || !isFormValid} className="px-8 py-3 rounded-xl font-bold bg-accent-gold text-primary hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <button type="submit" disabled={isSubmitting || !isFormValid} className="px-8 py-3 rounded-xl font-bold bg-accent-red text-secondary hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
                   {isSubmitting ? 'Enviando Seguro...' : 'Concluir e Enviar Seguro'} <ShieldCheck size={20} />
                 </button>
               )}
@@ -240,5 +242,14 @@ export default function Ds160Form() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Ds160Form() {
+  // We wrap the form content in the Provider so the child steps can access the context
+  return (
+    <Ds160Provider>
+      <Ds160FormContent />
+    </Ds160Provider>
   );
 }

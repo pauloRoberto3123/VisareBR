@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #1F2937;
-  --color-secondary: #FFFFFF;
-  --color-accent-gold: #F59E0B;
+  --color-primary: #0A3161; /* Old Glory Blue */
+  --color-secondary: #FFFFFF; /* White */
+  --color-accent-red: #B31942; /* Old Glory Red (keeping the class name to not break un-opened files) */
   --color-light-gray: #F9FAFB;
   --color-dark-gray: #4B5563;
 }

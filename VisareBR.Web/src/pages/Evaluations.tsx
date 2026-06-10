@@ -46,7 +46,7 @@ export default function Evaluations() {
           
           <button 
             onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-2 bg-accent-gold text-primary px-6 py-3 rounded-full font-bold hover:bg-opacity-90 transition-all"
+            className="inline-flex items-center gap-2 bg-accent-red text-secondary px-6 py-3 rounded-full font-bold hover:bg-opacity-90 transition-all"
           >
             <MessageSquarePlus size={20} />
             Deixar meu depoimento
@@ -91,7 +91,7 @@ export default function Evaluations() {
                   onChange={e => setFormData({...formData, comment: e.target.value})}
                 />
               </div>
-              <button type="submit" className="w-full bg-accent-gold text-primary py-3 rounded-xl font-bold hover:bg-opacity-90 transition-colors">
+              <button type="submit" className="w-full bg-accent-red text-secondary py-3 rounded-xl font-bold hover:bg-opacity-90 transition-colors">
                 Enviar Depoimento
               </button>
             </form>

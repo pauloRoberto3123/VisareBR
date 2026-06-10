@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using VisareBR.Core.Data;
 using VisareBR.Core.Entities;
 
@@ -19,17 +20,23 @@ public class Ds160Controller : ControllerBase
 
     // Public: Submit a new DS-160 Form
     [HttpPost]
-    public async Task<IActionResult> SubmitForm(Ds160Submission dto)
+    public async Task<IActionResult> SubmitForm([FromBody] JsonElement data)
     {
-        if (dto == null) return BadRequest("Data is required.");
+        if (data.ValueKind == JsonValueKind.Undefined || data.ValueKind == JsonValueKind.Null) 
+            return BadRequest("Data is required.");
 
-        // The frontend sends data matching the entity structure.
-        // The PassportNumber will be automatically encrypted when saved to the database 
-        // because of the ValueConverter we configured in ApplicationDbContext.
-        
-        dto.CreatedAt = DateTime.UtcNow;
-        
-        _context.Ds160Submissions.Add(dto);
+        // We extract a few key properties to store in standard columns for easy sorting/listing in the Admin Dashboard.
+        // The raw JSON is safely dumped into PostgreSQL's native JSONB column.
+        var submission = new Ds160Submission
+        {
+            ApplicantName = data.GetProperty("step1").GetProperty("fullName").GetString() ?? "Desconhecido",
+            Email = data.GetProperty("step2").GetProperty("primaryEmail").GetString() ?? "Sem Email",
+            PassportNumber = data.GetProperty("step3").GetProperty("passportNumber").GetString() ?? "",
+            JsonData = data.GetRawText(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Ds160Submissions.Add(submission);
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Formulário recebido e criptografado com segurança." });

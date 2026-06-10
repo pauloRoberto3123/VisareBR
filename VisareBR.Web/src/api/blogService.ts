@@ -25,6 +25,16 @@ export interface Evaluation {
   isApproved: boolean;
 }
 
+export interface Ds160Submission {
+  id: number;
+  applicantName: string;
+  email: string;
+  passportNumber: string;
+  jsonData: string;
+  createdAt: string;
+  isReviewed: boolean;
+}
+
 export const getPosts = () => api.get<BlogPost[]>('/blog');
 export const getPost = (id: number) => api.get<BlogPost>(`/blog/${id}`);
 export const getEvaluations = () => api.get<Evaluation[]>('/evaluations');

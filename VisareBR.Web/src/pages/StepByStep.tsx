@@ -6,7 +6,7 @@ const steps = [
     title: '1. Atendimento Inicial',
     description: 'Você entra em contato conosco via WhatsApp ou formulário. Entendemos seu objetivo de viagem e tiramos suas primeiras dúvidas.',
     icon: <MessageSquare className="w-10 h-10 text-primary" />,
-    color: 'bg-accent-gold'
+    color: 'bg-accent-red'
   },
   {
     title: '2. Análise de Perfil',
@@ -36,7 +36,7 @@ const steps = [
     title: '6. Simulado de Entrevista',
     description: 'Preparamos você com um treinamento personalizado, simulando as perguntas que o oficial consular poderá fazer.',
     icon: <ShieldCheck className="w-10 h-10 text-primary" />,
-    color: 'bg-accent-gold' // Using accent gold for the final step
+    color: 'bg-accent-red' // Using accent gold for the final step
   }
 ];
 
@@ -91,7 +91,7 @@ export default function StepByStep() {
             <p className="text-gray-300 text-lg mb-10 max-w-xl mx-auto">
               Garanta sua assessoria agora e aumente suas chances de aprovação. Nossa equipe está pronta para te atender.
             </p>
-            <a href={whatsappUrl} className="bg-accent-gold text-primary px-10 py-4 rounded-full font-bold text-lg hover:bg-opacity-90 transition-all inline-block">
+            <a href={whatsappUrl} className="bg-accent-red text-secondary px-10 py-4 rounded-full font-bold text-lg hover:bg-opacity-90 transition-all inline-block">
               Iniciar meu Processo Agora
             </a>
           </div>
