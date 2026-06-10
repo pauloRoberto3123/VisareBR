@@ -92,14 +92,14 @@ export default function Ds160Form() {
           <div className="flex items-center justify-between relative">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-light-gray -z-10"></div>
             <div 
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-accent-gold -z-10 transition-all duration-500"
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-accent-red -z-10 transition-all duration-500"
               style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
             ></div>
             
             {STEPS.map((step, index) => (
               <div key={index} className="flex flex-col items-center cursor-pointer group" onClick={() => setCurrentStep(index)}>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors duration-300 ${
-                  index <= currentStep ? 'bg-accent-gold border-accent-gold text-white' : 'bg-white border-light-gray text-dark-gray group-hover:border-accent-gold/[0.5]'
+                  index <= currentStep ? 'bg-accent-red border-accent-gold text-white' : 'bg-white border-light-gray text-dark-gray group-hover:border-accent-gold/[0.5]'
                 }`}>
                   {index + 1}
                 </div>
@@ -230,7 +230,7 @@ export default function Ds160Form() {
                   Próximo <ChevronRight size={20} />
                 </button>
               ) : (
-                <button type="submit" disabled={isSubmitting || !isFormValid} className="px-8 py-3 rounded-xl font-bold bg-accent-gold text-primary hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <button type="submit" disabled={isSubmitting || !isFormValid} className="px-8 py-3 rounded-xl font-bold bg-accent-red text-secondary hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
                   {isSubmitting ? 'Enviando Seguro...' : 'Concluir e Enviar Seguro'} <ShieldCheck size={20} />
                 </button>
               )}

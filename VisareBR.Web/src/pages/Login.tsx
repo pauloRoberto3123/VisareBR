@@ -64,7 +64,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-primary bg-accent-gold hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-gold transition-colors disabled:bg-gray-300"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-primary bg-accent-red hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-gold transition-colors disabled:bg-gray-300"
             >
               {loading ? 'Entrando...' : 'Entrar no Painel'}
             </button>

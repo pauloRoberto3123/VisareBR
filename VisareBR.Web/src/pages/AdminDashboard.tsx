@@ -135,7 +135,7 @@ export default function AdminDashboard() {
                 onChange={e => setNewPost({...newPost, content: e.target.value})}
                 required
               />
-              <button className="w-full bg-accent-gold text-primary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
+              <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
                 Publicar Artigo
               </button>
             </form>
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-bold mb-6 text-primary">Moderação de Depoimentos</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {evals.map(ev => (
-              <div key={ev.id} className={`p-6 rounded-2xl border ${ev.isApproved ? 'border-accent-gold bg-accent-gold/[0.1]' : 'border-dark-gray bg-light-gray'}`}>
+              <div key={ev.id} className={`p-6 rounded-2xl border ${ev.isApproved ? 'border-accent-gold bg-accent-red/[0.1]' : 'border-dark-gray bg-light-gray'}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-bold text-primary">{ev.userName}</h3>
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleApproveEval(ev.id, true)}
-                      className={`p-2 rounded-lg transition-colors ${ev.isApproved ? 'text-secondary bg-accent-gold' : 'text-dark-gray bg-light-gray hover:text-accent-gold hover:bg-light-gray'}`}
+                      className={`p-2 rounded-lg transition-colors ${ev.isApproved ? 'text-secondary bg-accent-red' : 'text-dark-gray bg-light-gray hover:text-accent-gold hover:bg-light-gray'}`}
                     >
                       <CheckCircle size={20}/>
                     </button>
@@ -241,7 +241,7 @@ export default function AdminDashboard() {
                 onChange={e => setSettings({...settings, address: e.target.value})}
               />
             </div>
-            <button className="w-full bg-accent-gold text-primary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
+            <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
               Salvar Configurações
             </button>
           </form>

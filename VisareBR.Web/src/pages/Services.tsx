@@ -91,7 +91,7 @@ export default function Services() {
           <p className="text-dark-gray text-lg mb-10">
             Nossos especialistas podem analisar seu perfil e indicar a melhor categoria para o seu caso específico.
           </p>
-          <a href={whatsappUrl} className="bg-accent-gold text-primary px-10 py-4 rounded-full text-lg font-bold hover:bg-opacity-90 transition-all shadow-lg shadow-dark-gray">
+          <a href={whatsappUrl} className="bg-accent-red text-secondary px-10 py-4 rounded-full text-lg font-bold hover:bg-opacity-90 transition-all shadow-lg shadow-dark-gray">
             Falar com um Consultor Grátis
           </a>
         </div>
