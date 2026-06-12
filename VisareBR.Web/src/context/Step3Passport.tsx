@@ -1,17 +1,102 @@
+import { useState } from 'react';
 import { useDs160 } from './Ds160Context';
+import { Trash2, CheckCircle } from 'lucide-react';
 
 export default function Step3Passport() {
   const { data, updateStepData } = useDs160();
   const { step3 } = data;
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+
+  const showSuccessToast = () => {
+    setUploadSuccess(true);
+    setTimeout(() => setUploadSuccess(false), 3000);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     updateStepData('step3', { [e.target.name]: e.target.value });
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 15 * 1024 * 1024) { // Limite de 15MB
+        alert('A foto deve ter no máximo 15MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        
+        // Se o arquivo for maior que 1MB, realiza compressão
+        if (file.size > 1024 * 1024) {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_DIMENSION = 1200; // Limita a resolução máxima
+
+            if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+              if (width > height) {
+                height = Math.round((height * MAX_DIMENSION) / width);
+                width = MAX_DIMENSION;
+              } else {
+                width = Math.round((width * MAX_DIMENSION) / height);
+                height = MAX_DIMENSION;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              // Preenche fundo branco caso o usuário envie um PNG transparente
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, width, height);
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              // Comprime em JPEG com qualidade de 70%
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+              updateStepData('step3', { passportPhotoBase64: compressedBase64 });
+              showSuccessToast();
+            } else {
+              updateStepData('step3', { passportPhotoBase64: result });
+              showSuccessToast();
+            }
+          };
+          img.src = result;
+        } else {
+          updateStepData('step3', { passportPhotoBase64: result });
+          showSuccessToast();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
     <div className="space-y-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-primary border-b border-light-gray pb-4">Seção 3: Passaporte</h2>
       
+      <div className="bg-light-gray p-5 rounded-2xl space-y-4">
+        <label className="block text-sm font-medium text-primary mb-1">Cópia do Passaporte (Foto ou Scan) *</label>
+        {!step3.passportPhotoBase64 ? (
+          <input type="file" accept="image/*" required onChange={handlePhotoUpload} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red bg-white" />
+        ) : (
+          <div className="mt-4 relative inline-block">
+            <img src={step3.passportPhotoBase64} alt="Passaporte" className="w-48 h-auto rounded-xl border-2 border-accent-gold shadow-md" />
+            <button
+              type="button"
+              onClick={() => updateStepData('step3', { passportPhotoBase64: '' })}
+              className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-md transition-colors"
+              title="Remover foto"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="passportType" className="block text-sm font-medium text-primary mb-1">Tipo de Passaporte *</label>
@@ -107,6 +192,13 @@ export default function Step3Passport() {
         )}
       </div>
 
+      {/* Toast de Sucesso */}
+      {uploadSuccess && (
+        <div className="fixed bottom-6 right-6 bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-fade-in z-50 border border-green-600">
+          <CheckCircle size={24} />
+          <span className="font-bold">Foto processada com sucesso!</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,59 +23,86 @@ const STEPS = [
   'Segurança'
 ];
 
+const isStepValid = (data: Ds160Data, stepIndex: number): boolean => {
+  switch (stepIndex) {
+    case 0: {
+      const s1 = data.step1;
+      if (!s1.fullName || !s1.nativeName || !s1.usedOtherNames || !s1.gender || !s1.maritalStatus || !s1.birthDate || !s1.otherNationality || !s1.cpf || !s1.rg) return false;
+      if (s1.usedOtherNames === 'Yes' && !s1.otherNames) return false;
+      if (s1.maritalStatus === 'Other' && !s1.maritalStatusExplain) return false;
+      if (s1.otherNationality === 'Yes' && !s1.otherNationalityCountry) return false;
+      return true;
+    }
+    case 1: {
+      const s2 = data.step2;
+      if (!s2.homeAddress || !s2.sameMailingAddress || !s2.primaryPhone || !s2.primaryEmail || !s2.hasSocialMedia) return false;
+      if (s2.sameMailingAddress === 'No' && !s2.mailingAddress) return false;
+      if (s2.hasSocialMedia === 'Yes' && (!s2.socialMediaProfiles.length || s2.socialMediaProfiles.some(p => !p.platform || !p.identifier))) return false;
+      return true;
+    }
+    case 2: {
+      const s3 = data.step3;
+      if (!s3.passportType || !s3.passportNumber || !s3.passportIssuerCountry || !s3.passportIssuerState || !s3.passportIssuerCity || !s3.passportIssueDate || !s3.passportExpiryDate || !s3.hasPreviousPassport || !s3.hasLostPassport || !s3.passportPhotoBase64) return false;
+      if (s3.hasPreviousPassport === 'Yes' && (!s3.previousPassportNumber || !s3.previousPassportIssuerCountry || !s3.previousPassportIssueDate || !s3.previousPassportExpiryDate)) return false;
+      if (s3.hasLostPassport === 'Yes' && !s3.lostPassportExplanation) return false;
+      return true;
+    }
+    case 3: {
+      const s4 = data.step4;
+      if (!s4.consularPost || !s4.tripPurpose || !s4.hasSpecificTravelPlans || !s4.usAddressStreet || !s4.usAddressCity || !s4.usAddressState || !s4.payingParty || !s4.hasTravelCompanions) return false;
+      if (s4.hasSpecificTravelPlans === 'No' && (!s4.intendedArrivalDate || !s4.intendedStayLength)) return false;
+      if ((s4.payingParty === 'Other' || s4.payingParty === 'Company') && (!s4.payingPartyName || !s4.payingPartyPhone || !s4.payingPartyEmail || !s4.payingPartyRelationship)) return false;
+      if (s4.hasTravelCompanions === 'Yes' && (!s4.travelCompanions.length || s4.travelCompanions.some(c => !c.fullName || !c.relationship))) return false;
+      return true;
+    }
+    case 4: {
+      const s5 = data.step5;
+      if (!s5.hasBeenToUS || !s5.hasUSVisa || !s5.hasRefusedUSVisa || !s5.hasImmigrationPetition || !s5.hasTraveledInternationally || !s5.hasUSContact) return false;
+      if (s5.hasBeenToUS === 'Yes' && (!s5.lastUSVisitDate || !s5.lastUSVisitLength)) return false;
+      if (s5.hasUSVisa === 'Yes' && (!s5.usVisaNumber || !s5.usVisaIssueDate || !s5.usVisaExpiryDate)) return false;
+      if (s5.hasRefusedUSVisa === 'Yes' && !s5.refusedUSVisaExplanation) return false;
+      if (s5.hasImmigrationPetition === 'Yes' && !s5.immigrationPetitionExplanation) return false;
+      if (s5.hasTraveledInternationally === 'Yes' && (!s5.countriesVisited.length || s5.countriesVisited.some(c => !c))) return false;
+      if (s5.hasUSContact === 'Yes' && (!s5.usContactName || !s5.usContactAddress || !s5.usContactPhone || !s5.usContactEmail || !s5.usContactRelationship)) return false;
+      return true;
+    }
+    case 5: {
+      const s6 = data.step6;
+      if (!s6.fatherFullName || !s6.fatherBirthDate || !s6.isFatherInUS || !s6.motherFullName || !s6.motherBirthDate || !s6.isMotherInUS || !s6.hasImmediateRelativesInUS) return false;
+      if (s6.isFatherInUS === 'Yes' && !s6.fatherUSStatus) return false;
+      if (s6.isMotherInUS === 'Yes' && !s6.motherUSStatus) return false;
+      if (s6.hasImmediateRelativesInUS === 'Yes' && (!s6.immediateRelatives.length || s6.immediateRelatives.some(r => !r.fullName || !r.relationship || !r.status))) return false;
+      return true;
+    }
+    case 6: {
+      const s7 = data.step7;
+      if (!s7.primaryOccupation || !s7.hasPreviousEmployment || !s7.hasHigherEducation) return false;
+      if (['Employed', 'Student', 'Self-employed'].includes(s7.primaryOccupation) && (!s7.currentEmployerSchoolName || !s7.currentEmployerSchoolAddress || !s7.currentEmployerSchoolPhone || !s7.currentStartDate || !s7.currentDuties)) return false;
+      if (['Employed', 'Self-employed'].includes(s7.primaryOccupation) && !s7.currentMonthlySalary) return false;
+      if (s7.hasPreviousEmployment === 'Yes' && (!s7.previousEmployers.length || s7.previousEmployers.some(e => !e.employerName || !e.employerAddress || !e.supervisorName || !e.jobTitle || !e.startDate || !e.endDate || !e.duties))) return false;
+      if (s7.hasHigherEducation === 'Yes' && (!s7.educationHistory.length || s7.educationHistory.some(e => !e.schoolName || !e.schoolAddress || !e.courseOfStudy || !e.startDate || !e.endDate))) return false;
+      return true;
+    }
+    case 7: {
+      const s8 = data.step8;
+      if (!s8.disease || !s8.criminal || !s8.terrorism || !s8.fraud || !s8.deported) return false;
+      if (s8.disease === 'Yes' && !s8.diseaseExplain) return false;
+      if (s8.criminal === 'Yes' && !s8.criminalExplain) return false;
+      if (s8.terrorism === 'Yes' && !s8.terrorismExplain) return false;
+      if (s8.fraud === 'Yes' && !s8.fraudExplain) return false;
+      if (s8.deported === 'Yes' && !s8.deportedExplain) return false;
+      if (!s8.declarationAccepted || !s8.signature) return false;
+      return true;
+    }
+    default:
+      return false;
+  }
+};
+
 const validateDs160Data = (data: Ds160Data): boolean => {
-  const s1 = data.step1;
-  if (!s1.fullName || !s1.nativeName || !s1.usedOtherNames || !s1.gender || !s1.maritalStatus || !s1.birthDate || !s1.otherNationality || !s1.cpf || !s1.rg) return false;
-  if (s1.usedOtherNames === 'Yes' && !s1.otherNames) return false;
-  if (s1.maritalStatus === 'Other' && !s1.maritalStatusExplain) return false;
-  if (s1.otherNationality === 'Yes' && !s1.otherNationalityCountry) return false;
-
-  const s2 = data.step2;
-  if (!s2.homeAddress || !s2.sameMailingAddress || !s2.primaryPhone || !s2.primaryEmail || !s2.hasSocialMedia) return false;
-  if (s2.sameMailingAddress === 'No' && !s2.mailingAddress) return false;
-  if (s2.hasSocialMedia === 'Yes' && (!s2.socialMediaProfiles.length || s2.socialMediaProfiles.some(p => !p.platform || !p.identifier))) return false;
-
-  const s3 = data.step3;
-  if (!s3.passportType || !s3.passportNumber || !s3.passportIssuerCountry || !s3.passportIssuerState || !s3.passportIssuerCity || !s3.passportIssueDate || !s3.passportExpiryDate || !s3.hasPreviousPassport || !s3.hasLostPassport) return false;
-  if (s3.hasPreviousPassport === 'Yes' && (!s3.previousPassportNumber || !s3.previousPassportIssuerCountry || !s3.previousPassportIssueDate || !s3.previousPassportExpiryDate)) return false;
-  if (s3.hasLostPassport === 'Yes' && !s3.lostPassportExplanation) return false;
-
-  const s4 = data.step4;
-  if (!s4.consularPost || !s4.tripPurpose || !s4.hasSpecificTravelPlans || !s4.usAddressStreet || !s4.usAddressCity || !s4.usAddressState || !s4.payingParty || !s4.hasTravelCompanions) return false;
-  if (s4.hasSpecificTravelPlans === 'No' && (!s4.intendedArrivalDate || !s4.intendedStayLength)) return false;
-  if ((s4.payingParty === 'Other' || s4.payingParty === 'Company') && (!s4.payingPartyName || !s4.payingPartyPhone || !s4.payingPartyEmail || !s4.payingPartyRelationship)) return false;
-  if (s4.hasTravelCompanions === 'Yes' && (!s4.travelCompanions.length || s4.travelCompanions.some(c => !c.fullName || !c.relationship))) return false;
-
-  const s5 = data.step5;
-  if (!s5.hasBeenToUS || !s5.hasUSVisa || !s5.hasRefusedUSVisa || !s5.hasImmigrationPetition || !s5.hasTraveledInternationally || !s5.hasUSContact) return false;
-  if (s5.hasBeenToUS === 'Yes' && (!s5.lastUSVisitDate || !s5.lastUSVisitLength)) return false;
-  if (s5.hasUSVisa === 'Yes' && (!s5.usVisaNumber || !s5.usVisaIssueDate || !s5.usVisaExpiryDate)) return false;
-  if (s5.hasRefusedUSVisa === 'Yes' && !s5.refusedUSVisaExplanation) return false;
-  if (s5.hasImmigrationPetition === 'Yes' && !s5.immigrationPetitionExplanation) return false;
-  if (s5.hasTraveledInternationally === 'Yes' && (!s5.countriesVisited.length || s5.countriesVisited.some(c => !c))) return false;
-  if (s5.hasUSContact === 'Yes' && (!s5.usContactName || !s5.usContactAddress || !s5.usContactPhone || !s5.usContactEmail || !s5.usContactRelationship)) return false;
-
-  const s6 = data.step6;
-  if (!s6.fatherFullName || !s6.fatherBirthDate || !s6.isFatherInUS || !s6.motherFullName || !s6.motherBirthDate || !s6.isMotherInUS || !s6.hasImmediateRelativesInUS) return false;
-  if (s6.isFatherInUS === 'Yes' && !s6.fatherUSStatus) return false;
-  if (s6.isMotherInUS === 'Yes' && !s6.motherUSStatus) return false;
-  if (s6.hasImmediateRelativesInUS === 'Yes' && (!s6.immediateRelatives.length || s6.immediateRelatives.some(r => !r.fullName || !r.relationship || !r.status))) return false;
-
-  const s7 = data.step7;
-  if (!s7.primaryOccupation || !s7.hasPreviousEmployment || !s7.hasHigherEducation) return false;
-  if (['Employed', 'Student', 'Self-employed'].includes(s7.primaryOccupation) && (!s7.currentEmployerSchoolName || !s7.currentEmployerSchoolAddress || !s7.currentEmployerSchoolPhone || !s7.currentStartDate || !s7.currentDuties)) return false;
-  if (['Employed', 'Self-employed'].includes(s7.primaryOccupation) && !s7.currentMonthlySalary) return false;
-  if (s7.hasPreviousEmployment === 'Yes' && (!s7.previousEmployers.length || s7.previousEmployers.some(e => !e.employerName || !e.employerAddress || !e.supervisorName || !e.jobTitle || !e.startDate || !e.endDate || !e.duties))) return false;
-  if (s7.hasHigherEducation === 'Yes' && (!s7.educationHistory.length || s7.educationHistory.some(e => !e.schoolName || !e.schoolAddress || !e.courseOfStudy || !e.startDate || !e.endDate))) return false;
-
-  const s8 = data.step8;
-  if (!s8.disease || !s8.criminal || !s8.terrorism || !s8.fraud || !s8.deported) return false;
-  if (s8.disease === 'Yes' && !s8.diseaseExplain) return false;
-  if (s8.criminal === 'Yes' && !s8.criminalExplain) return false;
-  if (s8.terrorism === 'Yes' && !s8.terrorismExplain) return false;
-  if (s8.fraud === 'Yes' && !s8.fraudExplain) return false;
-  if (s8.deported === 'Yes' && !s8.deportedExplain) return false;
-  if (!s8.declarationAccepted || !s8.signature) return false;
+  for (let i = 0; i < 8; i++) {
+    if (!isStepValid(data, i)) return false;
+  }
 
   return true;
 };
@@ -84,10 +111,23 @@ function Ds160FormContent() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
   const { data } = useDs160();
   
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+  let maxAccessibleStep = 0;
+  for (let i = 0; i < STEPS.length; i++) {
+    if (isStepValid(data, i)) {
+      maxAccessibleStep = i + 1;
+    } else {
+      break;
+    }
+  }
+  maxAccessibleStep = Math.min(maxAccessibleStep, STEPS.length - 1);
+
+  const prevStep = () => {
+    setShowErrors(false);
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
 
   // Comprehensive validation across all conditional steps
   const isFormValid = validateDs160Data(data); 
@@ -96,10 +136,18 @@ function Ds160FormContent() {
     e.preventDefault();
     
     if (currentStep !== STEPS.length - 1) {
-      nextStep();
+      if (isStepValid(data, currentStep)) {
+        setShowErrors(false);
+        setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+      } else {
+        setShowErrors(true);
+      }
       return;
     }
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      setShowErrors(true);
+      return;
+    }
 
     setIsSubmitting(true);
     
@@ -150,16 +198,30 @@ function Ds160FormContent() {
               style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
             ></div>
             
-            {STEPS.map((step, index) => (
-              <div key={index} className="flex flex-col items-center cursor-pointer group" onClick={() => setCurrentStep(index)}>
+            {STEPS.map((step, index) => {
+              const isAccessible = index <= maxAccessibleStep;
+              return (
+              <div 
+                key={index} 
+                className={`flex flex-col items-center ${isAccessible ? 'cursor-pointer group' : 'cursor-not-allowed opacity-50'}`} 
+                onClick={() => {
+                  if (isAccessible) {
+                    setShowErrors(false);
+                    setCurrentStep(index);
+                  }
+                }}
+              >
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors duration-300 ${
-                  index <= currentStep ? 'bg-accent-red border-accent-gold text-white' : 'bg-white border-light-gray text-dark-gray group-hover:border-accent-gold/[0.5]'
+                  index === currentStep ? 'bg-accent-red border-accent-gold text-white' : 
+                  index < currentStep ? 'bg-accent-red border-accent-red text-white' :
+                  isAccessible ? 'bg-white border-light-gray text-dark-gray group-hover:border-accent-gold/[0.5]' :
+                  'bg-gray-100 border-gray-200 text-gray-400'
                 }`}>
                   {index + 1}
                 </div>
-                <span className="text-xs font-medium mt-2 text-dark-gray hidden sm:block">{step}</span>
+                <span className={`text-xs font-medium mt-2 hidden sm:block ${index === currentStep ? 'text-accent-red' : 'text-dark-gray'}`}>{step}</span>
               </div>
-            ))}
+            )})}
           </div>
         </div>
 
@@ -217,7 +279,12 @@ function Ds160FormContent() {
             )}
 
             {/* Navigation Buttons */}
-            <div className="mt-10 pt-6 border-t border-light-gray flex justify-between">
+            {showErrors && (
+              <div className="mt-4 bg-red-50 p-4 rounded-xl text-red-600 text-sm font-medium border border-red-200">
+                ⚠️ Por favor, preencha corretamente todos os campos obrigatórios desta etapa para continuar.
+              </div>
+            )}
+            <div className="mt-6 pt-6 border-t border-light-gray flex justify-between">
               <button 
                 type="button" 
                 onClick={prevStep} 
@@ -228,7 +295,7 @@ function Ds160FormContent() {
               </button>
               
               {currentStep < STEPS.length - 1 ? (
-                <button type="button" onClick={nextStep} className="px-8 py-3 rounded-xl font-bold bg-primary text-secondary hover:bg-opacity-90 transition-colors flex items-center gap-2">
+                <button type="submit" className="px-8 py-3 rounded-xl font-bold bg-primary text-secondary hover:bg-opacity-90 transition-colors flex items-center gap-2">
                   Próximo <ChevronRight size={20} />
                 </button>
               ) : (
