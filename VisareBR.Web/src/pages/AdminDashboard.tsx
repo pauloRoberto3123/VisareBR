@@ -287,10 +287,26 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div>
-                <h3 className="font-bold text-primary mb-4 text-lg">Dados Completos do Formulário</h3>
-                <pre className="bg-light-gray p-6 rounded-xl text-sm text-dark-gray overflow-auto max-h-[600px] border border-gray-200 shadow-inner">
-                  {JSON.stringify(JSON.parse(selectedDs160.jsonData), null, 2)}
-                </pre>
+                {(() => {
+                  const formData = JSON.parse(selectedDs160.jsonData);
+                  const photoBase64 = formData.step3?.passportPhotoBase64;
+                  if (photoBase64) formData.step3.passportPhotoBase64 = "[IMAGEM BASE64 OCULTA - VER ACIMA]";
+                  
+                  return (
+                    <>
+                      {photoBase64 && (
+                        <div className="mb-6">
+                          <h3 className="font-bold text-primary mb-4 text-lg">Foto do Passaporte</h3>
+                          <img src={photoBase64} alt="Passaporte do Requerente" className="max-w-md w-full h-auto rounded-xl border border-light-gray shadow-md mb-8" />
+                        </div>
+                      )}
+                      <h3 className="font-bold text-primary mb-4 text-lg">Dados Completos do Formulário</h3>
+                      <pre className="bg-light-gray p-6 rounded-xl text-sm text-dark-gray overflow-auto max-h-[600px] border border-gray-200 shadow-inner">
+                        {JSON.stringify(formData, null, 2)}
+                      </pre>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           ) : (

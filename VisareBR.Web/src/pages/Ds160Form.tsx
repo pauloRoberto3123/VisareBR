@@ -42,7 +42,7 @@ const isStepValid = (data: Ds160Data, stepIndex: number): boolean => {
     }
     case 2: {
       const s3 = data.step3;
-      if (!s3.passportType || !s3.passportNumber || !s3.passportIssuerCountry || !s3.passportIssuerState || !s3.passportIssuerCity || !s3.passportIssueDate || !s3.passportExpiryDate || !s3.hasPreviousPassport || !s3.hasLostPassport) return false;
+      if (!s3.passportType || !s3.passportNumber || !s3.passportIssuerCountry || !s3.passportIssuerState || !s3.passportIssuerCity || !s3.passportIssueDate || !s3.passportExpiryDate || !s3.hasPreviousPassport || !s3.hasLostPassport || !s3.passportPhotoBase64) return false;
       if (s3.hasPreviousPassport === 'Yes' && (!s3.previousPassportNumber || !s3.previousPassportIssuerCountry || !s3.previousPassportIssueDate || !s3.previousPassportExpiryDate)) return false;
       if (s3.hasLostPassport === 'Yes' && !s3.lostPassportExplanation) return false;
       return true;

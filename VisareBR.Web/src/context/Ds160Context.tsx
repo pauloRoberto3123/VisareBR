@@ -83,6 +83,7 @@ export interface Ds160Data {
     previousPassportExpiryDate: string;
     hasLostPassport: string;
     lostPassportExplanation: string;
+    passportPhotoBase64?: string;
   };
   step4: {
     consularPost: string;
@@ -172,7 +173,8 @@ const initialState: Ds160Data = {
   step3: {
     passportType: '', passportNumber: '', passportIssuerCountry: '', passportIssuerCity: '', passportIssuerState: '',
     passportIssueDate: '', passportExpiryDate: '', hasPreviousPassport: '', previousPassportNumber: '', 
-    previousPassportIssuerCountry: '', previousPassportIssueDate: '', previousPassportExpiryDate: '', hasLostPassport: '', lostPassportExplanation: ''
+    previousPassportIssuerCountry: '', previousPassportIssueDate: '', previousPassportExpiryDate: '', hasLostPassport: '', lostPassportExplanation: '',
+    passportPhotoBase64: ''
   },
   step4: {
     consularPost: '', tripPurpose: 'B2', hasSpecificTravelPlans: '', intendedArrivalDate: '', intendedStayLength: '', usAddressStreet: '',
