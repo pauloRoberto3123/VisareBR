@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import api from '../api/blogService';
 import type { BlogPost, Evaluation, Ds160Submission } from '../api/blogService';
-import { Plus, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import type { Plan } from './PricingSection';
+import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'blog' | 'evaluations' | 'settings' | 'ds160'>('blog');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing'>('overview');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [evals, setEvals] = useState<Evaluation[]>([]);
   const [ds160Forms, setDs160Forms] = useState<Ds160Submission[]>([]);
   const [selectedDs160, setSelectedDs160] = useState<Ds160Submission | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   
   // Blog Form State
   const [newPost, setNewPost] = useState({ title: '', summary: '', content: '', imageUrl: '' });
@@ -21,9 +26,46 @@ export default function AdminDashboard() {
     fetchSettings();
   }, [activeTab]);
 
+  const handleManualLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  // Inactivity Logout Timer (15 minutos)
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      // 15 minutos = 900.000 milissegundos
+      timeoutId = setTimeout(() => {
+        alert('Sua sessão expirou por inatividade.');
+        handleManualLogout();
+      }, 900000);
+    };
+
+    resetTimer();
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+    events.forEach(e => window.addEventListener(e, resetTimer));
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [navigate]);
+
   const fetchData = async () => {
     try {
-      if (activeTab === 'blog') {
+      if (activeTab === 'overview') {
+        const [postsRes, evalsRes, ds160Res] = await Promise.all([
+          api.get('/blog'),
+          api.get('/evaluations/admin'),
+          api.get('/ds160/admin')
+        ]);
+        setPosts(postsRes.data);
+        setEvals(evalsRes.data);
+        setDs160Forms(ds160Res.data);
+      } else if (activeTab === 'blog') {
         const res = await api.get('/blog');
         setPosts(res.data);
       } else if (activeTab === 'evaluations') {
@@ -32,6 +74,9 @@ export default function AdminDashboard() {
       } else if (activeTab === 'ds160') {
         const res = await api.get('/ds160/admin');
         setDs160Forms(res.data);
+      } else if (activeTab === 'pricing') {
+        const res = await api.get('/pricing');
+        setPlans(res.data);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -81,11 +126,55 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleUpdatePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan) return;
+    
+    try {
+      await api.put(`/pricing/${selectedPlan.id}`, selectedPlan);
+      alert('Valores do plano atualizados com sucesso!');
+      setSelectedPlan(null);
+      fetchData();
+    } catch (err) {
+      alert('Erro ao atualizar plano.');
+    }
+  };
+
+  const handleTierChange = (applicantCount: number, price: string) => {
+    if (!selectedPlan) return;
+    const updatedTiers = [...selectedPlan.pricingTiers];
+    const tierIndex = updatedTiers.findIndex(t => t.applicantCount === applicantCount);
+
+    if (price === '') {
+      if (tierIndex >= 0) updatedTiers.splice(tierIndex, 1);
+    } else {
+      const numPrice = parseFloat(price.replace(',', '.')) || 0;
+      if (tierIndex >= 0) updatedTiers[tierIndex].totalPrice = numPrice;
+      else updatedTiers.push({ id: 0, applicantCount: applicantCount, totalPrice: numPrice });
+    }
+
+    setSelectedPlan({ ...selectedPlan, pricingTiers: updatedTiers });
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-secondary min-h-[80vh]">
-      <h1 className="text-3xl font-bold mb-8 text-primary">Painel de Controle</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <h1 className="text-3xl font-bold text-primary">Painel de Controle</h1>
+        <button 
+          onClick={handleManualLogout}
+          className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-2.5 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-200"
+        >
+          <LogOut size={20} /> Sair do Sistema
+        </button>
+      </div>
       
-      <div className="flex gap-4 mb-10 border-b border-light-gray">
+      <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2">
+        <button 
+          onClick={() => setActiveTab('overview')}
+          className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'overview' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
+        >
+          Visão Geral
+        </button>
         <button 
           onClick={() => setActiveTab('blog')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'blog' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
@@ -110,7 +199,101 @@ export default function AdminDashboard() {
         >
           Formulários DS-160
         </button>
+        <button 
+          onClick={() => { setActiveTab('pricing'); setSelectedPlan(null); }}
+          className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'pricing' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
+        >
+          Planos e Preços
+        </button>
       </div>
+
+      {activeTab === 'overview' && (
+        <div className="space-y-8 animate-fade-in">
+          <h2 className="text-2xl font-bold text-primary">Dashboard de Desempenho</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4">
+              <div className="p-4 bg-accent-gold/[0.2] text-accent-gold rounded-xl">
+                <FileText size={32} />
+              </div>
+              <div>
+                <p className="text-dark-gray text-sm font-bold uppercase tracking-wider">DS-160 Recebidos</p>
+                <p className="text-3xl font-black text-primary">{ds160Forms.length}</p>
+              </div>
+            </div>
+            
+            <div className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4">
+              <div className="p-4 bg-accent-red/[0.1] text-accent-red rounded-xl">
+                <MessageSquare size={32} />
+              </div>
+              <div>
+                <p className="text-dark-gray text-sm font-bold uppercase tracking-wider">Depoimentos Pendentes</p>
+                <p className="text-3xl font-black text-primary">{evals.filter(e => !e.isApproved).length}</p>
+              </div>
+            </div>
+
+            <div className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4">
+              <div className="p-4 bg-green-500/10 text-green-500 rounded-xl">
+                <TrendingUp size={32} />
+              </div>
+              <div>
+                <p className="text-dark-gray text-sm font-bold uppercase tracking-wider">Artigos Publicados</p>
+                <p className="text-3xl font-black text-primary">{posts.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
+            <h3 className="text-lg font-bold text-primary flex items-center gap-2 mb-6">
+              <BarChart3 size={20} className="text-accent-gold" />
+              Submissões de Visto (Últimos 7 dias)
+            </h3>
+            
+            <div className="h-64 flex items-end justify-between gap-2 sm:gap-4 mt-8 relative">
+              {/* Linhas de fundo do gráfico */}
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
+                <div className="border-b border-dark-gray w-full h-0"></div>
+                <div className="border-b border-dark-gray w-full h-0"></div>
+                <div className="border-b border-dark-gray w-full h-0"></div>
+                <div className="border-b border-dark-gray w-full h-0"></div>
+              </div>
+
+              {(() => {
+                // Construindo o eixo X para os últimos 7 dias dinamicamente
+                const last7Days = [...Array(7)].map((_, i) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - (6 - i));
+                  return d.toISOString().split('T')[0];
+                });
+                
+                const chartData = last7Days.map(date => {
+                  const count = ds160Forms.filter(f => new Date(f.createdAt).toISOString().split('T')[0] === date).length;
+                  const dateObj = new Date(date + 'T12:00:00Z');
+                  return { 
+                    date: dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), 
+                    count 
+                  };
+                });
+                
+                const maxCount = Math.max(...chartData.map(d => d.count), 5); // Teto mínimo visual de 5
+                
+                return chartData.map((d, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2 z-10 h-full justify-end group">
+                    <div className="text-xs font-bold text-dark-gray opacity-0 group-hover:opacity-100 transition-opacity">
+                      {d.count}
+                    </div>
+                    <div 
+                      className="w-full bg-accent-gold rounded-t-md transition-all duration-1000 ease-out hover:bg-opacity-80" 
+                      style={{ height: `${(d.count / maxCount) * 100}%`, minHeight: d.count > 0 ? '8px' : '2px' }}
+                    ></div>
+                    <span className="text-xs font-medium text-dark-gray">{d.date}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'blog' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -343,6 +526,100 @@ export default function AdminDashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'pricing' && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold mb-6 text-primary">Gerenciar Planos e Preços</h2>
+
+          {selectedPlan ? (
+            <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
+              <button onClick={() => setSelectedPlan(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline">
+                ← Voltar para a lista
+              </button>
+
+              <form onSubmit={handleUpdatePlan} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-primary">Nome do Plano</label>
+                    <input
+                      className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
+                      value={selectedPlan.name}
+                      onChange={e => setSelectedPlan({ ...selectedPlan, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-primary">Tempo de Processamento</label>
+                    <input
+                      className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
+                      value={selectedPlan.processingTime}
+                      onChange={e => setSelectedPlan({ ...selectedPlan, processingTime: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-primary mb-4 border-b border-light-gray pb-2 flex items-center gap-2"><DollarSign size={20} className="text-accent-gold"/> Preços por Quantidade de Solicitantes</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(count => {
+                      const tier = selectedPlan.pricingTiers.find(t => t.applicantCount === count);
+                      return (
+                        <div key={count} className="bg-light-gray p-4 rounded-xl border border-dark-gray/20">
+                          <label className="block text-sm font-bold text-dark-gray mb-2">{count} {count === 1 ? 'Pessoa' : 'Pessoas'}</label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-primary font-medium">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              className="w-full p-2 border border-dark-gray rounded-md focus:ring-2 focus:ring-accent-gold"
+                              value={tier ? tier.totalPrice : ''}
+                              placeholder="0.00"
+                              onChange={e => handleTierChange(count, e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-dark-gray mt-2 italic">* Deixe o campo vazio para não exibir o plano para aquela quantidade de solicitantes.</p>
+                </div>
+
+                <button type="submit" className="bg-accent-red text-secondary px-8 py-3 rounded-xl font-bold hover:bg-opacity-90 transition-colors">
+                  Salvar Valores
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {plans.map(plan => (
+                <div key={plan.id} className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                  <h3 className="text-2xl font-bold text-primary mb-2">{plan.name}</h3>
+                  <p className="text-dark-gray text-sm mb-6">Processamento: {plan.processingTime}</p>
+                  
+                  <div className="mb-6 space-y-2 flex-grow">
+                    <p className="text-xs font-bold text-dark-gray uppercase tracking-wider">Tiers Cadastrados</p>
+                    <div className="flex flex-wrap gap-2">
+                      {plan.pricingTiers.map(t => (
+                        <span key={t.id} className="bg-light-gray text-primary text-xs px-2 py-1 rounded-md font-medium border border-dark-gray/20">
+                          {t.applicantCount}p: R$ {t.totalPrice}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedPlan(JSON.parse(JSON.stringify(plan)))}
+                    className="w-full bg-primary text-secondary py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors mt-auto"
+                  >
+                    Editar Valores
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -9,12 +9,33 @@ import Evaluations from './pages/Evaluations';
 import Services from './pages/Services';
 import StepByStep from './pages/StepByStep';
 import Ds160Form from './pages/Ds160Form';
+import PricingSection from './pages/PricingSection';
 import './App.css';
+import api from './api/blogService';
+
+// Interceptor Global do Axios para tratar 401 Unauthorized (Token JWT Expirado)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Simple guard to check for token
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
   if (!token) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+// Guard to prevent logged-in users from seeing the login page
+const GuestRoute = ({ children }: { children: React.ReactNode }) => {
+  const token = localStorage.getItem('token');
+  if (token) return <Navigate to="/admin" replace />;
   return <>{children}</>;
 };
 
@@ -26,7 +47,14 @@ function App() {
           <Route index element={<Home />} />
           <Route path="blog" element={<BlogList />} />
           <Route path="blog/:id" element={<BlogPost />} />
-          <Route path="login" element={<Login />} />
+        <Route 
+          path="login" 
+          element={
+            <GuestRoute>
+              <Login />
+            </GuestRoute>
+          } 
+        />
                     <Route path="admin" 
             element={
               <ProtectedRoute>
@@ -38,6 +66,7 @@ function App() {
           <Route path="como-funciona" element={<StepByStep />} />
           <Route path="avaliacoes" element={<Evaluations />} />
           <Route path="ds-160" element={<Ds160Form />} />
+          <Route path="precos" element={<PricingSection />} />
 
         </Route>
       </Routes>
