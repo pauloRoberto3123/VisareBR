@@ -2,8 +2,15 @@ import { useState, useEffect } from 'react';
 import api from '../api/blogService';
 import type { BlogPost, Evaluation, Ds160Submission } from '../api/blogService';
 import type { Plan } from './PricingSection';
-import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+interface StandaloneService {
+  id: string;
+  name: string;
+  price: number;
+  isActive: boolean;
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -14,6 +21,8 @@ export default function AdminDashboard() {
   const [selectedDs160, setSelectedDs160] = useState<Ds160Submission | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [standaloneServices, setStandaloneServices] = useState<StandaloneService[]>([]);
+  const [editingStandaloneService, setEditingStandaloneService] = useState<StandaloneService | null>(null);
   
   // Blog Form State
   const [newPost, setNewPost] = useState({ title: '', summary: '', content: '', imageUrl: '' });
@@ -75,8 +84,12 @@ export default function AdminDashboard() {
         const res = await api.get('/ds160/admin');
         setDs160Forms(res.data);
       } else if (activeTab === 'pricing') {
-        const res = await api.get('/pricing');
-        setPlans(res.data);
+        const [plansRes, servicesRes] = await Promise.all([
+          api.get('/pricing'),
+          api.get('/services/standalone')
+        ]);
+        setPlans(plansRes.data);
+        setStandaloneServices(servicesRes.data);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -156,6 +169,43 @@ export default function AdminDashboard() {
     setSelectedPlan({ ...selectedPlan, pricingTiers: updatedTiers });
   };
 
+  const handleSaveStandaloneService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStandaloneService) return;
+
+    const serviceToSave = {
+        ...editingStandaloneService,
+        price: Number(editingStandaloneService.price) || 0
+    };
+
+    try {
+      if (serviceToSave.id !== '00000000-0000-0000-0000-000000000000') {
+        await api.put(`/services/standalone/${serviceToSave.id}`, serviceToSave);
+      } else {
+        const { id, ...newService } = serviceToSave;
+        await api.post('/services/standalone', newService);
+      }
+      alert('Serviço salvo com sucesso!');
+      setEditingStandaloneService(null);
+      fetchData();
+    } catch (err) {
+      alert('Erro ao salvar serviço.');
+      console.error(err);
+    }
+  };
+
+  const handleDeleteStandaloneService = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este serviço avulso?')) {
+      try {
+        await api.delete(`/services/standalone/${id}`);
+        alert('Serviço excluído com sucesso!');
+        fetchData();
+      } catch (err) {
+        alert('Erro ao excluir serviço.');
+      }
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-secondary min-h-[80vh]">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -168,7 +218,7 @@ export default function AdminDashboard() {
         </button>
       </div>
       
-      <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2">
+      <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2 -mx-4 px-4">
         <button 
           onClick={() => setActiveTab('overview')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'overview' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
@@ -200,7 +250,7 @@ export default function AdminDashboard() {
           Formulários DS-160
         </button>
         <button 
-          onClick={() => { setActiveTab('pricing'); setSelectedPlan(null); }}
+          onClick={() => { setActiveTab('pricing'); setSelectedPlan(null); setEditingStandaloneService(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'pricing' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Planos e Preços
@@ -622,6 +672,69 @@ export default function AdminDashboard() {
               ))}
             </div>
           )}
+
+          {/* Standalone Services Management */}
+          <div className="mt-16 pt-12 border-t border-light-gray">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-primary">Gerenciar Serviços Avulsos</h2>
+                <button
+                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true })}
+                    className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
+                >
+                    <Plus size={20} /> Adicionar Serviço
+                </button>
+            </div>
+
+            {editingStandaloneService && (
+                <div className="bg-light-gray p-6 rounded-2xl border border-dark-gray/20 mb-8">
+                    <h3 className="text-lg font-bold text-primary mb-4">
+                        {editingStandaloneService.id !== '00000000-0000-0000-0000-000000000000' ? 'Editando Serviço' : 'Novo Serviço Avulso'}
+                    </h3>
+                    <form onSubmit={handleSaveStandaloneService} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-primary mb-1">Nome do Serviço</label>
+                            <input
+                                type="text"
+                                required
+                                value={editingStandaloneService.name}
+                                onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, name: e.target.value })}
+                                className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-primary mb-1">Preço (R$)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                required
+                                value={editingStandaloneService.price}
+                                onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, price: parseFloat(e.target.value) || 0 })}
+                                className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                            />
+                        </div>
+                        <div className="md:col-span-3 flex gap-4">
+                            <button type="submit" className="bg-primary text-secondary px-6 py-2 rounded-lg font-bold hover:bg-opacity-90">Salvar</button>
+                            <button type="button" onClick={() => setEditingStandaloneService(null)} className="text-dark-gray font-bold hover:underline">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            <div className="bg-secondary rounded-2xl border border-light-gray shadow-sm overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-light-gray text-primary text-sm border-b border-gray-200"><tr className="bg-light-gray text-primary text-sm border-b border-gray-200"><th className="p-4 font-bold">Nome do Serviço</th><th className="p-4 font-bold">Preço</th><th className="p-4 font-bold text-right">Ações</th></tr></thead>
+                    <tbody>
+                        {standaloneServices.map(service => (
+                            <tr key={service.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="p-4 font-medium text-primary">{service.name}</td>
+                                <td className="p-4 text-dark-gray">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}</td>
+                                <td className="p-4 text-right flex gap-2 justify-end"><button onClick={() => setEditingStandaloneService(JSON.parse(JSON.stringify(service)))} className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"><Edit size={18} /></button><button onClick={() => handleDeleteStandaloneService(service.id)} className="p-2 text-dark-gray hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+          </div>
         </div>
       )}
     </div>

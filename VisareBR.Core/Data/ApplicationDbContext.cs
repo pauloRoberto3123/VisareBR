@@ -25,6 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Plan> Plans { get; set; }
     public DbSet<PlanBenefit> PlanBenefits { get; set; }
     public DbSet<PlanPricingTier> PlanPricingTiers { get; set; }
+    public DbSet<StandaloneService> StandaloneServices { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -61,6 +62,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Plan Pricing precision configuration
         builder.Entity<PlanPricingTier>()
             .Property(t => t.TotalPrice)
+            .HasPrecision(18, 2);
+            
+        builder.Entity<StandaloneService>()
+            .Property(s => s.Price)
             .HasPrecision(18, 2);
 
         // Seed Data: Plans
@@ -107,6 +112,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new PlanPricingTier { Id = 6, PlanId = 3, ApplicantCount = 2, TotalPrice = 1799.00m },
             new PlanPricingTier { Id = 7, PlanId = 4, ApplicantCount = 1, TotalPrice = 1299.00m },
             new PlanPricingTier { Id = 8, PlanId = 4, ApplicantCount = 2, TotalPrice = 2399.00m }
+        );
+
+        // Seed Data: Standalone Services
+        // Usando Guids fixos para garantir que as migrações sejam aplicadas de forma consistente
+        builder.Entity<StandaloneService>().HasData(
+            new StandaloneService { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Name = "Serviço de Passaporte", Price = 250.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Name = "Emissão do eTA (eletrônico canadense)", Price = 250.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("33333333-3333-3333-3333-333333333333"), Name = "Emissão do ESTA (eletrônico americano)", Price = 250.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("44444444-4444-4444-4444-444444444444"), Name = "Serviço de Entrega Premium (renovação sem entrevista)", Price = 250.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("55555555-5555-5555-5555-555555555555"), Name = "Visto Canadá Turismo", Price = 490.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("66666666-6666-6666-6666-666666666666"), Name = "Reversão de Negativa", Price = 500.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("77777777-7777-7777-7777-777777777777"), Name = "Somente Agendamento", Price = 250.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("88888888-8888-8888-8888-888888888888"), Name = "Antecipação de Entrevista", Price = 150.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("99999999-9999-9999-9999-999999999999"), Name = "Simulação de Entrevista", Price = 500.00m, IsActive = true },
+            new StandaloneService { Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), Name = "Revisão do DS-160", Price = 350.00m, IsActive = true }
         );
     }
 
