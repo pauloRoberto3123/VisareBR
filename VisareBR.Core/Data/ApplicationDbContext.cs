@@ -22,6 +22,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Evaluation> Evaluations { get; set; }
     public DbSet<SiteSettings> Settings { get; set; }
     public DbSet<Ds160Submission> Ds160Submissions { get; set; }
+    public DbSet<Plan> Plans { get; set; }
+    public DbSet<PlanBenefit> PlanBenefits { get; set; }
+    public DbSet<PlanPricingTier> PlanPricingTiers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -54,6 +57,57 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Ds160Submission>()
             .Property(e => e.JsonData)
             .HasColumnType("jsonb");
+
+        // Plan Pricing precision configuration
+        builder.Entity<PlanPricingTier>()
+            .Property(t => t.TotalPrice)
+            .HasPrecision(18, 2);
+
+        // Seed Data: Plans
+        builder.Entity<Plan>().HasData(
+            new Plan { Id = 1, Name = "Padrão", ProcessingTime = "4 dias úteis", IsActive = true },
+            new Plan { Id = 2, Name = "Intermediário", ProcessingTime = "2 dias úteis", IsActive = true },
+            new Plan { Id = 3, Name = "Premium", ProcessingTime = "24 horas", IsActive = true },
+            new Plan { Id = 4, Name = "VIP", ProcessingTime = "24 horas", IsActive = true }
+        );
+
+        // Seed Data: Plan Benefits
+        builder.Entity<PlanBenefit>().HasData(
+            // Padrão
+            new PlanBenefit { Id = 1, PlanId = 1, Description = "Avaliação de perfil", IsIncluded = true },
+            new PlanBenefit { Id = 2, PlanId = 1, Description = "Preenchimento do DS-160", IsIncluded = true },
+            new PlanBenefit { Id = 3, PlanId = 1, Description = "Criação de conta no consulado", IsIncluded = true },
+            new PlanBenefit { Id = 4, PlanId = 1, Description = "Defesa em caso de negativa", IsIncluded = false },
+            new PlanBenefit { Id = 5, PlanId = 1, Description = "Atendimento exclusivo", IsIncluded = false },
+            // Intermediário
+            new PlanBenefit { Id = 6, PlanId = 2, Description = "Avaliação de perfil", IsIncluded = true },
+            new PlanBenefit { Id = 7, PlanId = 2, Description = "Preenchimento do DS-160", IsIncluded = true },
+            new PlanBenefit { Id = 8, PlanId = 2, Description = "Criação de conta no consulado", IsIncluded = true },
+            new PlanBenefit { Id = 9, PlanId = 2, Description = "Defesa em caso de negativa", IsIncluded = true },
+            new PlanBenefit { Id = 10, PlanId = 2, Description = "Atendimento exclusivo", IsIncluded = false },
+            // Premium
+            new PlanBenefit { Id = 11, PlanId = 3, Description = "Tudo do Intermediário", IsIncluded = true },
+            new PlanBenefit { Id = 12, PlanId = 3, Description = "Atendimento exclusivo", IsIncluded = true },
+            new PlanBenefit { Id = 13, PlanId = 3, Description = "Isenção de taxa na 1ª renovação", IsIncluded = true },
+            new PlanBenefit { Id = 14, PlanId = 3, Description = "Representação e eTA Canadá", IsIncluded = false },
+            // VIP
+            new PlanBenefit { Id = 15, PlanId = 4, Description = "Tudo do Premium", IsIncluded = true },
+            new PlanBenefit { Id = 16, PlanId = 4, Description = "Representação em processos", IsIncluded = true },
+            new PlanBenefit { Id = 17, PlanId = 4, Description = "eTA Canadá grátis", IsIncluded = true },
+            new PlanBenefit { Id = 18, PlanId = 4, Description = "Isenção em 2 renovações", IsIncluded = true }
+        );
+
+        // Seed Data: Plan Pricing Tiers (1 to 2 applicants initially)
+        builder.Entity<PlanPricingTier>().HasData(
+            new PlanPricingTier { Id = 1, PlanId = 1, ApplicantCount = 1, TotalPrice = 549.00m },
+            new PlanPricingTier { Id = 2, PlanId = 1, ApplicantCount = 2, TotalPrice = 999.00m },
+            new PlanPricingTier { Id = 3, PlanId = 2, ApplicantCount = 1, TotalPrice = 749.00m },
+            new PlanPricingTier { Id = 4, PlanId = 2, ApplicantCount = 2, TotalPrice = 1399.00m },
+            new PlanPricingTier { Id = 5, PlanId = 3, ApplicantCount = 1, TotalPrice = 949.00m },
+            new PlanPricingTier { Id = 6, PlanId = 3, ApplicantCount = 2, TotalPrice = 1799.00m },
+            new PlanPricingTier { Id = 7, PlanId = 4, ApplicantCount = 1, TotalPrice = 1299.00m },
+            new PlanPricingTier { Id = 8, PlanId = 4, ApplicantCount = 2, TotalPrice = 2399.00m }
+        );
     }
 
     private static string Encrypt(string clearText, string key)

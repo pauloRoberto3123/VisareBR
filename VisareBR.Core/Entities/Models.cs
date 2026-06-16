@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Identity;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace VisareBR.Core.Entities;
 
@@ -49,4 +51,34 @@ public class Ds160Submission
     public string JsonData { get; set; } = string.Empty; // The entire 8-step form payload stored as JSONB
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsReviewed { get; set; } = false;
+}
+
+public class Plan
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string ProcessingTime { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public ICollection<PlanBenefit> Benefits { get; set; } = new List<PlanBenefit>();
+    public ICollection<PlanPricingTier> PricingTiers { get; set; } = new List<PlanPricingTier>();
+}
+
+public class PlanBenefit
+{
+    public int Id { get; set; }
+    public int PlanId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public bool IsIncluded { get; set; } = true;
+    [JsonIgnore]
+    public Plan? Plan { get; set; }
+}
+
+public class PlanPricingTier
+{
+    public int Id { get; set; }
+    public int PlanId { get; set; }
+    public int ApplicantCount { get; set; }
+    public decimal TotalPrice { get; set; }
+    [JsonIgnore]
+    public Plan? Plan { get; set; }
 }
