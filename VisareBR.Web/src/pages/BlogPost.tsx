@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { getPost } from '../api/blogService';
 import type { BlogPost } from '../api/blogService';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
+import DOMPurify from 'dompurify';
+import 'react-quill-new/dist/quill.snow.css';
 
 export default function BlogPost() {
   const { id } = useParams<{ id: string }>();
@@ -49,11 +51,30 @@ export default function BlogPost() {
           <img src={post.imageUrl} alt={post.title} className="w-full h-auto rounded-3xl mb-10 shadow-lg" />
         )}
 
-        <div className="prose prose-lg max-w-none text-dark-gray leading-relaxed whitespace-pre-wrap">
-          {post.content}
+        <style>{`
+          .blog-content iframe.ql-video {
+            width: 100%;
+            height: 400px;
+            border-radius: 0.75rem;
+            margin: 2rem 0;
+          }
+          /* Removes the default padding added by Quill to align perfectly with your layout */
+          .blog-content.ql-editor {
+            padding: 0;
+          }
+        `}</style>
+        <div className="ql-snow">
+          <div 
+            className="ql-editor prose prose-lg max-w-none text-dark-gray leading-relaxed blog-content"
+            dangerouslySetInnerHTML={{ 
+              __html: DOMPurify.sanitize(post.content, { 
+                ADD_TAGS: ['iframe'], 
+                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'target', 'rel'] 
+              }) 
+            }}
+          />
         </div>
       </div>
     </article>
   );
 }
-
