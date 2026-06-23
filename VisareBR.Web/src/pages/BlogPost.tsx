@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { getPost } from '../api/blogService';
 import type { BlogPost } from '../api/blogService';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
+import DOMPurify from 'dompurify';
+import 'react-quill-new/dist/quill.snow.css';
 
 export default function BlogPost() {
   const { id } = useParams<{ id: string }>();
@@ -49,11 +51,39 @@ export default function BlogPost() {
           <img src={post.imageUrl} alt={post.title} className="w-full h-auto rounded-3xl mb-10 shadow-lg" />
         )}
 
-        <div className="prose prose-lg max-w-none text-dark-gray leading-relaxed whitespace-pre-wrap">
-          {post.content}
+        <style>{`
+          .blog-content iframe.ql-video {
+            width: 100%;
+            height: 400px;
+            border-radius: 0.75rem;
+            margin: 2rem 0;
+          }
+          /* Removes the default padding added by Quill to align perfectly with your layout */
+          .blog-content.ql-editor {
+            padding: 0;
+          }
+          .blog-content h1 { font-size: 2.25em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; color: var(--color-primary, #0A3161); }
+          .blog-content h2 { font-size: 1.5em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; color: var(--color-primary, #0A3161); }
+          .blog-content h3 { font-size: 1.25em; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em; color: var(--color-primary, #0A3161); }
+          .blog-content p { margin-bottom: 1.2em; line-height: 1.75; }
+          .blog-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.2em; }
+          .blog-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1.2em; }
+          .blog-content li { margin-bottom: 0.4em; }
+          .blog-content a { color: var(--color-accent-gold, #C5A880); text-decoration: underline; }
+          .blog-content strong, .blog-content b { font-weight: 700; }
+        `}</style>
+        <div className="ql-snow">
+          <div 
+            className="ql-editor prose prose-lg max-w-none text-dark-gray leading-relaxed blog-content"
+            dangerouslySetInnerHTML={{ 
+              __html: DOMPurify.sanitize(post.content, { 
+                ADD_TAGS: ['iframe'], 
+                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'target', 'rel'] 
+              }) 
+            }}
+          />
         </div>
       </div>
     </article>
   );
 }
-

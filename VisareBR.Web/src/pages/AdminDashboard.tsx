@@ -4,6 +4,14 @@ import type { BlogPost, Evaluation, Ds160Submission } from '../api/blogService';
 import type { Plan } from './PricingSection';
 import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ReactQuill, { Quill } from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
+const Delta = Quill.import('delta') as any;
+const ColorStyle = Quill.import('attributors/style/color') as any;
+const BackgroundStyle = Quill.import('attributors/style/background') as any;
+Quill.register(ColorStyle, true);
+Quill.register(BackgroundStyle, true);
 
 interface StandaloneService {
   id: string;
@@ -29,6 +37,60 @@ export default function AdminDashboard() {
 
   // Settings State
   const [settings, setSettings] = useState({ whatsappNumber: '', whatsappDefaultMessage: '', cnpj: '', address: '', companyEmail: '' });
+
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }, { 'font': [] }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
+      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image', 'video'],
+      ['clean']
+    ],
+    clipboard: {
+      matchVisual: false, // Improves pasting from Google Docs/Word by preventing weird margins
+      matchers: [
+        ['B', (node: any, delta: any) => {
+          if (node.style && node.style.fontWeight === 'normal') {
+            return delta;
+          }
+          return delta.compose(new Delta().retain(delta.length(), { bold: true }));
+        }],
+        ['SPAN', (node: any, delta: any) => {
+          const styles = node.style;
+          if (!styles) return delta;
+
+          const attributes: Record<string, any> = {};
+
+          if (styles.fontWeight === '700' || styles.fontWeight === 'bold') {
+            attributes.bold = true;
+          }
+          if (styles.fontStyle === 'italic') {
+            attributes.italic = true;
+          }
+          if (styles.textDecoration && styles.textDecoration.includes('underline')) {
+            attributes.underline = true;
+          }
+          if (styles.textDecoration && styles.textDecoration.includes('line-through')) {
+            attributes.strike = true;
+          }
+          if (styles.color) {
+            attributes.color = styles.color;
+          }
+          if (styles.backgroundColor) {
+            attributes.background = styles.backgroundColor;
+          }
+
+          if (Object.keys(attributes).length > 0) {
+            return delta.compose(new Delta().retain(delta.length(), attributes));
+          }
+          return delta;
+        }]
+      ]
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -107,6 +169,10 @@ export default function AdminDashboard() {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newPost.content || newPost.content === '<p><br></p>') {
+      alert('O conteúdo do post é obrigatório.');
+      return;
+    }
     try {
       await api.post('/blog', newPost);
       setNewPost({ title: '', summary: '', content: '', imageUrl: '' });
@@ -371,14 +437,36 @@ export default function AdminDashboard() {
                 value={newPost.imageUrl}
                 onChange={e => setNewPost({...newPost, imageUrl: e.target.value})}
               />
-              <textarea 
-                placeholder="Conteúdo completo" 
-                rows={10}
-                className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
-                value={newPost.content}
-                onChange={e => setNewPost({...newPost, content: e.target.value})}
-                required
-              />
+              <style>{`
+                .admin-editor .ql-container {
+                  font-family: inherit;
+                }
+                .admin-editor .ql-editor {
+                  min-height: 500px;
+                  font-size: 1.125rem;
+                  line-height: 1.625;
+                  padding: 2.5rem;
+                }
+                .admin-editor .ql-editor h1 { font-size: 2.25em; font-weight: 700; margin-bottom: 0.8em; }
+                .admin-editor .ql-editor h2 { font-size: 1.5em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; }
+                .admin-editor .ql-editor h3 { font-size: 1.25em; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em; }
+                .admin-editor .ql-editor p { margin-bottom: 1.2em; }
+                .admin-editor iframe.ql-video {
+                  width: 100%;
+                  height: 400px;
+                  border-radius: 0.75rem;
+                  margin: 2rem 0;
+                }
+              `}</style>
+              <div className="bg-white rounded-lg border border-dark-gray overflow-hidden admin-editor text-dark-gray">
+                <ReactQuill 
+                  theme="snow"
+                  modules={quillModules}
+                  value={newPost.content}
+                  onChange={(content: string) => setNewPost({...newPost, content})}
+                  placeholder="Conteúdo completo"
+                />
+              </div>
               <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
                 Publicar Artigo
               </button>
