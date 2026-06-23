@@ -62,6 +62,15 @@ export default function BlogPost() {
           .blog-content.ql-editor {
             padding: 0;
           }
+          .blog-content h1 { font-size: 2.25em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; color: var(--color-primary, #0A3161); }
+          .blog-content h2 { font-size: 1.5em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; color: var(--color-primary, #0A3161); }
+          .blog-content h3 { font-size: 1.25em; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em; color: var(--color-primary, #0A3161); }
+          .blog-content p { margin-bottom: 1.2em; line-height: 1.75; }
+          .blog-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.2em; }
+          .blog-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1.2em; }
+          .blog-content li { margin-bottom: 0.4em; }
+          .blog-content a { color: var(--color-accent-gold, #C5A880); text-decoration: underline; }
+          .blog-content strong, .blog-content b { font-weight: 700; }
         `}</style>
         <div className="ql-snow">
           <div 

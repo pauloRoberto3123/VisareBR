@@ -4,8 +4,14 @@ import type { BlogPost, Evaluation, Ds160Submission } from '../api/blogService';
 import type { Plan } from './PricingSection';
 import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import ReactQuill from 'react-quill-new';
+import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+
+const Delta = Quill.import('delta') as any;
+const ColorStyle = Quill.import('attributors/style/color') as any;
+const BackgroundStyle = Quill.import('attributors/style/background') as any;
+Quill.register(ColorStyle, true);
+Quill.register(BackgroundStyle, true);
 
 interface StandaloneService {
   id: string;
@@ -44,7 +50,45 @@ export default function AdminDashboard() {
       ['clean']
     ],
     clipboard: {
-      matchVisual: false // Improves pasting from Google Docs/Word by preventing weird margins
+      matchVisual: false, // Improves pasting from Google Docs/Word by preventing weird margins
+      matchers: [
+        ['B', (node: any, delta: any) => {
+          if (node.style && node.style.fontWeight === 'normal') {
+            return delta;
+          }
+          return delta.compose(new Delta().retain(delta.length(), { bold: true }));
+        }],
+        ['SPAN', (node: any, delta: any) => {
+          const styles = node.style;
+          if (!styles) return delta;
+
+          const attributes: Record<string, any> = {};
+
+          if (styles.fontWeight === '700' || styles.fontWeight === 'bold') {
+            attributes.bold = true;
+          }
+          if (styles.fontStyle === 'italic') {
+            attributes.italic = true;
+          }
+          if (styles.textDecoration && styles.textDecoration.includes('underline')) {
+            attributes.underline = true;
+          }
+          if (styles.textDecoration && styles.textDecoration.includes('line-through')) {
+            attributes.strike = true;
+          }
+          if (styles.color) {
+            attributes.color = styles.color;
+          }
+          if (styles.backgroundColor) {
+            attributes.background = styles.backgroundColor;
+          }
+
+          if (Object.keys(attributes).length > 0) {
+            return delta.compose(new Delta().retain(delta.length(), attributes));
+          }
+          return delta;
+        }]
+      ]
     }
   };
 
