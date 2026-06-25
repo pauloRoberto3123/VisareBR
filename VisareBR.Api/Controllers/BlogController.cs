@@ -19,6 +19,9 @@ public class BlogController : ControllerBase
         public string Content { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
+        public string? TitleWeb { get; set; }
+        public string? TitleSocial { get; set; }
+        public string? Tags { get; set; }
     }
 
     public BlogController(ApplicationDbContext context)
@@ -59,6 +62,9 @@ public class BlogController : ControllerBase
             Content = dto.Content,
             Summary = dto.Summary,
             ImageUrl = dto.ImageUrl,
+            TitleWeb = dto.TitleWeb,
+            TitleSocial = dto.TitleSocial,
+            Tags = dto.Tags,
             AuthorId = userId,
             CreatedAt = DateTime.UtcNow
         };
@@ -80,6 +86,9 @@ public class BlogController : ControllerBase
         post.Content = dto.Content;
         post.Summary = dto.Summary;
         post.ImageUrl = dto.ImageUrl;
+        post.TitleWeb = dto.TitleWeb;
+        post.TitleSocial = dto.TitleSocial;
+        post.Tags = dto.Tags;
         post.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

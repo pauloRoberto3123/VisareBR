@@ -33,24 +33,54 @@ export default function AdminDashboard() {
   const [editingStandaloneService, setEditingStandaloneService] = useState<StandaloneService | null>(null);
   
   // Blog Form State
-  const [newPost, setNewPost] = useState({ title: '', summary: '', content: '', imageUrl: '' });
+  const [newPost, setNewPost] = useState({
+    title: '',
+    summary: '',
+    content: '',
+    imageUrl: '',
+    titleWeb: '',
+    titleSocial: '',
+    tags: ''
+  });
   const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
+
+  // Video Embed State
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [videoEmbedUrl, setVideoEmbedUrl] = useState('');
+  const [videoCaption, setVideoCaption] = useState('');
+  const [videoPreviewId, setVideoPreviewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = videoEmbedUrl.match(regExp);
+    const id = (match && match[2].length === 11) ? match[2] : null;
+    setVideoPreviewId(id);
+  }, [videoEmbedUrl]);
 
   // Settings State
   const [settings, setSettings] = useState({ whatsappNumber: '', whatsappDefaultMessage: '', cnpj: '', address: '', companyEmail: '' });
 
   const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }, { 'font': [] }],
-      [{ 'size': ['small', false, 'large', 'huge'] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'align': [] }],
-      ['link', 'image', 'video'],
-      ['clean']
-    ],
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }, { 'font': [] }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+        ['link', 'image', 'video'],
+        ['clean']
+      ],
+      handlers: {
+        video: function() {
+          const quill = (this as any).quill;
+          (window as any).currentQuillInstance = quill;
+          setIsVideoModalOpen(true);
+        }
+      }
+    },
     clipboard: {
       matchVisual: false, // Improves pasting from Google Docs/Word by preventing weird margins
       matchers: [
@@ -183,7 +213,7 @@ export default function AdminDashboard() {
         await api.post('/blog', newPost);
         alert('Artigo publicado com sucesso!');
       }
-      setNewPost({ title: '', summary: '', content: '', imageUrl: '' });
+      setNewPost({ title: '', summary: '', content: '', imageUrl: '', titleWeb: '', titleSocial: '', tags: '' });
       setEditingPostId(null);
       setEditorMode('list');
       fetchData();
@@ -197,14 +227,17 @@ export default function AdminDashboard() {
       title: post.title,
       summary: post.summary,
       content: post.content,
-      imageUrl: post.imageUrl || ''
+      imageUrl: post.imageUrl || '',
+      titleWeb: post.titleWeb || '',
+      titleSocial: post.titleSocial || '',
+      tags: post.tags || ''
     });
     setEditingPostId(post.id);
     setEditorMode('edit');
   };
 
   const handleNewPostClick = () => {
-    setNewPost({ title: '', summary: '', content: '', imageUrl: '' });
+    setNewPost({ title: '', summary: '', content: '', imageUrl: '', titleWeb: '', titleSocial: '', tags: '' });
     setEditingPostId(null);
     setEditorMode('create');
   };
@@ -233,7 +266,7 @@ export default function AdminDashboard() {
       if (editingPostId === id) {
         setEditorMode('list');
         setEditingPostId(null);
-        setNewPost({ title: '', summary: '', content: '', imageUrl: '' });
+        setNewPost({ title: '', summary: '', content: '', imageUrl: '', titleWeb: '', titleSocial: '', tags: '' });
       }
       fetchData();
     }
@@ -616,7 +649,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Article Title */}
-                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors">
+                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors space-y-1">
                   <input
                     type="text"
                     placeholder="Título do Artigo..."
@@ -625,10 +658,13 @@ export default function AdminDashboard() {
                     onChange={e => setNewPost({ ...newPost, title: e.target.value })}
                     required
                   />
+                  <div className="text-right text-xs text-dark-gray/40">
+                    {newPost.title.length} caracteres
+                  </div>
                 </div>
 
                 {/* Article Summary */}
-                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors">
+                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors space-y-1">
                   <textarea
                     placeholder="Resumo ou descrição curta (aparece nos cards da listagem)..."
                     rows={2}
@@ -637,6 +673,9 @@ export default function AdminDashboard() {
                     onChange={e => setNewPost({ ...newPost, summary: e.target.value })}
                     required
                   />
+                  <div className="text-right text-xs text-dark-gray/40">
+                    {newPost.summary.length} caracteres (Ideal: 150-160)
+                  </div>
                 </div>
 
                 {/* Style override for Google Docs formatting toolbar and page contents */}
@@ -697,9 +736,17 @@ export default function AdminDashboard() {
                   .admin-editor .ql-editor a { color: #C5A880; text-decoration: underline; }
                   .admin-editor iframe.ql-video {
                     width: 100%;
-                    height: 400px;
+                    height: 450px;
                     border-radius: 0.75rem;
-                    margin: 2rem 0;
+                    margin-top: 2rem;
+                    margin-bottom: 0.5rem;
+                  }
+                  .admin-editor .video-caption {
+                    text-align: center;
+                    font-size: 0.875rem;
+                    color: #6b7280;
+                    font-style: italic;
+                    margin-bottom: 2rem;
                   }
                 `}</style>
                 
@@ -712,6 +759,186 @@ export default function AdminDashboard() {
                     onChange={(content: string) => setNewPost({ ...newPost, content })}
                     placeholder="Comece a digitar seu artigo aqui..."
                   />
+                </div>
+
+                {/* Bloco de SEO e Otimização */}
+                <div className="mt-16 pt-12 border-t border-gray-100 space-y-8 text-left">
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-6">
+                    <span className="text-xl font-bold text-primary">Painel de Otimização de SEO</span>
+                    <span className="bg-primary/5 text-primary text-xs font-bold px-2 py-0.5 rounded">Google & Social</span>
+                  </div>
+
+                  {/* Simulador Google Search Preview */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-6 space-y-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-dark-gray/60 uppercase tracking-wider">
+                      <span className="text-emerald-600 font-extrabold">G</span> Exibição na Busca (Google Snippet)
+                    </div>
+                    
+                    <div className="bg-white p-5 rounded-xl border border-gray-200/50 shadow-sm space-y-1">
+                      {/* Breadcrumbs */}
+                      <div className="flex items-center gap-1.5 text-xs text-dark-gray/70">
+                        <span className="bg-gray-100 p-0.5 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">V</span>
+                        <span>visarebr.com.br</span>
+                        <span className="text-gray-400">›</span>
+                        <span>blog</span>
+                      </div>
+                      {/* Link Title */}
+                      <h4 className="text-[#1a0dab] text-xl font-sans hover:underline cursor-pointer leading-tight font-medium break-words">
+                        {newPost.titleWeb || newPost.title || 'Título do seu artigo'}
+                      </h4>
+                      {/* Snippet Description */}
+                      <p className="text-[#4d5156] text-[14px] leading-relaxed break-words font-sans">
+                        {newPost.summary ? (
+                          newPost.summary.length > 155 ? newPost.summary.substring(0, 155) + '...' : newPost.summary
+                        ) : (
+                          'Escreva um resumo no subtítulo acima para visualizar o snippet de pesquisa do Google aqui...'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* SEO Inputs Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Título Web */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="block text-sm font-bold text-primary">Título Web (Tag Title)</label>
+                        <span className={`text-xs font-bold ${newPost.titleWeb.length >= 50 && newPost.titleWeb.length <= 60 ? 'text-green-600' : 'text-dark-gray/50'}`}>
+                          {newPost.titleWeb.length} caracteres (Ideal: 50-60)
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Título que aparece na aba do navegador e no Google..."
+                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                        value={newPost.titleWeb}
+                        onChange={e => setNewPost({ ...newPost, titleWeb: e.target.value })}
+                      />
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-300 ${
+                            newPost.titleWeb.length >= 50 && newPost.titleWeb.length <= 60 
+                              ? 'bg-green-500' 
+                              : newPost.titleWeb.length > 60 
+                                ? 'bg-red-500' 
+                                : 'bg-yellow-500'
+                          }`}
+                          style={{ width: `${Math.min((newPost.titleWeb.length / 60) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Título Social */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="block text-sm font-bold text-primary">Título Social (Compartilhamento)</label>
+                        <span className={`text-xs font-bold ${newPost.titleSocial.length >= 60 && newPost.titleSocial.length <= 90 ? 'text-green-600' : 'text-dark-gray/50'}`}>
+                          {newPost.titleSocial.length} caracteres
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Título usado para redes sociais e links compartilhados..."
+                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                        value={newPost.titleSocial}
+                        onChange={e => setNewPost({ ...newPost, titleSocial: e.target.value })}
+                      />
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-300 ${
+                            newPost.titleSocial.length >= 60 && newPost.titleSocial.length <= 90 
+                              ? 'bg-green-500' 
+                              : newPost.titleSocial.length > 90 
+                                ? 'bg-red-500' 
+                                : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${Math.min((newPost.titleSocial.length / 90) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tags Section */}
+                  <div className="space-y-4 pt-4 border-t border-gray-100">
+                    <label className="block text-sm font-bold text-primary">Gerenciador de Tags</label>
+                    <p className="text-xs text-dark-gray/60 -mt-2">
+                      A primeira tag adicionada será considerada a **Tag Principal**. Pressione Enter ou clique em "+" para adicionar.
+                    </p>
+                    
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        id="tag-input"
+                        placeholder="Digite uma tag (ex: vistoamericano) e pressione Enter..."
+                        className="flex-1 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const tagValue = input.value.trim().toLowerCase().replace('#', '');
+                            if (tagValue) {
+                              const currentTagsList = newPost.tags ? newPost.tags.split(',').filter(Boolean) : [];
+                              if (!currentTagsList.includes(tagValue)) {
+                                const newTagsList = [...currentTagsList, tagValue];
+                                setNewPost({ ...newPost, tags: newTagsList.join(',') });
+                              }
+                              input.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.getElementById('tag-input') as HTMLInputElement;
+                          const tagValue = input?.value.trim().toLowerCase().replace('#', '');
+                          if (tagValue) {
+                            const currentTagsList = newPost.tags ? newPost.tags.split(',').filter(Boolean) : [];
+                            if (!currentTagsList.includes(tagValue)) {
+                              const newTagsList = [...currentTagsList, tagValue];
+                              setNewPost({ ...newPost, tags: newTagsList.join(',') });
+                            }
+                            input.value = '';
+                          }
+                        }}
+                        className="bg-primary text-secondary px-5 rounded-xl font-bold hover:bg-opacity-95 transition-all text-sm flex items-center justify-center cursor-pointer"
+                      >
+                        + Adicionar
+                      </button>
+                    </div>
+
+                    {/* Tag Pills List */}
+                    <div className="flex flex-wrap gap-2.5 pt-2">
+                      {newPost.tags ? (
+                        newPost.tags.split(',').filter(Boolean).map((tag, idx) => (
+                          <span 
+                            key={idx} 
+                            className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold border transition ${
+                              idx === 0 
+                                ? 'bg-primary/5 text-primary border-primary/20 shadow-sm' 
+                                : 'bg-light-gray text-dark-gray border-gray-200'
+                            }`}
+                          >
+                            {idx === 0 ? `★ #${tag}` : `#${tag}`}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newTagsList = newPost.tags.split(',').filter(Boolean).filter((_, i) => i !== idx);
+                                setNewPost({ ...newPost, tags: newTagsList.join(',') });
+                              }}
+                              className="text-dark-gray/50 hover:text-red-600 transition cursor-pointer font-bold"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <p className="text-xs text-dark-gray/40 italic">Nenhuma tag cadastrada para este artigo.</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </form>
             </div>
@@ -992,63 +1219,223 @@ export default function AdminDashboard() {
           {/* Standalone Services Management */}
           <div className="mt-16 pt-12 border-t border-light-gray">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-primary">Gerenciar Serviços Avulsos</h2>
-                <button
-                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true })}
-                    className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
-                >
-                    <Plus size={20} /> Adicionar Serviço
-                </button>
+              <h2 className="text-xl font-bold text-primary">Gerenciar Serviços Avulsos</h2>
+              <button
+                onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true })}
+                className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
+              >
+                <Plus size={20} /> Adicionar Serviço
+              </button>
             </div>
 
             {editingStandaloneService && (
-                <div className="bg-light-gray p-6 rounded-2xl border border-dark-gray/20 mb-8">
-                    <h3 className="text-lg font-bold text-primary mb-4">
-                        {editingStandaloneService.id !== '00000000-0000-0000-0000-000000000000' ? 'Editando Serviço' : 'Novo Serviço Avulso'}
-                    </h3>
-                    <form onSubmit={handleSaveStandaloneService} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-primary mb-1">Nome do Serviço</label>
-                            <input
-                                type="text"
-                                required
-                                value={editingStandaloneService.name}
-                                onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, name: e.target.value })}
-                                className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-primary mb-1">Preço (R$)</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                required
-                                value={editingStandaloneService.price}
-                                onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, price: parseFloat(e.target.value) || 0 })}
-                                className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
-                            />
-                        </div>
-                        <div className="md:col-span-3 flex gap-4">
-                            <button type="submit" className="bg-primary text-secondary px-6 py-2 rounded-lg font-bold hover:bg-opacity-90">Salvar</button>
-                            <button type="button" onClick={() => setEditingStandaloneService(null)} className="text-dark-gray font-bold hover:underline">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
+              <div className="bg-light-gray p-6 rounded-2xl border border-dark-gray/20 mb-8">
+                <h3 className="text-lg font-bold text-primary mb-4">
+                  {editingStandaloneService.id !== '00000000-0000-0000-0000-000000000000' ? 'Editando Serviço' : 'Novo Serviço Avulso'}
+                </h3>
+                <form onSubmit={handleSaveStandaloneService} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div className="md:col-span-2 text-left">
+                    <label className="block text-sm font-medium text-primary mb-1">Nome do Serviço</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingStandaloneService.name}
+                      onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, name: e.target.value })}
+                      className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                    />
+                  </div>
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-primary mb-1">Preço (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={editingStandaloneService.price}
+                      onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, price: parseFloat(e.target.value) || 0 })}
+                      className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                    />
+                  </div>
+                  <div className="md:col-span-3 flex gap-4 mt-2">
+                    <button type="submit" className="bg-primary text-secondary px-6 py-2 rounded-lg font-bold hover:bg-opacity-90">
+                      Salvar
+                    </button>
+                    <button type="button" onClick={() => setEditingStandaloneService(null)} className="text-dark-gray font-bold hover:underline">
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
             )}
 
             <div className="bg-secondary rounded-2xl border border-light-gray shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-light-gray text-primary text-sm border-b border-gray-200"><tr className="bg-light-gray text-primary text-sm border-b border-gray-200"><th className="p-4 font-bold">Nome do Serviço</th><th className="p-4 font-bold">Preço</th><th className="p-4 font-bold text-right">Ações</th></tr></thead>
-                    <tbody>
-                        {standaloneServices.map(service => (
-                            <tr key={service.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                <td className="p-4 font-medium text-primary">{service.name}</td>
-                                <td className="p-4 text-dark-gray">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}</td>
-                                <td className="p-4 text-right flex gap-2 justify-end"><button onClick={() => setEditingStandaloneService(JSON.parse(JSON.stringify(service)))} className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"><Edit size={18} /></button><button onClick={() => handleDeleteStandaloneService(service.id)} className="p-2 text-dark-gray hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-light-gray text-primary text-sm border-b border-gray-200">
+                  <tr className="bg-light-gray text-primary text-sm border-b border-gray-200">
+                    <th className="p-4 font-bold">Nome do Serviço</th>
+                    <th className="p-4 font-bold">Preço</th>
+                    <th className="p-4 font-bold text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standaloneServices.map(service => (
+                    <tr key={service.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-4 font-medium text-primary">{service.name}</td>
+                      <td className="p-4 text-dark-gray">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                      </td>
+                      <td className="p-4 text-right flex gap-2 justify-end">
+                        <button
+                          onClick={() => setEditingStandaloneService(JSON.parse(JSON.stringify(service)))}
+                          className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStandaloneService(service.id)}
+                          className="p-2 text-dark-gray hover:text-red-500 hover:bg-red-50 rounded-lg"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Visual YouTube Video Embed Modal */}
+      {isVideoModalOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[999] flex items-center justify-center p-4">
+          <div className="bg-[#18181b] text-white border border-[#27272a] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in p-6 relative">
+            
+            {/* Modal Header controls style as in image: small top-left controls */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex gap-1.5 items-center bg-[#27272a]/50 p-1.5 rounded-lg border border-[#3f3f46]/30">
+                <button
+                  type="button"
+                  onClick={() => { setIsVideoModalOpen(false); setVideoEmbedUrl(''); setVideoCaption(''); }}
+                  className="w-5 h-5 flex items-center justify-center rounded bg-red-500/80 text-white font-bold hover:bg-red-600 transition text-[9px] cursor-pointer"
+                  title="Fechar"
+                >
+                  ✕
+                </button>
+                <button
+                  type="button"
+                  className="w-5 h-5 flex items-center justify-center rounded bg-[#3f3f46]/60 text-gray-300 font-bold hover:bg-[#3f3f46] transition text-[10px] cursor-not-allowed"
+                  disabled
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="w-5 h-5 flex items-center justify-center rounded bg-[#3f3f46]/60 text-gray-300 font-bold hover:bg-[#3f3f46] transition text-[10px] cursor-not-allowed"
+                  disabled
+                >
+                  ↓
+                </button>
+              </div>
+              <h3 className="font-bold text-sm tracking-wide text-gray-200 uppercase flex items-center gap-2">
+                <span className="text-red-500">▶</span> Bloco de Vídeo YouTube
+              </h3>
+            </div>
+
+            {/* Modal Form */}
+            <div className="space-y-5">
+              {/* Input for Link */}
+              <div className="space-y-2 text-left">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Insira o link do vídeo:
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://www.youtube.com/watch?v=et6zYWwycjk"
+                  className="w-full p-3 bg-[#27272a] border border-[#3f3f46] focus:border-accent-gold rounded-xl focus:ring-1 focus:ring-accent-gold focus:outline-none text-white text-sm placeholder-gray-500 shadow-inner"
+                  value={videoEmbedUrl}
+                  onChange={e => setVideoEmbedUrl(e.target.value)}
+                />
+              </div>
+
+              {/* YouTube Video Player Preview */}
+              {videoPreviewId ? (
+                <div className="space-y-2 text-left">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Visualização:</span>
+                  <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-[#27272a]">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${videoPreviewId}?modestbranding=1&rel=0`}
+                      title="YouTube video player"
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-dashed border-[#3f3f46] rounded-xl p-8 bg-[#202024] flex flex-col items-center justify-center text-center text-gray-500">
+                  <span className="text-4xl mb-2">📺</span>
+                  <p className="text-xs font-bold text-gray-300">Sem pré-visualização</p>
+                  <p className="text-[11px] text-gray-500 mt-1">Cole um link de vídeo válido do YouTube</p>
+                </div>
+              )}
+
+              {/* Legend/Caption Input */}
+              <div className="space-y-2 text-left">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Insira uma legenda para o vídeo:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Insira uma legenda para o vídeo"
+                  className="w-full p-3 bg-[#27272a] border border-[#3f3f46] focus:border-accent-gold rounded-xl focus:ring-1 focus:ring-accent-gold focus:outline-none text-white text-sm placeholder-gray-500 shadow-inner"
+                  value={videoCaption}
+                  onChange={e => setVideoCaption(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer - exactly matching blue rounded pill buttons from image */}
+            <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-[#27272a]">
+              <button
+                type="button"
+                onClick={() => { setIsVideoModalOpen(false); setVideoEmbedUrl(''); setVideoCaption(''); }}
+                className="px-6 py-2 bg-[#27272a] text-gray-300 rounded-full font-bold hover:bg-[#3f3f46] hover:text-white transition text-xs cursor-pointer border border-[#3f3f46]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!videoPreviewId) {
+                    alert("Por favor, insira um link de vídeo do YouTube válido.");
+                    return;
+                  }
+                  
+                  const quill = (window as any).currentQuillInstance;
+                  if (!quill) {
+                    alert("Erro ao acessar o editor.");
+                    return;
+                  }
+                  
+                  const range = quill.getSelection(true);
+                  
+                  const embedHtml = `
+                    <iframe class="ql-video" src="https://www.youtube.com/embed/${videoPreviewId}" allowfullscreen="true"></iframe>
+                    ${videoCaption ? `<p class="video-caption text-center text-sm text-dark-gray italic my-2">${videoCaption}</p>` : ''}
+                  `;
+                  
+                  quill.clipboard.dangerouslyPasteHTML(range.index, embedHtml);
+                  
+                  setIsVideoModalOpen(false);
+                  setVideoEmbedUrl('');
+                  setVideoCaption('');
+                }}
+                disabled={!videoPreviewId}
+                className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition text-xs shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>

@@ -11,6 +11,9 @@ export interface BlogPost {
   summary: string;
   imageUrl?: string;
   createdAt: string;
+  titleWeb?: string;
+  titleSocial?: string;
+  tags?: string;
   author?: {
     fullName: string;
   };
