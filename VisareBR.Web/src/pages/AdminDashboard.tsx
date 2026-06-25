@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/blogService';
 import type { BlogPost, Evaluation, Ds160Submission } from '../api/blogService';
 import type { Plan } from './PricingSection';
-import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   
   // Blog Form State
   const [newPost, setNewPost] = useState({ title: '', summary: '', content: '', imageUrl: '' });
+  const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
 
   // Settings State
   const [settings, setSettings] = useState({ whatsappNumber: '', whatsappDefaultMessage: '', cnpj: '', address: '', companyEmail: '' });
@@ -167,25 +169,72 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
+  const handleSavePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.content || newPost.content === '<p><br></p>') {
       alert('O conteúdo do post é obrigatório.');
       return;
     }
     try {
-      await api.post('/blog', newPost);
+      if (editorMode === 'edit' && editingPostId !== null) {
+        await api.put(`/blog/${editingPostId}`, newPost);
+        alert('Artigo atualizado com sucesso!');
+      } else {
+        await api.post('/blog', newPost);
+        alert('Artigo publicado com sucesso!');
+      }
       setNewPost({ title: '', summary: '', content: '', imageUrl: '' });
+      setEditingPostId(null);
+      setEditorMode('list');
       fetchData();
-      alert('Post criado com sucesso!');
     } catch (err) {
-      alert('Erro ao criar post.');
+      alert('Erro ao salvar o artigo.');
     }
+  };
+
+  const handleEditClick = (post: BlogPost) => {
+    setNewPost({
+      title: post.title,
+      summary: post.summary,
+      content: post.content,
+      imageUrl: post.imageUrl || ''
+    });
+    setEditingPostId(post.id);
+    setEditorMode('edit');
+  };
+
+  const handleNewPostClick = () => {
+    setNewPost({ title: '', summary: '', content: '', imageUrl: '' });
+    setEditingPostId(null);
+    setEditorMode('create');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setNewPost({ ...newPost, imageUrl: reader.result });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDeletePost = async (id: number) => {
     if (confirm('Deseja excluir este post?')) {
       await api.delete(`/blog/${id}`);
+      if (editingPostId === id) {
+        setEditorMode('list');
+        setEditingPostId(null);
+        setNewPost({ title: '', summary: '', content: '', imageUrl: '' });
+      }
       fetchData();
     }
   };
@@ -411,82 +460,261 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {activeTab === 'blog' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Create Post Form */}
-          <div className="lg:col-span-1 bg-secondary p-6 rounded-2xl shadow-sm border border-light-gray">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-primary"><Plus size={20}/> Novo Artigo</h2>
-            <form onSubmit={handleCreatePost} className="space-y-4">
-              <input 
-                placeholder="Título" 
-                className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
-                value={newPost.title}
-                onChange={e => setNewPost({...newPost, title: e.target.value})}
-                required
-              />
-              <input 
-                placeholder="Resumo (descrição curta)" 
-                className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
-                value={newPost.summary}
-                onChange={e => setNewPost({...newPost, summary: e.target.value})}
-                required
-              />
-              <input 
-                placeholder="URL da Imagem" 
-                className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
-                value={newPost.imageUrl}
-                onChange={e => setNewPost({...newPost, imageUrl: e.target.value})}
-              />
-              <style>{`
-                .admin-editor .ql-container {
-                  font-family: inherit;
-                }
-                .admin-editor .ql-editor {
-                  min-height: 500px;
-                  font-size: 1.125rem;
-                  line-height: 1.625;
-                  padding: 2.5rem;
-                }
-                .admin-editor .ql-editor h1 { font-size: 2.25em; font-weight: 700; margin-bottom: 0.8em; }
-                .admin-editor .ql-editor h2 { font-size: 1.5em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.8em; }
-                .admin-editor .ql-editor h3 { font-size: 1.25em; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em; }
-                .admin-editor .ql-editor p { margin-bottom: 1.2em; }
-                .admin-editor iframe.ql-video {
-                  width: 100%;
-                  height: 400px;
-                  border-radius: 0.75rem;
-                  margin: 2rem 0;
-                }
-              `}</style>
-              <div className="bg-white rounded-lg border border-dark-gray overflow-hidden admin-editor text-dark-gray">
-                <ReactQuill 
-                  theme="snow"
-                  modules={quillModules}
-                  value={newPost.content}
-                  onChange={(content: string) => setNewPost({...newPost, content})}
-                  placeholder="Conteúdo completo"
-                />
-              </div>
-              <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
-                Publicar Artigo
-              </button>
-            </form>
+      {activeTab === 'blog' && editorMode === 'list' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-primary">Gerenciar Artigos</h2>
+            <button
+              onClick={handleNewPostClick}
+              className="flex items-center gap-2 bg-primary text-secondary px-5 py-2.5 rounded-xl font-bold hover:bg-opacity-95 transition-all shadow-md cursor-pointer"
+            >
+              <Plus size={20} /> Novo Artigo
+            </button>
           </div>
 
-          {/* Post List */}
-          <div className="lg:col-span-2 space-y-4">
-            <h2 className="text-xl font-bold mb-6 text-primary">Artigos Publicados</h2>
-            {posts.map(post => (
-              <div key={post.id} className="flex justify-between items-center p-4 bg-secondary border border-light-gray rounded-xl shadow-sm">
-                <div>
-                  <h3 className="font-bold text-primary">{post.title}</h3>
-                  <p className="text-sm text-dark-gray">{new Date(post.createdAt).toLocaleDateString('pt-BR')}</p>
-                </div>
-                <button onClick={() => handleDeletePost(post.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg">
-                  <Trash2 size={20}/>
-                </button>
+          <div className="grid grid-cols-1 gap-6">
+            {posts.length === 0 ? (
+              <div className="bg-secondary p-12 text-center rounded-2xl border border-light-gray shadow-sm text-dark-gray">
+                Nenhum artigo publicado ainda. Clique em "Novo Artigo" para começar.
               </div>
-            ))}
+            ) : (
+              posts.map(post => (
+                <div key={post.id} className="bg-secondary border border-light-gray rounded-2xl overflow-hidden shadow-sm flex flex-col md:flex-row hover:shadow-md transition-shadow">
+                  {post.imageUrl ? (
+                    <img
+                      src={post.imageUrl}
+                      alt={post.title}
+                      className="w-full md:w-56 h-40 md:h-auto object-cover"
+                    />
+                  ) : (
+                    <div className="w-full md:w-56 h-40 md:h-auto bg-light-gray flex items-center justify-center text-dark-gray/30 border-r border-light-gray min-h-[160px]">
+                      <FileText size={48} />
+                    </div>
+                  )}
+                  <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs text-dark-gray/60 font-semibold uppercase tracking-wider">
+                          {new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                        {post.author && (
+                          <>
+                            <span className="text-dark-gray/30">•</span>
+                            <span className="text-xs text-dark-gray/60 font-semibold">
+                              Por {post.author.fullName}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <h3 className="text-xl font-bold text-primary mb-2">{post.title}</h3>
+                      <p className="text-dark-gray text-sm line-clamp-2">{post.summary}</p>
+                    </div>
+                    <div className="flex gap-4 mt-6 pt-4 border-t border-light-gray justify-end">
+                      <button
+                        onClick={() => handleEditClick(post)}
+                        className="flex items-center gap-1.5 text-primary hover:bg-primary/5 px-4 py-2 rounded-xl font-bold transition-colors text-sm cursor-pointer"
+                      >
+                        <Edit size={16} /> Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        className="flex items-center gap-1.5 text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl font-bold transition-colors text-sm cursor-pointer"
+                      >
+                        <Trash2 size={16} /> Excluir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'blog' && (editorMode === 'create' || editorMode === 'edit') && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Bar */}
+          <div className="flex justify-between items-center border-b border-light-gray pb-4">
+            <button
+              onClick={() => { setEditorMode('list'); setEditingPostId(null); }}
+              className="text-primary font-bold hover:underline flex items-center gap-2 text-sm cursor-pointer"
+            >
+              ← Voltar para lista
+            </button>
+            <h2 className="text-xl font-extrabold text-primary">
+              {editorMode === 'edit' ? 'Editar Artigo' : 'Novo Artigo'}
+            </h2>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setEditorMode('list'); setEditingPostId(null); }}
+                className="bg-light-gray text-dark-gray border border-dark-gray/20 px-5 py-2.5 rounded-xl font-bold hover:bg-gray-100 transition-colors text-sm cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSavePost}
+                className="bg-accent-red text-secondary px-6 py-2.5 rounded-xl font-bold hover:bg-opacity-90 transition-colors text-sm shadow-md cursor-pointer"
+              >
+                {editorMode === 'edit' ? 'Salvar Alterações' : 'Publicar Artigo'}
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop/Workspace Canvas background for the sheet paper */}
+          <div className="bg-slate-50 border border-gray-200/60 rounded-3xl p-4 md:p-8 lg:p-12 min-h-[90vh]">
+            {/* Sheet of Paper */}
+            <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-sm border border-gray-200/50 min-h-[297mm] flex flex-col p-8 md:p-16 relative">
+              <form onSubmit={handleSavePost} className="space-y-6 flex-1 flex flex-col">
+                
+                {/* Image Cover URL & Preview */}
+                <div className="space-y-3">
+                  {newPost.imageUrl ? (
+                    <div className="relative w-full h-64 bg-slate-100 rounded-2xl overflow-hidden group shadow-inner">
+                      <img
+                        src={newPost.imageUrl}
+                        alt="Capa do artigo"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setNewPost({ ...newPost, imageUrl: '' })}
+                          className="bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-xs hover:bg-red-700 transition cursor-pointer"
+                        >
+                          Remover Imagem
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 bg-slate-50 flex flex-col items-center justify-center text-center text-dark-gray hover:border-accent-gold/50 transition">
+                      <FileText size={36} className="text-gray-400 mb-2" />
+                      <p className="text-sm font-bold text-gray-500">Sem imagem de capa</p>
+                      <p className="text-xs text-gray-400 mt-1 mb-4">Adicione uma URL abaixo ou selecione um arquivo local para a capa do artigo</p>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      placeholder="URL da Imagem de Capa (ex: https://exemplo.com/capa.jpg)"
+                      className="flex-1 p-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary disabled:bg-gray-50 disabled:text-gray-400"
+                      value={newPost.imageUrl.startsWith('data:image') ? 'Imagem carregada localmente (Base64)' : newPost.imageUrl}
+                      onChange={e => setNewPost({ ...newPost, imageUrl: e.target.value })}
+                      disabled={newPost.imageUrl.startsWith('data:image')}
+                    />
+                    <label className="bg-primary text-secondary px-5 py-2.5 rounded-xl font-bold hover:bg-opacity-95 transition-all text-sm cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap shadow-sm">
+                      <Upload size={16} /> Selecionar Arquivo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Article Title */}
+                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors">
+                  <input
+                    type="text"
+                    placeholder="Título do Artigo..."
+                    className="w-full text-3xl md:text-4xl font-extrabold text-primary placeholder:text-gray-200 focus:outline-none bg-transparent"
+                    value={newPost.title}
+                    onChange={e => setNewPost({ ...newPost, title: e.target.value })}
+                    required
+                  />
+                </div>
+
+                {/* Article Summary */}
+                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors">
+                  <textarea
+                    placeholder="Resumo ou descrição curta (aparece nos cards da listagem)..."
+                    rows={2}
+                    className="w-full text-base text-dark-gray/80 placeholder:text-gray-300 focus:outline-none bg-transparent resize-none italic"
+                    value={newPost.summary}
+                    onChange={e => setNewPost({ ...newPost, summary: e.target.value })}
+                    required
+                  />
+                </div>
+
+                {/* Style override for Google Docs formatting toolbar and page contents */}
+                <style>{`
+                  /* Modern Editor Styling */
+                  .admin-editor {
+                    margin-top: 1rem;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                  }
+                  .admin-editor .quill {
+                    display: flex;
+                    flex-direction: column;
+                    flex: 1;
+                  }
+                  .admin-editor .ql-toolbar.ql-snow {
+                    border: 1px solid #e2e8f0;
+                    border-radius: 0.75rem;
+                    background-color: #f8fafc;
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
+                    padding: 0.625rem 1rem;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.25rem;
+                  }
+                  .admin-editor .ql-container.ql-snow {
+                    border: none;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    margin-top: 1rem;
+                  }
+                  .admin-editor .ql-editor {
+                    min-height: 450px;
+                    font-family: Inter, system-ui, sans-serif;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    padding: 1.5rem 0;
+                    color: #374151;
+                    flex: 1;
+                  }
+                  .admin-editor .ql-editor.ql-blank::before {
+                    left: 0;
+                    font-style: italic;
+                    color: #d1d5db;
+                  }
+                  .admin-editor .ql-editor h1 { font-size: 2.25em; font-weight: 800; margin-bottom: 0.8em; color: #0A3161; }
+                  .admin-editor .ql-editor h2 { font-size: 1.6em; font-weight: 700; margin-top: 1.6em; margin-bottom: 0.8em; color: #0A3161; }
+                  .admin-editor .ql-editor h3 { font-size: 1.3em; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em; color: #0A3161; }
+                  .admin-editor .ql-editor p { margin-bottom: 1.3em; }
+                  .admin-editor .ql-editor ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.3em; }
+                  .admin-editor .ql-editor ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1.3em; }
+                  .admin-editor .ql-editor li { margin-bottom: 0.5em; }
+                  .admin-editor .ql-editor a { color: #C5A880; text-decoration: underline; }
+                  .admin-editor iframe.ql-video {
+                    width: 100%;
+                    height: 400px;
+                    border-radius: 0.75rem;
+                    margin: 2rem 0;
+                  }
+                `}</style>
+                
+                {/* Document Body Area */}
+                <div className="admin-editor">
+                  <ReactQuill
+                    theme="snow"
+                    modules={quillModules}
+                    value={newPost.content}
+                    onChange={(content: string) => setNewPost({ ...newPost, content })}
+                    placeholder="Comece a digitar seu artigo aqui..."
+                  />
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
