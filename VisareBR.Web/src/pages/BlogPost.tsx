@@ -20,6 +20,110 @@ export default function BlogPost() {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (!post) return;
+
+    // Update Page Title
+    const originalTitle = document.title;
+    document.title = `${post.title} | VisareBR`;
+
+    // Helper to update or create a meta tag
+    const updateMetaTag = (attributeName: string, attributeValue: string, contentValue: string) => {
+      let element = document.querySelector(`meta[${attributeName}="${attributeValue}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attributeName, attributeValue);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', contentValue);
+    };
+
+    // Standard SEO Meta Tags
+    updateMetaTag('name', 'description', post.summary);
+
+    // Open Graph Meta Tags (Facebook / WhatsApp / etc.)
+    updateMetaTag('property', 'og:title', post.title);
+    updateMetaTag('property', 'og:description', post.summary);
+    updateMetaTag('property', 'og:type', 'article');
+    if (post.imageUrl) {
+      updateMetaTag('property', 'og:image', post.imageUrl);
+    }
+    updateMetaTag('property', 'og:url', window.location.href);
+
+    // Twitter Card Meta Tags
+    updateMetaTag('name', 'twitter:card', 'summary_large_image');
+    updateMetaTag('name', 'twitter:title', post.title);
+    updateMetaTag('name', 'twitter:description', post.summary);
+    if (post.imageUrl) {
+      updateMetaTag('name', 'twitter:image', post.imageUrl);
+    }
+
+    // JSON-LD Structured Data (Google Rich Snippets)
+    const jsonLdData = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": window.location.href
+      },
+      "headline": post.title,
+      "description": post.summary,
+      "image": post.imageUrl || "",
+      "datePublished": post.createdAt,
+      "author": {
+        "@type": "Person",
+        "name": post.author?.fullName || "VisareBR"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "VisareBR",
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${window.location.origin}/logo.png`
+        }
+      }
+    };
+
+    let scriptElement = document.getElementById('jsonld-structured-data') as HTMLScriptElement;
+    if (!scriptElement) {
+      scriptElement = document.createElement('script');
+      scriptElement.id = 'jsonld-structured-data';
+      scriptElement.type = 'application/ld+json';
+      document.body.appendChild(scriptElement);
+    }
+    scriptElement.text = JSON.stringify(jsonLdData);
+
+    // Cleanup function when component unmounts or post changes
+    return () => {
+      document.title = originalTitle;
+      
+      // Clean up dynamic meta tags
+      const metaSelectors = [
+        'meta[name="description"]',
+        'meta[property="og:title"]',
+        'meta[property="og:description"]',
+        'meta[property="og:type"]',
+        'meta[property="og:image"]',
+        'meta[property="og:url"]',
+        'meta[name="twitter:card"]',
+        'meta[name="twitter:title"]',
+        'meta[name="twitter:description"]',
+        'meta[name="twitter:image"]'
+      ];
+      metaSelectors.forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el && el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      });
+
+      const ldJsonScript = document.getElementById('jsonld-structured-data');
+      if (ldJsonScript && ldJsonScript.parentNode) {
+        ldJsonScript.parentNode.removeChild(ldJsonScript);
+      }
+    };
+  }, [post]);
+
   if (loading) return <div className="py-20 text-center text-primary">Carregando...</div>;
   if (!post) return <div className="py-20 text-center text-primary">Artigo não encontrado.</div>;
 

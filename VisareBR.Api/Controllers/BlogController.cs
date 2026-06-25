@@ -70,6 +70,24 @@ public class BlogController : ControllerBase
     }
 
     [Authorize]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdatePost(int id, BlogCreateDto dto)
+    {
+        var post = await _context.BlogPosts.FindAsync(id);
+        if (post == null) return NotFound();
+
+        post.Title = dto.Title;
+        post.Content = dto.Content;
+        post.Summary = dto.Summary;
+        post.ImageUrl = dto.ImageUrl;
+        post.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeletePost(int id)
     {
