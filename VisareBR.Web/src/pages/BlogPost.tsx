@@ -25,7 +25,7 @@ export default function BlogPost() {
 
     // Update Page Title
     const originalTitle = document.title;
-    document.title = `${post.title} | VisareBR`;
+    document.title = `${post.titleWeb || post.title} | VisareBR`;
 
     // Helper to update or create a meta tag
     const updateMetaTag = (attributeName: string, attributeValue: string, contentValue: string) => {
@@ -42,7 +42,7 @@ export default function BlogPost() {
     updateMetaTag('name', 'description', post.summary);
 
     // Open Graph Meta Tags (Facebook / WhatsApp / etc.)
-    updateMetaTag('property', 'og:title', post.title);
+    updateMetaTag('property', 'og:title', post.titleSocial || post.title);
     updateMetaTag('property', 'og:description', post.summary);
     updateMetaTag('property', 'og:type', 'article');
     if (post.imageUrl) {
@@ -52,7 +52,7 @@ export default function BlogPost() {
 
     // Twitter Card Meta Tags
     updateMetaTag('name', 'twitter:card', 'summary_large_image');
-    updateMetaTag('name', 'twitter:title', post.title);
+    updateMetaTag('name', 'twitter:title', post.titleSocial || post.title);
     updateMetaTag('name', 'twitter:description', post.summary);
     if (post.imageUrl) {
       updateMetaTag('name', 'twitter:image', post.imageUrl);
@@ -66,7 +66,7 @@ export default function BlogPost() {
         "@type": "WebPage",
         "@id": window.location.href
       },
-      "headline": post.title,
+      "headline": post.titleWeb || post.title,
       "description": post.summary,
       "image": post.imageUrl || "",
       "datePublished": post.createdAt,
@@ -138,7 +138,7 @@ export default function BlogPost() {
           {post.title}
         </h1>
 
-        <div className="flex items-center gap-6 text-dark-gray mb-10 border-b border-light-gray pb-6">
+        <div className="flex items-center gap-6 text-dark-gray mb-6 border-b border-light-gray pb-6">
           <div className="flex items-center gap-2">
             <Calendar size={18} className="text-dark-gray" />
             {new Date(post.createdAt).toLocaleDateString('pt-BR')}
@@ -151,6 +151,23 @@ export default function BlogPost() {
           )}
         </div>
 
+        {post.tags && (
+          <div className="flex flex-wrap gap-2 mb-10 -mt-2">
+            {post.tags.split(',').filter(Boolean).map((tag, idx) => (
+              <span 
+                key={idx} 
+                className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                  idx === 0 
+                    ? 'bg-accent-gold/10 text-accent-gold border-accent-gold/20' 
+                    : 'bg-light-gray text-dark-gray border-gray-200'
+                }`}
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {post.imageUrl && (
           <img src={post.imageUrl} alt={post.title} className="w-full h-auto rounded-3xl mb-10 shadow-lg" />
         )}
@@ -158,9 +175,17 @@ export default function BlogPost() {
         <style>{`
           .blog-content iframe.ql-video {
             width: 100%;
-            height: 400px;
+            height: 450px;
             border-radius: 0.75rem;
-            margin: 2rem 0;
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+          }
+          .blog-content .video-caption {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-style: italic;
+            margin-bottom: 2rem;
           }
           /* Removes the default padding added by Quill to align perfectly with your layout */
           .blog-content.ql-editor {

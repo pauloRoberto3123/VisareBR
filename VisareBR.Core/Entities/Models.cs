@@ -18,6 +18,9 @@ public class BlogPost
     public string? ImageUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    public string? TitleWeb { get; set; }
+    public string? TitleSocial { get; set; }
+    public string? Tags { get; set; }
     public string AuthorId { get; set; } = string.Empty;
     public ApplicationUser? Author { get; set; }
 }
