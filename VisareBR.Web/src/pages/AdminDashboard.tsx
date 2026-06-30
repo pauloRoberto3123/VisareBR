@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/blogService';
-import type { BlogPost, Evaluation, Ds160Submission } from '../api/blogService';
+import type { Article, ArticleBlock, Evaluation, Ds160Submission } from '../api/blogService';
 import type { Plan } from './PricingSection';
 import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ interface StandaloneService {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing'>('overview');
-  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [posts, setPosts] = useState<Article[]>([]);
   const [evals, setEvals] = useState<Evaluation[]>([]);
   const [ds160Forms, setDs160Forms] = useState<Ds160Submission[]>([]);
   const [selectedDs160, setSelectedDs160] = useState<Ds160Submission | null>(null);
@@ -36,14 +36,66 @@ export default function AdminDashboard() {
   const [newPost, setNewPost] = useState({
     title: '',
     summary: '',
-    content: '',
-    imageUrl: '',
-    titleWeb: '',
-    titleSocial: '',
-    tags: ''
+    readTimeMinutes: 3,
+    featuredImageUrl: '',
+    metaTitle: '',
+    metaDescription: '',
+    tags: '',
+    contentBlocks: [] as ArticleBlock[],
+    authorName: ''
   });
   const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
+
+  const addBlock = (type: 'text' | 'image' | 'video' | 'button') => {
+    const newBlock: ArticleBlock = {
+      type,
+      order: newPost.contentBlocks.length,
+      content: type === 'text' ? '' : undefined,
+      imageUrl: type === 'image' ? '' : undefined,
+      altText: type === 'image' ? '' : undefined,
+      sourceUrl: type === 'video' ? '' : undefined,
+      label: type === 'button' ? '' : undefined,
+      targetUrl: type === 'button' ? '' : undefined,
+      hexColorCode: type === 'button' ? '#0A3161' : undefined
+    };
+    setNewPost({
+      ...newPost,
+      contentBlocks: [...newPost.contentBlocks, newBlock]
+    });
+  };
+
+  const removeBlock = (index: number) => {
+    const updatedBlocks = newPost.contentBlocks.filter((_, idx) => idx !== index);
+    setNewPost({
+      ...newPost,
+      contentBlocks: updatedBlocks.map((b, idx) => ({ ...b, order: idx }))
+    });
+  };
+
+  const moveBlock = (index: number, direction: 'up' | 'down') => {
+    const blocks = [...newPost.contentBlocks];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= blocks.length) return;
+
+    const temp = blocks[index];
+    blocks[index] = blocks[targetIndex];
+    blocks[targetIndex] = temp;
+
+    setNewPost({
+      ...newPost,
+      contentBlocks: blocks.map((b, idx) => ({ ...b, order: idx }))
+    });
+  };
+
+  const updateBlock = (index: number, updatedBlock: ArticleBlock) => {
+    const updatedBlocks = [...newPost.contentBlocks];
+    updatedBlocks[index] = updatedBlock;
+    setNewPost({
+      ...newPost,
+      contentBlocks: updatedBlocks
+    });
+  };
 
   // Video Embed State
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -82,7 +134,7 @@ export default function AdminDashboard() {
       }
     },
     clipboard: {
-      matchVisual: false, // Improves pasting from Google Docs/Word by preventing weird margins
+      matchVisual: false,
       matchers: [
         ['B', (node: any, delta: any) => {
           if (node.style && node.style.fontWeight === 'normal') {
@@ -140,7 +192,6 @@ export default function AdminDashboard() {
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      // 15 minutos = 900.000 milissegundos
       timeoutId = setTimeout(() => {
         alert('Sua sessão expirou por inatividade.');
         handleManualLogout();
@@ -201,19 +252,54 @@ export default function AdminDashboard() {
 
   const handleSavePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPost.content || newPost.content === '<p><br></p>') {
-      alert('O conteúdo do post é obrigatório.');
+    if (newPost.contentBlocks.length === 0) {
+      alert('O artigo precisa ter pelo menos um bloco de conteúdo.');
       return;
     }
+    
+    // Validate accessibility
+    for (const block of newPost.contentBlocks) {
+      if (block.type === 'image' && !block.altText) {
+        alert('Todos os blocos de imagem precisam de um texto alternativo (alt text) para acessibilidade.');
+        return;
+      }
+    }
+
     try {
+      const tagsArray = newPost.tags
+        ? newPost.tags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 3)
+        : [];
+
+      const payload = {
+        title: newPost.title,
+        summary: newPost.summary,
+        readTimeMinutes: Number(newPost.readTimeMinutes) || 3,
+        featuredImageUrl: newPost.featuredImageUrl,
+        metaTitle: newPost.metaTitle || newPost.title,
+        metaDescription: newPost.metaDescription || newPost.summary,
+        tags: tagsArray,
+        contentBlocks: newPost.contentBlocks,
+        authorName: newPost.authorName
+      };
+
       if (editorMode === 'edit' && editingPostId !== null) {
-        await api.put(`/blog/${editingPostId}`, newPost);
+        await api.put(`/blog/${editingPostId}`, payload);
         alert('Artigo atualizado com sucesso!');
       } else {
-        await api.post('/blog', newPost);
+        await api.post('/blog', payload);
         alert('Artigo publicado com sucesso!');
       }
-      setNewPost({ title: '', summary: '', content: '', imageUrl: '', titleWeb: '', titleSocial: '', tags: '' });
+      setNewPost({
+        title: '',
+        summary: '',
+        readTimeMinutes: 3,
+        featuredImageUrl: '',
+        metaTitle: '',
+        metaDescription: '',
+        tags: '',
+        contentBlocks: [],
+        authorName: ''
+      });
       setEditingPostId(null);
       setEditorMode('list');
       fetchData();
@@ -222,22 +308,34 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEditClick = (post: BlogPost) => {
+  const handleEditClick = (post: any) => {
     setNewPost({
       title: post.title,
       summary: post.summary,
-      content: post.content,
-      imageUrl: post.imageUrl || '',
-      titleWeb: post.titleWeb || '',
-      titleSocial: post.titleSocial || '',
-      tags: post.tags || ''
+      readTimeMinutes: post.readTimeMinutes || 3,
+      featuredImageUrl: post.featuredImageUrl || '',
+      metaTitle: post.metaTitle || '',
+      metaDescription: post.metaDescription || '',
+      tags: Array.isArray(post.tags) ? post.tags.join(', ') : (post.tags || ''),
+      contentBlocks: post.contentBlocks || [],
+      authorName: post.authorName || ''
     });
     setEditingPostId(post.id);
     setEditorMode('edit');
   };
 
   const handleNewPostClick = () => {
-    setNewPost({ title: '', summary: '', content: '', imageUrl: '', titleWeb: '', titleSocial: '', tags: '' });
+    setNewPost({
+      title: '',
+      summary: '',
+      readTimeMinutes: 3,
+      featuredImageUrl: '',
+      metaTitle: '',
+      metaDescription: '',
+      tags: '',
+      contentBlocks: [],
+      authorName: ''
+    });
     setEditingPostId(null);
     setEditorMode('create');
   };
@@ -254,7 +352,7 @@ export default function AdminDashboard() {
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
-        setNewPost({ ...newPost, imageUrl: reader.result });
+        setNewPost({ ...newPost, featuredImageUrl: reader.result });
       }
     };
     reader.readAsDataURL(file);
@@ -266,7 +364,17 @@ export default function AdminDashboard() {
       if (editingPostId === id) {
         setEditorMode('list');
         setEditingPostId(null);
-        setNewPost({ title: '', summary: '', content: '', imageUrl: '', titleWeb: '', titleSocial: '', tags: '' });
+        setNewPost({
+          title: '',
+          summary: '',
+          readTimeMinutes: 3,
+          featuredImageUrl: '',
+          metaTitle: '',
+          metaDescription: '',
+          tags: '',
+          contentBlocks: [],
+          authorName: ''
+        });
       }
       fetchData();
     }
@@ -513,9 +621,9 @@ export default function AdminDashboard() {
             ) : (
               posts.map(post => (
                 <div key={post.id} className="bg-secondary border border-light-gray rounded-2xl overflow-hidden shadow-sm flex flex-col md:flex-row hover:shadow-md transition-shadow">
-                  {post.imageUrl ? (
+                  {post.featuredImageUrl ? (
                     <img
-                      src={post.imageUrl}
+                      src={post.featuredImageUrl}
                       alt={post.title}
                       className="w-full md:w-56 h-40 md:h-auto object-cover"
                     />
@@ -530,11 +638,11 @@ export default function AdminDashboard() {
                         <span className="text-xs text-dark-gray/60 font-semibold uppercase tracking-wider">
                           {new Date(post.createdAt).toLocaleDateString('pt-BR')}
                         </span>
-                        {post.author && (
+                        {(post.authorName || post.author) && (
                           <>
                             <span className="text-dark-gray/30">•</span>
                             <span className="text-xs text-dark-gray/60 font-semibold">
-                              Por {post.author.fullName}
+                              Por {post.authorName || post.author?.fullName}
                             </span>
                           </>
                         )}
@@ -599,20 +707,20 @@ export default function AdminDashboard() {
             {/* Sheet of Paper */}
             <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-sm border border-gray-200/50 min-h-[297mm] flex flex-col p-8 md:p-16 relative">
               <form onSubmit={handleSavePost} className="space-y-6 flex-1 flex flex-col">
-                
                 {/* Image Cover URL & Preview */}
-                <div className="space-y-3">
-                  {newPost.imageUrl ? (
+                <div className="space-y-3 text-left">
+                  <label className="block text-sm font-bold text-primary">Imagem de Capa do Artigo</label>
+                  {newPost.featuredImageUrl ? (
                     <div className="relative w-full h-64 bg-slate-100 rounded-2xl overflow-hidden group shadow-inner">
                       <img
-                        src={newPost.imageUrl}
+                        src={newPost.featuredImageUrl}
                         alt="Capa do artigo"
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                         <button
                           type="button"
-                          onClick={() => setNewPost({ ...newPost, imageUrl: '' })}
+                          onClick={() => setNewPost({ ...newPost, featuredImageUrl: '' })}
                           className="bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-xs hover:bg-red-700 transition cursor-pointer"
                         >
                           Remover Imagem
@@ -632,9 +740,9 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="URL da Imagem de Capa (ex: https://exemplo.com/capa.jpg)"
                       className="flex-1 p-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary disabled:bg-gray-50 disabled:text-gray-400"
-                      value={newPost.imageUrl.startsWith('data:image') ? 'Imagem carregada localmente (Base64)' : newPost.imageUrl}
-                      onChange={e => setNewPost({ ...newPost, imageUrl: e.target.value })}
-                      disabled={newPost.imageUrl.startsWith('data:image')}
+                      value={newPost.featuredImageUrl.startsWith('data:image') ? 'Imagem carregada localmente (Base64)' : newPost.featuredImageUrl}
+                      onChange={e => setNewPost({ ...newPost, featuredImageUrl: e.target.value })}
+                      disabled={newPost.featuredImageUrl.startsWith('data:image')}
                     />
                     <label className="bg-primary text-secondary px-5 py-2.5 rounded-xl font-bold hover:bg-opacity-95 transition-all text-sm cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap shadow-sm">
                       <Upload size={16} /> Selecionar Arquivo
@@ -678,87 +786,249 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Style override for Google Docs formatting toolbar and page contents */}
+                {/* Read Time Input */}
+                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors space-y-1 text-left">
+                  <label className="block text-xs font-bold text-gray-500">Tempo de Leitura Estimado (Minutos)</label>
+                  <input
+                    type="number"
+                    placeholder="Tempo estimado em minutos..."
+                    className="w-full text-base text-primary focus:outline-none bg-transparent font-medium"
+                    value={newPost.readTimeMinutes}
+                    onChange={e => setNewPost({ ...newPost, readTimeMinutes: parseInt(e.target.value) || 3 })}
+                    min="1"
+                  />
+                </div>
+
+                {/* Author/Editor Override */}
+                <div className="border-b border-gray-100 focus-within:border-accent-gold/40 pb-2 transition-colors space-y-1">
+                  <input
+                    type="text"
+                    placeholder="Nome do Autor / Editor (Ex: VisareBR)..."
+                    className="w-full text-base text-primary placeholder:text-gray-300 focus:outline-none bg-transparent font-medium"
+                    value={newPost.authorName}
+                    onChange={e => setNewPost({ ...newPost, authorName: e.target.value })}
+                  />
+                  <div className="text-right text-xs text-dark-gray/40">
+                    Opcional (deixe em branco para usar seu nome de usuário atual)
+                  </div>
+                </div>
+
+                {/* Styles override for rich text */}
                 <style>{`
-                  /* Modern Editor Styling */
                   .admin-editor {
-                    margin-top: 1rem;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
+                    margin-top: 0.5rem;
                   }
                   .admin-editor .quill {
                     display: flex;
                     flex-direction: column;
-                    flex: 1;
                   }
                   .admin-editor .ql-toolbar.ql-snow {
                     border: 1px solid #e2e8f0;
                     border-radius: 0.75rem;
                     background-color: #f8fafc;
-                    position: sticky;
-                    top: 0;
-                    z-index: 10;
-                    padding: 0.625rem 1rem;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 0.25rem;
+                    padding: 0.5rem;
                   }
                   .admin-editor .ql-container.ql-snow {
-                    border: none;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    margin-top: 1rem;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 0.75rem;
+                    margin-top: 0.5rem;
+                    min-height: 200px;
                   }
                   .admin-editor .ql-editor {
-                    min-height: 450px;
+                    min-height: 200px;
                     font-family: Inter, system-ui, sans-serif;
-                    font-size: 1.05rem;
-                    line-height: 1.7;
-                    padding: 1.5rem 0;
-                    color: #374151;
-                    flex: 1;
-                  }
-                  .admin-editor .ql-editor.ql-blank::before {
-                    left: 0;
-                    font-style: italic;
-                    color: #d1d5db;
-                  }
-                  .admin-editor .ql-editor h1 { font-size: 2.25em; font-weight: 800; margin-bottom: 0.8em; color: #0A3161; }
-                  .admin-editor .ql-editor h2 { font-size: 1.6em; font-weight: 700; margin-top: 1.6em; margin-bottom: 0.8em; color: #0A3161; }
-                  .admin-editor .ql-editor h3 { font-size: 1.3em; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.6em; color: #0A3161; }
-                  .admin-editor .ql-editor p { margin-bottom: 1.3em; }
-                  .admin-editor .ql-editor ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.3em; }
-                  .admin-editor .ql-editor ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1.3em; }
-                  .admin-editor .ql-editor li { margin-bottom: 0.5em; }
-                  .admin-editor .ql-editor a { color: #C5A880; text-decoration: underline; }
-                  .admin-editor iframe.ql-video {
-                    width: 100%;
-                    height: 450px;
-                    border-radius: 0.75rem;
-                    margin-top: 2rem;
-                    margin-bottom: 0.5rem;
-                  }
-                  .admin-editor .video-caption {
-                    text-align: center;
-                    font-size: 0.875rem;
-                    color: #6b7280;
-                    font-style: italic;
-                    margin-bottom: 2rem;
+                    font-size: 1rem;
                   }
                 `}</style>
                 
-                {/* Document Body Area */}
-                <div className="admin-editor">
-                  <ReactQuill
-                    theme="snow"
-                    modules={quillModules}
-                    value={newPost.content}
-                    onChange={(content: string) => setNewPost({ ...newPost, content })}
-                    placeholder="Comece a digitar seu artigo aqui..."
-                  />
+                {/* Dynamic Blocks Container */}
+                <div className="space-y-6 text-left my-8">
+                  <label className="block text-lg font-black text-primary border-b border-gray-100 pb-2">
+                    Blocos de Conteúdo ({newPost.contentBlocks.length})
+                  </label>
+                  
+                  {newPost.contentBlocks.length === 0 ? (
+                    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 bg-slate-50 text-center text-dark-gray/60 italic">
+                      Nenhum bloco de conteúdo adicionado ainda. Use os botões abaixo para montar seu artigo.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {newPost.contentBlocks.map((block, index) => (
+                        <div key={index} className="bg-slate-50 border border-gray-200 rounded-2xl p-4 md:p-6 space-y-4 shadow-sm relative text-left">
+                          <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                            <span className="text-xs font-black uppercase text-accent-gold tracking-widest">
+                              #{index + 1} - Bloco de {block.type === 'text' ? 'Texto' : block.type === 'image' ? 'Imagem' : block.type === 'video' ? 'Vídeo' : 'Botão CTA'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => moveBlock(index, 'up')}
+                                disabled={index === 0}
+                                className="p-1 px-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-sm font-bold"
+                                title="Mover para cima"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveBlock(index, 'down')}
+                                disabled={index === newPost.contentBlocks.length - 1}
+                                className="p-1 px-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-sm font-bold"
+                                title="Mover para baixo"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeBlock(index)}
+                                className="p-1 px-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 cursor-pointer text-sm font-bold"
+                                title="Excluir bloco"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+
+                          {block.type === 'text' && (
+                            <div className="admin-editor ql-snow">
+                              <ReactQuill
+                                theme="snow"
+                                modules={quillModules}
+                                value={block.content || ''}
+                                onChange={(content: string) => updateBlock(index, { ...block, content })}
+                                placeholder="Digite o conteúdo textual (rich text) do bloco..."
+                              />
+                            </div>
+                          )}
+
+                          {block.type === 'image' && (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                  <label className="text-xs font-bold text-gray-500">URL da Imagem</label>
+                                  <input
+                                    type="text"
+                                    value={block.imageUrl || ''}
+                                    onChange={(e) => updateBlock(index, { ...block, imageUrl: e.target.value })}
+                                    placeholder="https://exemplo.com/imagem.jpg"
+                                    className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                                    Texto Alternativo <span className="text-red-500">*</span> (Alt Text)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={block.altText || ''}
+                                    onChange={(e) => updateBlock(index, { ...block, altText: e.target.value })}
+                                    placeholder="Alt text obrigatório para acessibilidade..."
+                                    className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                              {block.imageUrl && (
+                                <div className="w-48 h-32 overflow-hidden rounded-xl border border-gray-200 shadow-sm mt-2">
+                                  <img src={block.imageUrl} alt={block.altText} className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {block.type === 'video' && (
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-500 block">URL de Origem do Vídeo</label>
+                              <input
+                                  type="text"
+                                  value={block.sourceUrl || ''}
+                                  onChange={(e) => updateBlock(index, { ...block, sourceUrl: e.target.value })}
+                                  placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                                  className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                              />
+                              <p className="text-xs text-dark-gray/50 italic">Insira links do YouTube, Instagram ou TikTok. O sistema converterá automaticamente para o player nativo.</p>
+                            </div>
+                          )}
+
+                          {block.type === 'button' && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500">Texto do Botão (Label)</label>
+                                <input
+                                  type="text"
+                                  value={block.label || ''}
+                                  onChange={(e) => updateBlock(index, { ...block, label: e.target.value })}
+                                  placeholder="Ex: Contratar Assessoria"
+                                  className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500">URL de Destino</label>
+                                <input
+                                  type="text"
+                                  value={block.targetUrl || ''}
+                                  onChange={(e) => updateBlock(index, { ...block, targetUrl: e.target.value })}
+                                  placeholder="Ex: /ds-160 ou https://..."
+                                  className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500">Cor de Fundo (Hex)</label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="color"
+                                    value={block.hexColorCode || '#0A3161'}
+                                    onChange={(e) => updateBlock(index, { ...block, hexColorCode: e.target.value })}
+                                    className="w-10 h-10 border border-gray-200 rounded-lg cursor-pointer"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={block.hexColorCode || '#0A3161'}
+                                    onChange={(e) => updateBlock(index, { ...block, hexColorCode: e.target.value })}
+                                    placeholder="#0A3161"
+                                    className="flex-1 p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Block Add Buttons */}
+                  <div className="flex flex-wrap gap-2 pt-2 justify-start">
+                    <button
+                      type="button"
+                      onClick={() => addBlock('text')}
+                      className="bg-white border border-primary/20 hover:bg-slate-50 text-primary px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                    >
+                      + Bloco de Texto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addBlock('image')}
+                      className="bg-white border border-primary/20 hover:bg-slate-50 text-primary px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                    >
+                      + Bloco de Imagem
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addBlock('video')}
+                      className="bg-white border border-primary/20 hover:bg-slate-50 text-primary px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                    >
+                      + Bloco de Vídeo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addBlock('button')}
+                      className="bg-white border border-primary/20 hover:bg-slate-50 text-primary px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                    >
+                      + Bloco de Botão
+                    </button>
+                  </div>
                 </div>
 
                 {/* Bloco de SEO e Otimização */}
@@ -768,103 +1038,70 @@ export default function AdminDashboard() {
                     <span className="bg-primary/5 text-primary text-xs font-bold px-2 py-0.5 rounded">Google & Social</span>
                   </div>
 
-                  {/* Simulador Google Search Preview */}
+                  {/* Google Snippet Preview */}
                   <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-6 space-y-4">
                     <div className="flex items-center gap-2 text-xs font-bold text-dark-gray/60 uppercase tracking-wider">
                       <span className="text-emerald-600 font-extrabold">G</span> Exibição na Busca (Google Snippet)
                     </div>
                     
                     <div className="bg-white p-5 rounded-xl border border-gray-200/50 shadow-sm space-y-1">
-                      {/* Breadcrumbs */}
                       <div className="flex items-center gap-1.5 text-xs text-dark-gray/70">
                         <span className="bg-gray-100 p-0.5 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">V</span>
                         <span>visarebr.com.br</span>
                         <span className="text-gray-400">›</span>
                         <span>blog</span>
                       </div>
-                      {/* Link Title */}
                       <h4 className="text-[#1a0dab] text-xl font-sans hover:underline cursor-pointer leading-tight font-medium break-words">
-                        {newPost.titleWeb || newPost.title || 'Título do seu artigo'}
+                        {newPost.metaTitle || newPost.title || 'Título do seu artigo'}
                       </h4>
-                      {/* Snippet Description */}
                       <p className="text-[#4d5156] text-[14px] leading-relaxed break-words font-sans">
-                        {newPost.summary ? (
-                          newPost.summary.length > 155 ? newPost.summary.substring(0, 155) + '...' : newPost.summary
-                        ) : (
-                          'Escreva um resumo no subtítulo acima para visualizar o snippet de pesquisa do Google aqui...'
-                        )}
+                        {newPost.metaDescription || newPost.summary || 'Resumo do artigo para resultados de pesquisa...'}
                       </p>
                     </div>
                   </div>
 
                   {/* SEO Inputs Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Título Web */}
+                    {/* Meta Title */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label className="block text-sm font-bold text-primary">Título Web (Tag Title)</label>
-                        <span className={`text-xs font-bold ${newPost.titleWeb.length >= 50 && newPost.titleWeb.length <= 60 ? 'text-green-600' : 'text-dark-gray/50'}`}>
-                          {newPost.titleWeb.length} caracteres (Ideal: 50-60)
+                        <label className="block text-sm font-bold text-primary">Meta Title (SEO)</label>
+                        <span className={`text-xs font-bold ${newPost.metaTitle.length >= 50 && newPost.metaTitle.length <= 60 ? 'text-green-600' : 'text-dark-gray/50'}`}>
+                          {newPost.metaTitle.length} carac.
                         </span>
                       </div>
                       <input
                         type="text"
-                        placeholder="Título que aparece na aba do navegador e no Google..."
+                        placeholder="Meta título para indexação (deixe vazio para usar o Título principal)..."
                         className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
-                        value={newPost.titleWeb}
-                        onChange={e => setNewPost({ ...newPost, titleWeb: e.target.value })}
+                        value={newPost.metaTitle}
+                        onChange={e => setNewPost({ ...newPost, metaTitle: e.target.value })}
                       />
-                      {/* Progress Bar */}
-                      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-300 ${
-                            newPost.titleWeb.length >= 50 && newPost.titleWeb.length <= 60 
-                              ? 'bg-green-500' 
-                              : newPost.titleWeb.length > 60 
-                                ? 'bg-red-500' 
-                                : 'bg-yellow-500'
-                          }`}
-                          style={{ width: `${Math.min((newPost.titleWeb.length / 60) * 100, 100)}%` }}
-                        ></div>
-                      </div>
                     </div>
 
-                    {/* Título Social */}
+                    {/* Meta Description */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label className="block text-sm font-bold text-primary">Título Social (Compartilhamento)</label>
-                        <span className={`text-xs font-bold ${newPost.titleSocial.length >= 60 && newPost.titleSocial.length <= 90 ? 'text-green-600' : 'text-dark-gray/50'}`}>
-                          {newPost.titleSocial.length} caracteres
+                        <label className="block text-sm font-bold text-primary">Meta Description (SEO)</label>
+                        <span className={`text-xs font-bold ${newPost.metaDescription.length >= 120 && newPost.metaDescription.length <= 160 ? 'text-green-600' : 'text-dark-gray/50'}`}>
+                          {newPost.metaDescription.length} carac.
                         </span>
                       </div>
                       <input
                         type="text"
-                        placeholder="Título usado para redes sociais e links compartilhados..."
+                        placeholder="Descrição SEO (deixe vazio para usar o resumo principal)..."
                         className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
-                        value={newPost.titleSocial}
-                        onChange={e => setNewPost({ ...newPost, titleSocial: e.target.value })}
+                        value={newPost.metaDescription}
+                        onChange={e => setNewPost({ ...newPost, metaDescription: e.target.value })}
                       />
-                      {/* Progress Bar */}
-                      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-300 ${
-                            newPost.titleSocial.length >= 60 && newPost.titleSocial.length <= 90 
-                              ? 'bg-green-500' 
-                              : newPost.titleSocial.length > 90 
-                                ? 'bg-red-500' 
-                                : 'bg-blue-500'
-                          }`}
-                          style={{ width: `${Math.min((newPost.titleSocial.length / 90) * 100, 100)}%` }}
-                        ></div>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Tags Section */}
+                  {/* Tags section (up to 3 tags) */}
                   <div className="space-y-4 pt-4 border-t border-gray-100">
-                    <label className="block text-sm font-bold text-primary">Gerenciador de Tags</label>
+                    <label className="block text-sm font-bold text-primary">Otimização de Tags (Max: 3)</label>
                     <p className="text-xs text-dark-gray/60 -mt-2">
-                      A primeira tag adicionada será considerada a **Tag Principal**. Pressione Enter ou clique em "+" para adicionar.
+                      Pressione Enter ou clique em "+" para adicionar tags relevantes. Limite de 3 tags.
                     </p>
                     
                     <div className="flex gap-2">
@@ -877,9 +1114,13 @@ export default function AdminDashboard() {
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             const input = e.currentTarget;
-                            const tagValue = input.value.trim().toLowerCase().replace('#', '');
+                            const tagValue = input.value.trim().toLowerCase().replace('#', '').replace(/\s+/g, '');
                             if (tagValue) {
                               const currentTagsList = newPost.tags ? newPost.tags.split(',').filter(Boolean) : [];
+                              if (currentTagsList.length >= 3) {
+                                alert('Você pode cadastrar no máximo 3 tags por artigo.');
+                                return;
+                              }
                               if (!currentTagsList.includes(tagValue)) {
                                 const newTagsList = [...currentTagsList, tagValue];
                                 setNewPost({ ...newPost, tags: newTagsList.join(',') });
@@ -893,9 +1134,13 @@ export default function AdminDashboard() {
                         type="button"
                         onClick={() => {
                           const input = document.getElementById('tag-input') as HTMLInputElement;
-                          const tagValue = input?.value.trim().toLowerCase().replace('#', '');
+                          const tagValue = input?.value.trim().toLowerCase().replace('#', '').replace(/\s+/g, '');
                           if (tagValue) {
                             const currentTagsList = newPost.tags ? newPost.tags.split(',').filter(Boolean) : [];
+                            if (currentTagsList.length >= 3) {
+                              alert('Você pode cadastrar no máximo 3 tags por artigo.');
+                              return;
+                            }
                             if (!currentTagsList.includes(tagValue)) {
                               const newTagsList = [...currentTagsList, tagValue];
                               setNewPost({ ...newPost, tags: newTagsList.join(',') });
@@ -909,26 +1154,22 @@ export default function AdminDashboard() {
                       </button>
                     </div>
 
-                    {/* Tag Pills List */}
+                    {/* Tag pills list */}
                     <div className="flex flex-wrap gap-2.5 pt-2">
                       {newPost.tags ? (
                         newPost.tags.split(',').filter(Boolean).map((tag, idx) => (
                           <span 
                             key={idx} 
-                            className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold border transition ${
-                              idx === 0 
-                                ? 'bg-primary/5 text-primary border-primary/20 shadow-sm' 
-                                : 'bg-light-gray text-dark-gray border-gray-200'
-                            }`}
+                            className="px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold border bg-light-gray text-dark-gray border-gray-200"
                           >
-                            {idx === 0 ? `★ #${tag}` : `#${tag}`}
+                            #{tag}
                             <button
                               type="button"
                               onClick={() => {
                                 const newTagsList = newPost.tags.split(',').filter(Boolean).filter((_, i) => i !== idx);
                                 setNewPost({ ...newPost, tags: newTagsList.join(',') });
                               }}
-                              className="text-dark-gray/50 hover:text-red-600 transition cursor-pointer font-bold"
+                              className="text-dark-gray/50 hover:text-red-600 transition cursor-pointer font-bold ml-1 text-sm"
                             >
                               ×
                             </button>
@@ -939,6 +1180,7 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   </div>
+
                 </div>
               </form>
             </div>

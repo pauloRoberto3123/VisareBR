@@ -44,27 +44,92 @@ public static class SeedData
             });
         }
 
-        // 4. Seed Blog Posts
-        if (!await context.BlogPosts.AnyAsync())
+        // 4. Seed Articles
+        if (!await context.Articles.AnyAsync())
         {
-            context.BlogPosts.AddRange(
-                new BlogPost
+            context.Articles.AddRange(
+                new Article
                 {
                     Title = "5 Motivos que levam à negativa do Visto Americano",
+                    Slug = "5-motivos-que-levam-a-negativa-do-visto-americano",
                     Summary = "Descubra os erros mais comuns cometidos no formulário DS-160 e como evitá-los para garantir sua aprovação.",
-                    Content = "O processo de solicitação do visto americano é rigoroso. Entre os principais motivos de negativa estão: \n1. Erros no preenchimento do DS-160.\n2. Falta de comprovação de vínculos com o Brasil.\n3. Inconsistência nas respostas da entrevista.\n4. Renda incompatível com a viagem.\n5. Falta de planejamento.\n\nNossa assessoria foca justamente em mitigar esses riscos através de uma análise minuciosa do seu perfil.",
+                    ReadTimeMinutes = 5,
+                    FeaturedImageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=800",
+                    MetaTitle = "5 Motivos de Negativa de Visto Americano e Como Evitar",
+                    MetaDescription = "Saiba quais são os principais motivos que fazem o Consulado Americano negar o visto e entenda como nossa assessoria pode te ajudar.",
+                    Tags = new List<string> { "VistoAmericano", "NegativaDeVisto", "DS160" },
                     AuthorId = adminUser.Id,
                     CreatedAt = DateTime.UtcNow.AddDays(-10),
-                    ImageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=800"
+                    ContentBlocks = new List<ArticleBlock>
+                    {
+                        new TextBlock
+                        {
+                            Order = 0,
+                            Content = "<h2>O processo de solicitação do visto americano é rigoroso.</h2><p>Entender os critérios de avaliação do cônsul é fundamental para evitar frustrações. Abaixo, detalhamos os principais motivos de recusa.</p>"
+                        },
+                        new TextBlock
+                        {
+                            Order = 1,
+                            Content = "<h3>1. Erros no preenchimento do formulário DS-160</h3><p>O DS-160 é a sua principal apresentação para o consulado. Informações incompletas, erros de digitação ou contradições são motivos imediatos para recusa.</p><h3>2. Falta de comprovação de vínculos fortes com o Brasil</h3><p>A lei de imigração americana (Seção 214b) presume que todo solicitante de visto tem intenção de imigrar, a menos que comprove o contrário. Apresentar poucos vínculos de emprego, estudo ou bens no Brasil resulta em visto negado.</p>"
+                        },
+                        new ImageBlock
+                        {
+                            Order = 2,
+                            ImageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=800",
+                            AltText = "Passaporte e formulário DS-160 para visto americano"
+                        },
+                        new TextBlock
+                        {
+                            Order = 3,
+                            Content = "<h3>3. Inconsistência nas respostas da entrevista</h3><p>Na hora da entrevista, o cônsul confrontará o que você diz com o que foi preenchido no DS-160. Nervosismo e respostas evasivas geram desconfiança.</p><h3>4. Renda incompatível com a viagem</h3><p>Você precisa provar que tem recursos financeiros suficientes para custear toda a sua estadia nos Estados Unidos sem precisar trabalhar lá.</p>"
+                        },
+                        new VideoBlock
+                        {
+                            Order = 4,
+                            SourceUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                            EmbedData = "https://www.youtube.com/embed/dQw4w9WgXcQ"
+                        },
+                        new ButtonBlock
+                        {
+                            Order = 5,
+                            Label = "Iniciar Assessoria de Visto",
+                            TargetUrl = "/ds-160",
+                            HexColorCode = "#0A3161"
+                        }
+                    }
                 },
-                new BlogPost
+                new Article
                 {
                     Title = "Renovação de Visto: Preciso fazer entrevista?",
+                    Slug = "renovacao-de-visto-preciso-fazer-entrevista",
                     Summary = "Muitas pessoas têm dúvida se precisam ir ao consulado novamente. Entenda as regras atuais para renovação.",
-                    Content = "Atualmente, a maioria das renovações de visto de turismo (B1/B2) que venceram há menos de 48 meses podem ser feitas sem a necessidade de uma nova entrevista presencial. No entanto, é necessário o envio do passaporte e a conferência de dados no CASV. Facilitamos todo esse trâmite logístico para você.",
+                    ReadTimeMinutes = 3,
+                    FeaturedImageUrl = "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800",
+                    MetaTitle = "Como Funciona a Renovação do Visto Americano",
+                    MetaDescription = "Tire suas dúvidas sobre a renovação de visto de turismo americano e descubra se você se enquadra na isenção de entrevista presencial.",
+                    Tags = new List<string> { "RenovacaoVisto", "DicasConsular", "EntrevistaVisto" },
                     AuthorId = adminUser.Id,
                     CreatedAt = DateTime.UtcNow.AddDays(-5),
-                    ImageUrl = "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800"
+                    ContentBlocks = new List<ArticleBlock>
+                    {
+                        new TextBlock
+                        {
+                            Order = 0,
+                            Content = "<h2>Renovar o visto americano é muito mais simples!</h2><p>Atualmente, a maioria das renovações de visto de turismo e negócios (B1/B2) vencidos há menos de 48 meses dispensam a necessidade de agendar uma nova entrevista presencial no Consulado ou na Embaixada.</p>"
+                        },
+                        new TextBlock
+                        {
+                            Order = 1,
+                            Content = "<h3>Quais são os requisitos para a isenção de entrevista?</h3><ul><li>O visto anterior deve ter sido emitido após os 14 anos de idade.</li><li>O visto não pode ter sido roubado, perdido ou cancelado.</li><li>A última solicitação de visto não pode ter sido recusada.</li></ul>"
+                        },
+                        new ButtonBlock
+                        {
+                            Order = 2,
+                            Label = "Fazer Renovação Simplificada",
+                            TargetUrl = "/ds-160",
+                            HexColorCode = "#C5A880"
+                        }
+                    }
                 }
             );
         }

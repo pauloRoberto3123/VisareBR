@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisareBR.Api", "VisareBR.Ap
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisareBR.Core", "VisareBR.Core\VisareBR.Core.csproj", "{0D3DA339-6E64-40B9-91B4-68B42DB67291}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisareBR.Tests", "VisareBR.Tests\VisareBR.Tests.csproj", "{1B18CA71-ED8C-47C6-B291-337BBD511134}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{0D3DA339-6E64-40B9-91B4-68B42DB67291}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D3DA339-6E64-40B9-91B4-68B42DB67291}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D3DA339-6E64-40B9-91B4-68B42DB67291}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B18CA71-ED8C-47C6-B291-337BBD511134}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B18CA71-ED8C-47C6-B291-337BBD511134}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B18CA71-ED8C-47C6-B291-337BBD511134}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B18CA71-ED8C-47C6-B291-337BBD511134}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -2,13 +2,34 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using VisareBR.Core.Data;
 using VisareBR.Core.Entities;
+using VisareBR.Core.Events;
 using VisareBR.Api.Data; // Add this line
+using VisareBR.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+string connectionString;
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    // Parse Render's connection URL into Npgsql key-value format
+    var databaseUri = new Uri(databaseUrl);
+    var userInfo = databaseUri.UserInfo.Split(':');
+    var username = userInfo[0];
+    var password = userInfo.Length > 1 ? userInfo[1] : string.Empty;
+    var host = databaseUri.Host;
+    var port = databaseUri.Port == -1 ? 5432 : databaseUri.Port;
+    var database = databaseUri.AbsolutePath.TrimStart('/');
+
+    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+}
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString, x => x.MigrationsAssembly("VisareBR.Api")));
 
@@ -20,6 +41,9 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers(); // Add this line
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IArticleEventDispatcher, ArticleEventDispatcher>();
+builder.Services.AddScoped<IArticleEventListener, ArticleCacheInvalidator>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
