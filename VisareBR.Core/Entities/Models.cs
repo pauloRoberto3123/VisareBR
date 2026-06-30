@@ -9,20 +9,66 @@ public class ApplicationUser : IdentityUser
     public string FullName { get; set; } = string.Empty;
 }
 
-public class BlogPost
+public class Article
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
-    public string? ImageUrl { get; set; }
+    public int ReadTimeMinutes { get; set; }
+    public string FeaturedImageUrl { get; set; } = string.Empty;
+
+    // SEO Properties
+    public string MetaTitle { get; set; } = string.Empty;
+    public string MetaDescription { get; set; } = string.Empty;
+    public List<string> Tags { get; set; } = new();
+
+    // Polymorphic Content Blocks
+    public List<ArticleBlock> ContentBlocks { get; set; } = new();
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
-    public string? TitleWeb { get; set; }
-    public string? TitleSocial { get; set; }
-    public string? Tags { get; set; }
     public string AuthorId { get; set; } = string.Empty;
     public ApplicationUser? Author { get; set; }
+    public string? AuthorName { get; set; }
+}
+
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(TextBlock), typeDiscriminator: "text")]
+[JsonDerivedType(typeof(ImageBlock), typeDiscriminator: "image")]
+[JsonDerivedType(typeof(VideoBlock), typeDiscriminator: "video")]
+[JsonDerivedType(typeof(ButtonBlock), typeDiscriminator: "button")]
+public abstract class ArticleBlock
+{
+    public int Id { get; set; }
+    public int ArticleId { get; set; }
+    [JsonIgnore]
+    public Article? Article { get; set; }
+    public int Order { get; set; }
+}
+
+public class TextBlock : ArticleBlock
+{
+    public string Content { get; set; } = string.Empty;
+}
+
+public class ImageBlock : ArticleBlock
+{
+    public string ImageUrl { get; set; } = string.Empty;
+    public string AltText { get; set; } = string.Empty;
+}
+
+public class VideoBlock : ArticleBlock
+{
+    public string SourceUrl { get; set; } = string.Empty;
+    public string? EmbedData { get; set; }
+}
+
+public class ButtonBlock : ArticleBlock
+{
+    public string Label { get; set; } = string.Empty;
+    public string TargetUrl { get; set; } = string.Empty;
+    public string HexColorCode { get; set; } = string.Empty;
 }
 
 public class Evaluation

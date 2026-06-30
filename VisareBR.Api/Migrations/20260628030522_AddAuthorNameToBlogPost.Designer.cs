@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VisareBR.Core.Data;
@@ -11,9 +12,11 @@ using VisareBR.Core.Data;
 namespace VisareBR.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260628030522_AddAuthorNameToBlogPost")]
+    partial class AddAuthorNameToBlogPost
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -222,7 +225,7 @@ namespace VisareBR.Api.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("VisareBR.Core.Entities.Article", b =>
+            modelBuilder.Entity("VisareBR.Core.Entities.BlogPost", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -237,26 +240,14 @@ namespace VisareBR.Api.Migrations
                     b.Property<string>("AuthorName")
                         .HasColumnType("text");
 
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("FeaturedImageUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("MetaDescription")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("MetaTitle")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("ReadTimeMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("text");
 
                     b.Property<string>("Summary")
@@ -264,11 +255,16 @@ namespace VisareBR.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Tags")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TitleSocial")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TitleWeb")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -278,40 +274,7 @@ namespace VisareBR.Api.Migrations
 
                     b.HasIndex("AuthorId");
 
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
-                    b.ToTable("Articles");
-                });
-
-            modelBuilder.Entity("VisareBR.Core.Entities.ArticleBlock", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ArticleId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("BlockType")
-                        .IsRequired()
-                        .HasMaxLength(13)
-                        .HasColumnType("character varying(13)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ArticleId");
-
-                    b.ToTable("ArticleBlocks");
-
-                    b.HasDiscriminator<string>("BlockType").HasValue("ArticleBlock");
-
-                    b.UseTphMappingStrategy();
+                    b.ToTable("BlogPosts");
                 });
 
             modelBuilder.Entity("VisareBR.Core.Entities.Ds160Submission", b =>
@@ -796,65 +759,6 @@ namespace VisareBR.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("VisareBR.Core.Entities.ButtonBlock", b =>
-                {
-                    b.HasBaseType("VisareBR.Core.Entities.ArticleBlock");
-
-                    b.Property<string>("HexColorCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TargetUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasDiscriminator().HasValue("button");
-                });
-
-            modelBuilder.Entity("VisareBR.Core.Entities.ImageBlock", b =>
-                {
-                    b.HasBaseType("VisareBR.Core.Entities.ArticleBlock");
-
-                    b.Property<string>("AltText")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasDiscriminator().HasValue("image");
-                });
-
-            modelBuilder.Entity("VisareBR.Core.Entities.TextBlock", b =>
-                {
-                    b.HasBaseType("VisareBR.Core.Entities.ArticleBlock");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasDiscriminator().HasValue("text");
-                });
-
-            modelBuilder.Entity("VisareBR.Core.Entities.VideoBlock", b =>
-                {
-                    b.HasBaseType("VisareBR.Core.Entities.ArticleBlock");
-
-                    b.Property<string>("EmbedData")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SourceUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasDiscriminator().HasValue("video");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -906,7 +810,7 @@ namespace VisareBR.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("VisareBR.Core.Entities.Article", b =>
+            modelBuilder.Entity("VisareBR.Core.Entities.BlogPost", b =>
                 {
                     b.HasOne("VisareBR.Core.Entities.ApplicationUser", "Author")
                         .WithMany()
@@ -915,17 +819,6 @@ namespace VisareBR.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Author");
-                });
-
-            modelBuilder.Entity("VisareBR.Core.Entities.ArticleBlock", b =>
-                {
-                    b.HasOne("VisareBR.Core.Entities.Article", "Article")
-                        .WithMany("ContentBlocks")
-                        .HasForeignKey("ArticleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Article");
                 });
 
             modelBuilder.Entity("VisareBR.Core.Entities.PlanBenefit", b =>
@@ -948,11 +841,6 @@ namespace VisareBR.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Plan");
-                });
-
-            modelBuilder.Entity("VisareBR.Core.Entities.Article", b =>
-                {
-                    b.Navigation("ContentBlocks");
                 });
 
             modelBuilder.Entity("VisareBR.Core.Entities.Plan", b =>

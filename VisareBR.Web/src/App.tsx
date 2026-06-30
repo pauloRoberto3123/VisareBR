@@ -46,7 +46,7 @@ function App() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
           <Route path="blog" element={<BlogList />} />
-          <Route path="blog/:id" element={<BlogPost />} />
+          <Route path="blog/:slug" element={<BlogPost />} />
         <Route 
           path="login" 
           element={

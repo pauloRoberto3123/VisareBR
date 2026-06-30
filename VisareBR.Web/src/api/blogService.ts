@@ -4,19 +4,42 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api', 
 });
 
-export interface BlogPost {
+export interface ArticleBlock {
+  id?: number;
+  articleId?: number;
+  order: number;
+  type: 'text' | 'image' | 'video' | 'button';
+  // Text block
+  content?: string;
+  // Image block
+  imageUrl?: string;
+  altText?: string;
+  // Video block
+  sourceUrl?: string;
+  embedData?: string;
+  // Button block
+  label?: string;
+  targetUrl?: string;
+  hexColorCode?: string;
+}
+
+export interface Article {
   id: number;
   title: string;
-  content: string;
+  slug: string;
   summary: string;
-  imageUrl?: string;
+  readTimeMinutes: number;
+  featuredImageUrl: string;
+  metaTitle: string;
+  metaDescription: string;
+  tags: string[];
+  contentBlocks: ArticleBlock[];
   createdAt: string;
-  titleWeb?: string;
-  titleSocial?: string;
-  tags?: string;
+  updatedAt?: string;
   author?: {
     fullName: string;
   };
+  authorName?: string;
 }
 
 export interface Evaluation {
@@ -38,8 +61,8 @@ export interface Ds160Submission {
   isReviewed: boolean;
 }
 
-export const getPosts = () => api.get<BlogPost[]>('/blog');
-export const getPost = (id: number) => api.get<BlogPost>(`/blog/${id}`);
+export const getArticles = () => api.get<Article[]>('/blog');
+export const getArticleBySlug = (slug: string) => api.get<Article>(`/blog/${slug}`);
 export const getEvaluations = () => api.get<Evaluation[]>('/evaluations');
 export const submitEvaluation = (evaluation: { userName: string; comment: string; rating: number }) => 
   api.post('/evaluations', evaluation);

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using VisareBR.Core.Entities;
 
 namespace VisareBR.Core.Data;
@@ -18,7 +19,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         _configuration = configuration;
     }
 
-    public DbSet<BlogPost> BlogPosts { get; set; }
+    public DbSet<Article> Articles { get; set; }
+    public DbSet<ArticleBlock> ArticleBlocks { get; set; }
     public DbSet<Evaluation> Evaluations { get; set; }
     public DbSet<SiteSettings> Settings { get; set; }
     public DbSet<Ds160Submission> Ds160Submissions { get; set; }
@@ -32,10 +34,36 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         base.OnModelCreating(builder);
 
         // Custom configurations if needed
-        builder.Entity<BlogPost>()
+        builder.Entity<Article>()
             .HasOne(p => p.Author)
             .WithMany()
             .HasForeignKey(p => p.AuthorId);
+
+        builder.Entity<Article>()
+            .HasIndex(a => a.Slug)
+            .IsUnique();
+
+        var stringListConverter = new ValueConverter<List<string>, string>(
+            v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
+            v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null!) ?? new List<string>()
+        );
+
+        builder.Entity<Article>()
+            .Property(a => a.Tags)
+            .HasConversion(stringListConverter);
+
+        builder.Entity<ArticleBlock>()
+            .HasDiscriminator<string>("BlockType")
+            .HasValue<TextBlock>("text")
+            .HasValue<ImageBlock>("image")
+            .HasValue<VideoBlock>("video")
+            .HasValue<ButtonBlock>("button");
+
+        builder.Entity<ArticleBlock>()
+            .HasOne(b => b.Article)
+            .WithMany(a => a.ContentBlocks)
+            .HasForeignKey(b => b.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
             
         builder.Entity<Evaluation>()
             .Property(e => e.Rating)
