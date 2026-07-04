@@ -7,16 +7,16 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { whatsappUrl } = useSettings();
 
-  return ( 
+  return (
     <nav className="bg-primary shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20">
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
-              <img src="/logo.png" alt="VisareBR Logo" className="h-12 w-auto filter invert brightness-0" />
+              <img src="/logo.png" alt="VisareBR Logo" className="h-10 w-auto" />
             </Link>
           </div>
-          
+
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-secondary hover:text-accent-gold font-medium transition-colors">Início</Link>
