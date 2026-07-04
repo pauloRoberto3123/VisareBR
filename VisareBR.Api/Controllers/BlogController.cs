@@ -301,7 +301,7 @@ public static class VideoParser
 
     private static string ExtractYouTubeId(string url)
     {
-        var regExp = new Regex(@"^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*");
+        var regExp = new Regex(@"^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*");
         var match = regExp.Match(url);
         return (match.Success && match.Groups[2].Value.Length == 11) ? match.Groups[2].Value : string.Empty;
     }

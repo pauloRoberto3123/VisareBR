@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import type { ArticleBlock } from '../api/blogService';
+import 'react-quill-new/dist/quill.snow.css';
 
 interface BlockRendererProps {
   blocks: ArticleBlock[];
@@ -15,6 +16,8 @@ export default function BlockRenderer({ blocks }: BlockRendererProps) {
         switch (block.type) {
           case 'text':
             if (!block.content) return null;
+            // Clean up non-breaking spaces to ensure text wraps correctly at word boundaries
+            const cleanedContent = block.content.replace(/\u00a0/g, ' ').replace(/&nbsp;/g, ' ');
             return (
               <div
                 key={block.id || block.order}
@@ -23,9 +26,9 @@ export default function BlockRenderer({ blocks }: BlockRendererProps) {
                 <div
                   className="ql-editor prose prose-lg max-w-none text-dark-gray leading-relaxed"
                   dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(block.content, {
+                    __html: DOMPurify.sanitize(cleanedContent, {
                       ADD_TAGS: ['iframe'],
-                      ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'target', 'rel']
+                      ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'target', 'rel', 'id']
                     })
                   }}
                 />
@@ -51,7 +54,8 @@ export default function BlockRenderer({ blocks }: BlockRendererProps) {
 
           case 'video':
             if (!block.sourceUrl && !block.embedData) return null;
-            const embedUrl = block.embedData || block.sourceUrl;
+            const rawUrl = block.embedData || block.sourceUrl;
+            const embedUrl = parseVideoEmbedUrl(rawUrl || '');
             return (
               <div key={block.id || block.order} className="my-8">
                 <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-lg border border-light-gray">
@@ -104,4 +108,32 @@ export default function BlockRenderer({ blocks }: BlockRendererProps) {
       })}
     </div>
   );
+}
+
+function parseVideoEmbedUrl(url: string): string {
+  if (!url) return '';
+  url = url.trim();
+
+  // YouTube RegExp (handles watch URLs, share links, embeds, shorts)
+  const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const ytMatch = url.match(ytRegex);
+  if (ytMatch && ytMatch[1]) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  }
+
+  // Instagram
+  if (url.includes('instagram.com')) {
+    const cleanUrl = url.split('?')[0].replace(/\/$/, '');
+    return `${cleanUrl}/embed`;
+  }
+
+  // TikTok
+  if (url.includes('tiktok.com')) {
+    const ttMatch = url.match(/video\/(\d+)/);
+    if (ttMatch && ttMatch[1]) {
+      return `https://www.tiktok.com/embed/v2/${ttMatch[1]}`;
+    }
+  }
+
+  return url;
 }

@@ -21,7 +21,7 @@ export default function BlogList() {
     <div className="bg-secondary py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-primary mb-4">Blog VisareBR</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">Artigos VisareBR</h1>
           <p className="text-xl text-dark-gray">Dicas, notícias e guias completos sobre vistos americanos.</p>
         </div>
 
@@ -32,10 +32,14 @@ export default function BlogList() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post) => (
-              <article key={post.id} className="flex flex-col bg-secondary border border-light-gray rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
+              <Link 
+                key={post.id} 
+                to={`/blog/${post.slug}`} 
+                className="flex flex-col bg-secondary border border-light-gray rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-accent-gold/40 transition-all duration-300 group"
+              >
                 <div className="h-48 bg-light-gray flex items-center justify-center text-dark-gray overflow-hidden">
                   {post.featuredImageUrl ? (
-                    <img src={post.featuredImageUrl} alt={post.title} className="w-full h-full object-cover" />
+                    <img src={post.featuredImageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <span className="text-lg">Sem imagem</span>
                   )}
@@ -45,13 +49,13 @@ export default function BlogList() {
                     <span className="flex items-center gap-1"><Calendar size={14} className="text-gray-500" /> {new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
                     {(post.authorName || post.author) && <span className="flex items-center gap-1"><User size={14} className="text-gray-500" /> {post.authorName || post.author?.fullName}</span>}
                   </div>
-                  <h2 className="text-xl font-bold text-primary mb-3 line-clamp-2 hover:text-accent-gold transition-colors duration-200">{post.title}</h2>
+                  <h2 className="text-xl font-bold text-primary mb-3 line-clamp-2 group-hover:text-accent-gold transition-colors duration-200">{post.title}</h2>
                   <p className="text-dark-gray mb-6 line-clamp-3">{post.summary}</p>
-                  <Link to={`/blog/${post.slug}`} className="mt-auto text-accent-gold font-bold hover:underline">
+                  <span className="mt-auto text-accent-gold font-bold group-hover:underline">
                     Ler mais →
-                  </Link>
+                  </span>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         )}
