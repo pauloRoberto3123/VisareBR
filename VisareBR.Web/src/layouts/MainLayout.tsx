@@ -14,15 +14,15 @@ export default function MainLayout() {
         <Outlet />
       </main>
       <WhatsAppButton />
-      
+
       <footer className="bg-primary text-secondary pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            
+
             {/* Brand column */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="VisareBR Logo" className="h-20 w-auto filter invert brightness-0" />
+                <img src="/logo.png" alt="VisareBR Logo" className="h-12 w-auto" />
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Assessoria especializada em vistos americanos. Segurança, agilidade e alta taxa de aprovação para sua viagem aos Estados Unidos.
@@ -88,7 +88,7 @@ export default function MainLayout() {
               {settings?.cnpj && <p className="mt-1">CNPJ: {settings.cnpj}</p>}
             </div>
             <div className="flex gap-6">
-            <Link to="/admin" className="hover:text-accent-gold transition-colors">Área Restrita</Link>
+              <Link to="/admin" className="hover:text-accent-gold transition-colors">Área Restrita</Link>
               <Link to="/privacidade" className="hover:text-accent-gold transition-colors">Política de Privacidade</Link>
             </div>
           </div>
