@@ -485,7 +485,7 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab('blog')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'blog' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
-          Gerenciar Blog
+          Gerenciar Artigos
         </button>
         <button 
           onClick={() => setActiveTab('evaluations')}

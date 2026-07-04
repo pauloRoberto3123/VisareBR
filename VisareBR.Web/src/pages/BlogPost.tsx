@@ -1,22 +1,77 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getArticleBySlug } from '../api/blogService';
-import type { Article } from '../api/blogService';
+import type { Article, ArticleBlock } from '../api/blogService';
 import { ArrowLeft, Calendar, User, Clock, AlignLeft } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
+import { useSettings } from '../context/SettingsContext';
+
+interface ParsedHeading {
+  id: string;
+  text: string;
+  level: number;
+}
+
+function processBlocks(blocks: ArticleBlock[]): {
+  processedBlocks: ArticleBlock[];
+  headings: ParsedHeading[];
+} {
+  if (!blocks) return { processedBlocks: [], headings: [] };
+
+  const headings: ParsedHeading[] = [];
+  let headingCounter = 0;
+
+  const processedBlocks = blocks.map((block) => {
+    if (block.type !== 'text' || !block.content) return block;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(block.content, 'text/html');
+    const headingElements = doc.querySelectorAll('h2, h3');
+
+    headingElements.forEach((el) => {
+      const id = el.id || `heading-${headingCounter++}`;
+      el.id = id;
+      headings.push({
+        id,
+        text: el.textContent || '',
+        level: el.tagName === 'H2' ? 2 : 3
+      });
+    });
+
+    return {
+      ...block,
+      content: doc.body.innerHTML
+    };
+  });
+
+  return { processedBlocks, headings };
+}
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<Article | null>(null);
+  const [processedBlocks, setProcessedBlocks] = useState<ArticleBlock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [headings, setHeadings] = useState<{ id: string; text: string; level: number }[]>([]);
+  const [headings, setHeadings] = useState<ParsedHeading[]>([]);
   const [activeId, setActiveId] = useState<string>('');
+  const { whatsappUrl } = useSettings();
 
   useEffect(() => {
     if (slug) {
       setLoading(true);
       getArticleBySlug(slug)
-        .then((res: any) => setPost(res.data))
+        .then((res: any) => {
+          const article = res.data;
+          setPost(article);
+          if (article && article.contentBlocks) {
+            const { processedBlocks: newBlocks, headings: newHeadings } = processBlocks(article.contentBlocks);
+            setProcessedBlocks(newBlocks);
+            setHeadings(newHeadings);
+          } else {
+            setProcessedBlocks([]);
+            setHeadings([]);
+          }
+        })
         .catch((err: any) => console.error(err))
         .finally(() => setLoading(false));
     }
@@ -98,7 +153,7 @@ export default function BlogPost() {
     // Cleanup function when component unmounts or post changes
     return () => {
       document.title = originalTitle;
-      
+
       const metaSelectors = [
         'meta[name="description"]',
         'meta[property="og:title"]',
@@ -125,50 +180,44 @@ export default function BlogPost() {
     };
   }, [post]);
 
-  // Parse Headings from rendered HTML blocks
-  useEffect(() => {
-    if (!post) return;
-    const timer = setTimeout(() => {
-      const contentEl = document.querySelector('.blog-content');
-      if (contentEl) {
-        const headingElements = contentEl.querySelectorAll('h2, h3');
-        const list: { id: string; text: string; level: number }[] = [];
-        headingElements.forEach((el, index) => {
-          const id = el.id || `heading-${index}`;
-          el.id = id;
-          list.push({
-            id,
-            text: el.textContent || '',
-            level: el.tagName === 'H2' ? 2 : 3
-          });
-        });
-        setHeadings(list);
-      }
-    }, 200); // Small timeout to allow DOM node rendering
-    return () => clearTimeout(timer);
-  }, [post]);
+
 
   // Track scroll and highlight heading
   useEffect(() => {
     if (headings.length === 0) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries.find((entry) => entry.isIntersecting);
-        if (visibleEntry) {
-          setActiveId(visibleEntry.target.id);
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 130; // Navbar height + buffer
+
+      let currentActiveId = '';
+      for (const heading of headings) {
+        const el = document.getElementById(heading.id);
+        if (el) {
+          const top = el.getBoundingClientRect().top + window.scrollY;
+          if (scrollPosition >= top) {
+            currentActiveId = heading.id;
+          } else {
+            break;
+          }
         }
-      },
-      { rootMargin: '-100px 0px -50% 0px', threshold: 0.1 }
-    );
+      }
 
-    const contentEl = document.querySelector('.blog-content');
-    if (contentEl) {
-      const headingElements = contentEl.querySelectorAll('h2, h3');
-      headingElements.forEach((el) => observer.observe(el));
-    }
+      // Default to first heading if scrolled above all of them
+      if (!currentActiveId && headings.length > 0) {
+        currentActiveId = headings[0].id;
+      }
 
-    return () => observer.disconnect();
-  }, [headings]);
+      if (currentActiveId && currentActiveId !== activeId) {
+        setActiveId(currentActiveId);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Trigger on mount/update to set initial heading
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [headings, activeId]);
 
   if (loading) return <div className="py-20 text-center text-primary font-medium">Carregando artigo...</div>;
   if (!post) return <div className="py-20 text-center text-primary font-medium">Artigo não encontrado.</div>;
@@ -176,26 +225,26 @@ export default function BlogPost() {
   return (
     <article className="bg-secondary py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Breadcrumb / Go Back */}
         <div className="max-w-4xl mx-auto mb-8">
           <Link to="/blog" className="inline-flex items-center gap-2 text-accent-gold font-bold hover:underline hover:text-primary transition-all duration-200">
-            <ArrowLeft size={18} /> Voltar para o blog
+            <ArrowLeft size={18} /> Voltar para os artigos
           </Link>
         </div>
 
         {/* Two-Column Grid: Main Content & Sticky TOC */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start max-w-7xl mx-auto">
-          
+
           {/* Main Article Content */}
           <div className="lg:col-span-8 bg-white border border-light-gray rounded-3xl p-6 md:p-10 shadow-sm">
-            
+
             {/* SEO Tags Badge */}
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {post.tags.map((tag, idx) => (
-                  <span 
-                    key={idx} 
+                  <span
+                    key={idx}
                     className="text-xs font-bold px-3 py-1 rounded-full border bg-accent-gold/10 text-accent-gold border-accent-gold/20"
                   >
                     #{tag}
@@ -237,7 +286,7 @@ export default function BlogPost() {
             )}
 
             {/* Rendered Content Blocks */}
-            <BlockRenderer blocks={post.contentBlocks} />
+            <BlockRenderer blocks={processedBlocks} />
           </div>
 
           {/* Sidebar: Table of Contents */}
@@ -255,20 +304,19 @@ export default function BlogPost() {
                       href={`#${heading.id}`}
                       onClick={(e) => {
                         e.preventDefault();
+                        setActiveId(heading.id);
                         const element = document.getElementById(heading.id);
                         if (element) {
-                          const yOffset = -90; // Adjust offset to account for sticky navbar
+                          const yOffset = -95; // Offset to clear sticky navbar perfectly
                           const y = element.getBoundingClientRect().top + window.scrollY + yOffset;
                           window.scrollTo({ top: y, behavior: 'smooth' });
                         }
                       }}
-                      className={`block py-2 text-sm leading-relaxed pl-3 border-l-2 transition-all duration-200 hover:text-accent-gold hover:pl-4 ${
-                        heading.level === 3 ? 'ml-3 text-xs' : 'font-semibold'
-                      } ${
-                        activeId === heading.id
+                      className={`block py-2 text-sm leading-relaxed pl-3 border-l-2 transition-all duration-200 hover:text-accent-gold hover:pl-4 whitespace-normal break-words ${heading.level === 3 ? 'ml-3 text-xs' : 'font-semibold'
+                        } ${activeId === heading.id
                           ? 'border-accent-gold text-accent-gold font-bold bg-accent-gold/5 pl-4'
                           : 'border-transparent text-dark-gray/70'
-                      }`}
+                        }`}
                     >
                       {heading.text}
                     </a>
@@ -276,30 +324,35 @@ export default function BlogPost() {
                 </nav>
               </div>
             )}
-            
+
             {/* Quick Contact CTA Card in sidebar */}
             <div className="bg-gradient-to-br from-primary to-[#0e4484] text-white rounded-3xl p-6 shadow-md relative overflow-hidden group">
-              <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-4 translate-y-4 group-hover:scale-110 transition-transform duration-300">
-                <AlignLeft size={160} />
-              </div>
               <h4 className="text-xl font-bold mb-2">Dúvidas sobre o visto?</h4>
               <p className="text-sm text-blue-100 mb-6">
                 Fale com nossos especialistas agora mesmo e aumente as chances de aprovação do seu visto americano.
               </p>
-              <Link
-                to="/ds-160"
-                className="inline-block w-full py-3 bg-accent-gold hover:bg-opacity-95 text-white font-bold text-center rounded-2xl shadow-md transition-all duration-200"
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block w-full py-3 bg-accent-gold hover:bg-[#d5b991] text-white font-bold text-center rounded-2xl shadow-md hover:shadow-xl hover:translate-y-[-2px] active:translate-y-0 transition-all duration-200"
               >
-                Simular DS-160
-              </Link>
+                Falar com Especialista
+              </a>
             </div>
           </aside>
 
         </div>
       </div>
-      
+
       {/* Dynamic Styling Overrides for Rich Text Headers Inside Article Body */}
       <style>{`
+        .blog-content,
+        .blog-content .ql-editor {
+          word-break: normal !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+        }
         .blog-content h1, .blog-content h2, .blog-content h3 {
           font-weight: 800;
           color: #0A3161;
