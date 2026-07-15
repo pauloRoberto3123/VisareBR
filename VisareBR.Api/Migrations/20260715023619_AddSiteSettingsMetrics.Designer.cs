@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VisareBR.Core.Data;
@@ -11,9 +12,11 @@ using VisareBR.Core.Data;
 namespace VisareBR.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715023619_AddSiteSettingsMetrics")]
+    partial class AddSiteSettingsMetrics
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -297,8 +300,8 @@ namespace VisareBR.Api.Migrations
 
                     b.Property<string>("BlockType")
                         .IsRequired()
-                        .HasMaxLength(21)
-                        .HasColumnType("character varying(21)");
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
 
                     b.Property<int>("Order")
                         .HasColumnType("integer");
@@ -852,17 +855,6 @@ namespace VisareBR.Api.Migrations
                         .HasColumnType("text");
 
                     b.HasDiscriminator().HasValue("image");
-                });
-
-            modelBuilder.Entity("VisareBR.Core.Entities.RecommendationBlock", b =>
-                {
-                    b.HasBaseType("VisareBR.Core.Entities.ArticleBlock");
-
-                    b.Property<string>("RecommendedArticleIds")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasDiscriminator().HasValue("recommendation");
                 });
 
             modelBuilder.Entity("VisareBR.Core.Entities.TextBlock", b =>

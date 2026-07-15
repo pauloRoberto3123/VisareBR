@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getArticleBySlug } from '../api/blogService';
+import { getArticleBySlug, getArticles } from '../api/blogService';
 import type { Article, ArticleBlock } from '../api/blogService';
 import { ArrowLeft, Calendar, User, Clock, AlignLeft } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
@@ -54,6 +54,8 @@ export default function BlogPost() {
   const [loading, setLoading] = useState(true);
   const [headings, setHeadings] = useState<ParsedHeading[]>([]);
   const [activeId, setActiveId] = useState<string>('');
+  const [relatedPosts, setRelatedPosts] = useState<Article[]>([]);
+  const [allArticlesList, setAllArticlesList] = useState<Article[]>([]);
   const { whatsappUrl } = useSettings();
 
   useEffect(() => {
@@ -71,6 +73,22 @@ export default function BlogPost() {
             setProcessedBlocks([]);
             setHeadings([]);
           }
+
+          getArticles()
+            .then((allRes: any) => {
+              const allPosts: Article[] = allRes.data;
+              setAllArticlesList(allPosts);
+              if (article && article.tags && article.tags.length > 0) {
+                const related = allPosts.filter(p => 
+                  p.id !== article.id && 
+                  p.tags && p.tags.some(tag => article.tags.includes(tag))
+                );
+                setRelatedPosts(related.slice(0, 3));
+              } else {
+                setRelatedPosts([]);
+              }
+            })
+            .catch((err: any) => console.error("Error loading related articles:", err));
         })
         .catch((err: any) => console.error(err))
         .finally(() => setLoading(false));
@@ -280,13 +298,13 @@ export default function BlogPost() {
 
             {/* Featured Image */}
             {post.featuredImageUrl && (
-              <div className="w-full h-96 md:h-[450px] overflow-hidden rounded-3xl mb-10 shadow-md">
-                <img src={post.featuredImageUrl} alt={post.title} className="w-full h-full object-cover" />
+              <div className="w-full overflow-hidden rounded-3xl mb-10 shadow-md">
+                <img src={post.featuredImageUrl} alt={post.title} className="w-full h-auto" />
               </div>
             )}
 
             {/* Rendered Content Blocks */}
-            <BlockRenderer blocks={processedBlocks} />
+            <BlockRenderer blocks={processedBlocks} allArticles={allArticlesList} />
           </div>
 
           {/* Sidebar: Table of Contents */}
@@ -343,6 +361,40 @@ export default function BlogPost() {
           </aside>
 
         </div>
+
+        {/* Related Articles Section */}
+        {relatedPosts.length > 0 && (
+          <div className="mt-16 border-t border-light-gray pt-12 text-left">
+            <h3 className="text-2xl font-black text-primary mb-8">Artigos Relacionados</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {relatedPosts.map((rPost) => (
+                <Link 
+                  key={rPost.id}
+                  to={`/blog/${rPost.slug}`}
+                  className="flex flex-col bg-white border border-light-gray rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-accent-gold/45 hover:translate-y-[-2px] transition-all duration-300 group"
+                >
+                  <div className="h-44 bg-light-gray overflow-hidden">
+                    {rPost.featuredImageUrl ? (
+                      <img src={rPost.featuredImageUrl} alt={rPost.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
+                    )}
+                  </div>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <span className="text-[10px] font-bold text-dark-gray/60 uppercase tracking-widest mb-2.5 block">
+                      {new Date(rPost.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                    <h4 className="text-lg font-bold text-primary mb-3 line-clamp-2 group-hover:text-accent-gold transition-colors duration-200">
+                      {rPost.title}
+                    </h4>
+                    <p className="text-sm text-dark-gray/80 line-clamp-2 mb-6">{rPost.summary}</p>
+                    <span className="text-sm font-bold text-accent-gold mt-auto group-hover:underline">Ler artigo →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dynamic Styling Overrides for Rich Text Headers Inside Article Body */}

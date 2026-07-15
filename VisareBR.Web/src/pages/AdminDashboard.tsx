@@ -6,6 +6,7 @@ import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, File
 import { useNavigate } from 'react-router-dom';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import Ds160Visualizer from '../components/Ds160Visualizer';
 
 const Delta = Quill.import('delta') as any;
 const ColorStyle = Quill.import('attributors/style/color') as any;
@@ -22,7 +23,7 @@ interface StandaloneService {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing' | 'metrics'>('overview');
   const [posts, setPosts] = useState<Article[]>([]);
   const [evals, setEvals] = useState<Evaluation[]>([]);
   const [ds160Forms, setDs160Forms] = useState<Ds160Submission[]>([]);
@@ -47,7 +48,7 @@ export default function AdminDashboard() {
   const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
 
-  const addBlock = (type: 'text' | 'image' | 'video' | 'button') => {
+  const addBlock = (type: 'text' | 'image' | 'video' | 'button' | 'recommendation') => {
     const newBlock: ArticleBlock = {
       type,
       order: newPost.contentBlocks.length,
@@ -57,7 +58,8 @@ export default function AdminDashboard() {
       sourceUrl: type === 'video' ? '' : undefined,
       label: type === 'button' ? '' : undefined,
       targetUrl: type === 'button' ? '' : undefined,
-      hexColorCode: type === 'button' ? '#0A3161' : undefined
+      hexColorCode: type === 'button' ? '#0A3161' : undefined,
+      recommendedArticleIds: type === 'recommendation' ? [] : undefined
     };
     setNewPost({
       ...newPost,
@@ -111,7 +113,19 @@ export default function AdminDashboard() {
   }, [videoEmbedUrl]);
 
   // Settings State
-  const [settings, setSettings] = useState({ whatsappNumber: '', whatsappDefaultMessage: '', cnpj: '', address: '', companyEmail: '' });
+  const [settings, setSettings] = useState({ 
+    whatsappNumber: '', 
+    whatsappDefaultMessage: '', 
+    cnpj: '', 
+    address: '', 
+    companyEmail: '',
+    metric1Value: '',
+    metric1Label: '',
+    metric2Value: '',
+    metric2Label: '',
+    metric3Value: '',
+    metric3Label: ''
+  });
 
   const quillModules = {
     toolbar: {
@@ -500,6 +514,12 @@ export default function AdminDashboard() {
           Configurações do Site
         </button>
         <button 
+          onClick={() => { setActiveTab('metrics'); }}
+          className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'metrics' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
+        >
+          Métricas da Home
+        </button>
+        <button 
           onClick={() => { setActiveTab('ds160'); setSelectedDs160(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'ds160' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
@@ -857,7 +877,7 @@ export default function AdminDashboard() {
                         <div key={index} className="bg-slate-50 border border-gray-200 rounded-2xl p-4 md:p-6 space-y-4 shadow-sm relative text-left">
                           <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                             <span className="text-xs font-black uppercase text-accent-gold tracking-widest">
-                              #{index + 1} - Bloco de {block.type === 'text' ? 'Texto' : block.type === 'image' ? 'Imagem' : block.type === 'video' ? 'Vídeo' : 'Botão CTA'}
+                              #{index + 1} - Bloco de {block.type === 'text' ? 'Texto' : block.type === 'image' ? 'Imagem' : block.type === 'video' ? 'Vídeo' : block.type === 'recommendation' ? 'Recomendados' : 'Botão CTA'}
                             </span>
                             <div className="flex items-center gap-2">
                               <button
@@ -993,6 +1013,43 @@ export default function AdminDashboard() {
                             </div>
                           )}
 
+                          {block.type === 'recommendation' && (
+                            <div className="space-y-4">
+                              <label className="block text-xs font-bold text-gray-500">Selecionar Artigos Recomendados (Máximo recomendado: 4)</label>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-3 bg-white border border-gray-200 rounded-xl">
+                                {posts
+                                  .filter(p => p.id !== editingPostId)
+                                  .map(p => {
+                                    const isSelected = block.recommendedArticleIds?.includes(p.id) || false;
+                                    return (
+                                      <label key={p.id} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition ${
+                                        isSelected 
+                                          ? 'border-accent-gold bg-accent-gold/5 font-semibold text-primary' 
+                                          : 'border-gray-200 hover:bg-slate-50 text-dark-gray'
+                                      }`}>
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={(e) => {
+                                            const currentIds = block.recommendedArticleIds || [];
+                                            const newIds = e.target.checked
+                                              ? [...currentIds, p.id]
+                                              : currentIds.filter(id => id !== p.id);
+                                            updateBlock(index, { ...block, recommendedArticleIds: newIds });
+                                          }}
+                                          className="w-4 h-4 rounded text-accent-gold focus:ring-accent-gold cursor-pointer"
+                                        />
+                                        <span className="text-sm truncate">{p.title}</span>
+                                      </label>
+                                    );
+                                  })}
+                              </div>
+                              {(!block.recommendedArticleIds || block.recommendedArticleIds.length === 0) && (
+                                <p className="text-xs text-red-500 font-semibold italic">Aviso: Nenhum artigo selecionado para recomendação.</p>
+                              )}
+                            </div>
+                          )}
+
                         </div>
                       ))}
                     </div>
@@ -1027,6 +1084,13 @@ export default function AdminDashboard() {
                       className="bg-white border border-primary/20 hover:bg-slate-50 text-primary px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
                     >
                       + Bloco de Botão
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addBlock('recommendation')}
+                      className="bg-white border border-primary/20 hover:bg-slate-50 text-primary px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                    >
+                      + Bloco de Recomendados
                     </button>
                   </div>
                 </div>
@@ -1305,26 +1369,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div>
-                {(() => {
-                  const formData = JSON.parse(selectedDs160.jsonData);
-                  const photoBase64 = formData.step3?.passportPhotoBase64;
-                  if (photoBase64) formData.step3.passportPhotoBase64 = "[IMAGEM BASE64 OCULTA - VER ACIMA]";
-                  
-                  return (
-                    <>
-                      {photoBase64 && (
-                        <div className="mb-6">
-                          <h3 className="font-bold text-primary mb-4 text-lg">Foto do Passaporte</h3>
-                          <img src={photoBase64} alt="Passaporte do Requerente" className="max-w-md w-full h-auto rounded-xl border border-light-gray shadow-md mb-8" />
-                        </div>
-                      )}
-                      <h3 className="font-bold text-primary mb-4 text-lg">Dados Completos do Formulário</h3>
-                      <pre className="bg-light-gray p-6 rounded-xl text-sm text-dark-gray overflow-auto max-h-[600px] border border-gray-200 shadow-inner">
-                        {JSON.stringify(formData, null, 2)}
-                      </pre>
-                    </>
-                  );
-                })()}
+                <Ds160Visualizer submission={selectedDs160} />
               </div>
             </div>
           ) : (
@@ -1545,6 +1590,89 @@ export default function AdminDashboard() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'metrics' && (
+        <div className="max-w-2xl bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray animate-fade-in text-left">
+          <h2 className="text-xl font-bold mb-6 text-primary">Métricas da Página Inicial</h2>
+          <form onSubmit={handleUpdateSettings} className="space-y-6">
+            <div className="p-5 bg-light-gray rounded-2xl border border-gray-200/50 space-y-4">
+              <h3 className="font-bold text-sm text-primary border-b border-gray-200 pb-2">Métrica 1</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Valor (ex: +5000)</label>
+                  <input 
+                    className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                    value={settings.metric1Value || ''}
+                    onChange={e => setSettings({...settings, metric1Value: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Descrição (ex: Vistos Aprovados)</label>
+                  <input 
+                    className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                    value={settings.metric1Label || ''}
+                    onChange={e => setSettings({...settings, metric1Label: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 bg-light-gray rounded-2xl border border-gray-200/50 space-y-4">
+              <h3 className="font-bold text-sm text-primary border-b border-gray-200 pb-2">Métrica 2</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Valor (ex: 98%)</label>
+                  <input 
+                    className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                    value={settings.metric2Value || ''}
+                    onChange={e => setSettings({...settings, metric2Value: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Descrição (ex: Índice de Sucesso)</label>
+                  <input 
+                    className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                    value={settings.metric2Label || ''}
+                    onChange={e => setSettings({...settings, metric2Label: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 bg-light-gray rounded-2xl border border-gray-200/50 space-y-4">
+              <h3 className="font-bold text-sm text-primary border-b border-gray-200 pb-2">Métrica 3</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Valor (ex: Suporte 24/7)</label>
+                  <input 
+                    className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                    value={settings.metric3Value || ''}
+                    onChange={e => setSettings({...settings, metric3Value: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Descrição (ex: Atendimento Especializado)</label>
+                  <input 
+                    className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                    value={settings.metric3Label || ''}
+                    onChange={e => setSettings({...settings, metric3Label: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors cursor-pointer shadow-md">
+              Salvar Métricas
+            </button>
+          </form>
         </div>
       )}
 

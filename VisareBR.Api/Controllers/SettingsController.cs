@@ -28,7 +28,13 @@ public class SettingsController : ControllerBase
             { 
                 WhatsappNumber = "5511999999999", 
                 WhatsappDefaultMessage = "Olá, gostaria de saber mais sobre a assessoria de vistos.",
-                CompanyEmail = "contato@visarebr.com.br"
+                CompanyEmail = "contato@visarebr.com.br",
+                Metric1Value = "+5000",
+                Metric1Label = "Vistos Aprovados",
+                Metric2Value = "98%",
+                Metric2Label = "Índice de Sucesso",
+                Metric3Value = "Suporte 24/7",
+                Metric3Label = "Atendimento Especializado"
             };
         }
         return settings;
@@ -50,6 +56,14 @@ public class SettingsController : ControllerBase
             existing.CompanyEmail = settings.CompanyEmail;
             existing.Address = settings.Address;
             existing.Cnpj = settings.Cnpj;
+            
+            // Map home page metrics
+            existing.Metric1Value = settings.Metric1Value;
+            existing.Metric1Label = settings.Metric1Label;
+            existing.Metric2Value = settings.Metric2Value;
+            existing.Metric2Label = settings.Metric2Label;
+            existing.Metric3Value = settings.Metric3Value;
+            existing.Metric3Label = settings.Metric3Label;
         }
 
         await _context.SaveChangesAsync();

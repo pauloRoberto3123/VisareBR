@@ -36,7 +36,7 @@ export default function MainLayout() {
                 <li><Link to="/" className="text-gray-400 hover:text-accent-gold transition-colors">Início</Link></li>
                 <li><Link to="/vistos" className="text-gray-400 hover:text-accent-gold transition-colors">Tipos de Vistos</Link></li>
                 <li><Link to="/como-funciona" className="text-gray-400 hover:text-accent-gold transition-colors">Passo a Passo</Link></li>
-                <li><Link to="/precos" className="text-gray-400 hover:text-accent-gold transition-colors">Preços</Link></li>
+                {/* <li><Link to="/precos" className="text-gray-400 hover:text-accent-gold transition-colors">Preços</Link></li> */}
                 <li><Link to="/blog" className="text-gray-400 hover:text-accent-gold transition-colors">Artigos</Link></li>
                 <li><Link to="/avaliacoes" className="text-gray-400 hover:text-accent-gold transition-colors">Depoimentos</Link></li>
               </ul>

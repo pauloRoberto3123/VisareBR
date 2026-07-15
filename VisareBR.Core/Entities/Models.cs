@@ -38,6 +38,7 @@ public class Article
 [JsonDerivedType(typeof(ImageBlock), typeDiscriminator: "image")]
 [JsonDerivedType(typeof(VideoBlock), typeDiscriminator: "video")]
 [JsonDerivedType(typeof(ButtonBlock), typeDiscriminator: "button")]
+[JsonDerivedType(typeof(RecommendationBlock), typeDiscriminator: "recommendation")]
 public abstract class ArticleBlock
 {
     public int Id { get; set; }
@@ -71,6 +72,11 @@ public class ButtonBlock : ArticleBlock
     public string HexColorCode { get; set; } = string.Empty;
 }
 
+public class RecommendationBlock : ArticleBlock
+{
+    public List<int> RecommendedArticleIds { get; set; } = new();
+}
+
 public class Evaluation
 {
     public int Id { get; set; }
@@ -89,6 +95,14 @@ public class SiteSettings
     public string CompanyEmail { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string Cnpj { get; set; } = string.Empty;
+
+    // Metrics for Home Page
+    public string Metric1Value { get; set; } = "+5000";
+    public string Metric1Label { get; set; } = "Vistos Aprovados";
+    public string Metric2Value { get; set; } = "98%";
+    public string Metric2Label { get; set; } = "Índice de Sucesso";
+    public string Metric3Value { get; set; } = "Suporte 24/7";
+    public string Metric3Label { get; set; } = "Atendimento Especializado";
 }
 
 public class Ds160Submission
