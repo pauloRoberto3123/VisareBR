@@ -22,9 +22,9 @@ export default function Navbar() {
             <Link to="/" className="text-secondary hover:text-accent-gold font-medium transition-colors">Início</Link>
             <Link to="/vistos" className="text-secondary hover:text-accent-gold font-medium transition-colors">Vistos</Link>
             <Link to="/como-funciona" className="text-secondary hover:text-accent-gold font-medium transition-colors">Passo a Passo</Link>
-            <Link to="/precos" className="text-secondary hover:text-accent-gold font-medium transition-colors">Preços</Link>
+            {/* <Link to="/precos" className="text-secondary hover:text-accent-gold font-medium transition-colors">Preços</Link> */}
             <Link to="/blog" className="text-secondary hover:text-accent-gold font-medium transition-colors">Artigos</Link>
-            <Link to="/ds-160" className="text-secondary hover:text-accent-gold font-medium transition-colors">DS-160</Link>
+            {/* <Link to="/ds-160" className="text-secondary hover:text-accent-gold font-medium transition-colors">DS-160</Link> */}
             <Link to="/avaliacoes" className="text-secondary hover:text-accent-gold font-medium transition-colors">Depoimentos</Link>
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="bg-accent-red text-secondary font-bold px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors">Falar com Especialista</a>
           </div>
@@ -45,9 +45,9 @@ export default function Navbar() {
             <Link to="/" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">Início</Link>
             <Link to="/vistos" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">Vistos</Link>
             <Link to="/como-funciona" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">Passo a Passo</Link>
-            <Link to="/precos" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">Preços</Link>
+            {/* <Link to="/precos" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">Preços</Link> */}
             <Link to="/blog" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">Artigos</Link>
-            <Link to="/ds-160" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">DS-160</Link>
+            {/* <Link to="/ds-160" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">DS-160</Link> */}
             <Link to="/avaliacoes" className="block px-3 py-2 text-secondary hover:bg-dark-gray rounded-md">Depoimentos</Link>
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block px-3 py-2 text-accent-gold font-bold">Falar com Especialista</a>
           </div>

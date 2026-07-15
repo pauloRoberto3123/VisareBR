@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 
 export default function Home() {
-  const { whatsappUrl } = useSettings();
+  const { whatsappUrl, settings } = useSettings();
 
   return (
     <div className="flex flex-col">
@@ -40,22 +40,22 @@ export default function Home() {
               <div className="bg-light-gray p-4 rounded-2xl mb-6">
                 <CheckCircle2 className="w-10 h-10 text-accent-gold" />
               </div>
-              <h3 className="text-2xl font-bold mb-2 text-primary">+5000</h3>
-              <p className="text-dark-gray">Vistos Aprovados</p>
+              <h3 className="text-2xl font-bold mb-2 text-primary">{settings?.metric1Value || '+5000'}</h3>
+              <p className="text-dark-gray">{settings?.metric1Label || 'Vistos Aprovados'}</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="bg-light-gray p-4 rounded-2xl mb-6">
                 <ShieldCheck className="w-10 h-10 text-accent-gold" />
               </div>
-              <h3 className="text-2xl font-bold mb-2 text-primary">98%</h3>
-              <p className="text-dark-gray">Índice de Sucesso</p>
+              <h3 className="text-2xl font-bold mb-2 text-primary">{settings?.metric2Value || '98%'}</h3>
+              <p className="text-dark-gray">{settings?.metric2Label || 'Índice de Sucesso'}</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="bg-light-gray p-4 rounded-2xl mb-6">
                 <MessageSquare className="w-10 h-10 text-accent-gold" />
               </div>
-              <h3 className="text-2xl font-bold mb-2 text-primary">Suporte 24/7</h3>
-              <p className="text-dark-gray">Atendimento Especializado</p>
+              <h3 className="text-2xl font-bold mb-2 text-primary">{settings?.metric3Value || 'Suporte 24/7'}</h3>
+              <p className="text-dark-gray">{settings?.metric3Label || 'Atendimento Especializado'}</p>
             </div>
           </div>
         </div>

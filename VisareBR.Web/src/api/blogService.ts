@@ -8,7 +8,7 @@ export interface ArticleBlock {
   id?: number;
   articleId?: number;
   order: number;
-  type: 'text' | 'image' | 'video' | 'button';
+  type: 'text' | 'image' | 'video' | 'button' | 'recommendation';
   // Text block
   content?: string;
   // Image block
@@ -21,6 +21,8 @@ export interface ArticleBlock {
   label?: string;
   targetUrl?: string;
   hexColorCode?: string;
+  // Recommendation block
+  recommendedArticleIds?: number[];
 }
 
 export interface Article {

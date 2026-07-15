@@ -40,7 +40,13 @@ public static class SeedData
                 WhatsappDefaultMessage = "Olá! Vi o site da VisareBR e gostaria de iniciar meu processo de visto.",
                 CompanyEmail = "contato@visarebr.com.br",
                 Cnpj = "00.000.000/0001-00",
-                Address = "São Paulo, SP - Atendimento Online para todo o Brasil"
+                Address = "São Paulo, SP - Atendimento Online para todo o Brasil",
+                Metric1Value = "+5000",
+                Metric1Label = "Vistos Aprovados",
+                Metric2Value = "98%",
+                Metric2Label = "Índice de Sucesso",
+                Metric3Value = "Suporte 24/7",
+                Metric3Label = "Atendimento Especializado"
             });
         }
 

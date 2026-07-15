@@ -48,6 +48,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null!) ?? new List<string>()
         );
 
+        var intListConverter = new ValueConverter<List<int>, string>(
+            v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
+            v => JsonSerializer.Deserialize<List<int>>(v, (JsonSerializerOptions)null!) ?? new List<int>()
+        );
+
         builder.Entity<Article>()
             .Property(a => a.Tags)
             .HasConversion(stringListConverter);
@@ -57,7 +62,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasValue<TextBlock>("text")
             .HasValue<ImageBlock>("image")
             .HasValue<VideoBlock>("video")
-            .HasValue<ButtonBlock>("button");
+            .HasValue<ButtonBlock>("button")
+            .HasValue<RecommendationBlock>("recommendation");
+
+        builder.Entity<RecommendationBlock>()
+            .Property(b => b.RecommendedArticleIds)
+            .HasConversion(intListConverter);
 
         builder.Entity<ArticleBlock>()
             .HasOne(b => b.Article)

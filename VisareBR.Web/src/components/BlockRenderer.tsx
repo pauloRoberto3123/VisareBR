@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 import DOMPurify from 'dompurify';
-import type { ArticleBlock } from '../api/blogService';
+import type { ArticleBlock, Article } from '../api/blogService';
 import 'react-quill-new/dist/quill.snow.css';
 
 interface BlockRendererProps {
   blocks: ArticleBlock[];
+  allArticles?: Article[];
 }
 
-export default function BlockRenderer({ blocks }: BlockRendererProps) {
+export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendererProps) {
   if (!blocks || blocks.length === 0) return null;
 
   return (
@@ -42,7 +43,7 @@ export default function BlockRenderer({ blocks }: BlockRendererProps) {
                 <img
                   src={block.imageUrl}
                   alt={block.altText || 'Imagem do artigo'}
-                  className="w-full h-auto rounded-3xl shadow-md object-cover hover:shadow-lg transition-shadow duration-300"
+                  className="w-full h-auto rounded-3xl shadow-md hover:shadow-lg transition-shadow duration-300"
                 />
                 {block.altText && (
                   <p className="text-center text-xs text-dark-gray/60 italic mt-2">
@@ -99,6 +100,41 @@ export default function BlockRenderer({ blocks }: BlockRendererProps) {
                     {block.label}
                   </a>
                 )}
+              </div>
+            );
+
+          case 'recommendation':
+            if (!block.recommendedArticleIds || block.recommendedArticleIds.length === 0) return null;
+            const recommended = allArticles.filter(a => block.recommendedArticleIds!.includes(a.id));
+            if (recommended.length === 0) return null;
+
+            return (
+              <div key={block.id || block.order} className="my-10 border-y border-light-gray py-8 text-left bg-light-gray/20 px-6 rounded-3xl">
+                <h4 className="text-xl font-bold text-primary mb-6 flex items-center gap-2">
+                  <span className="w-1.5 h-6 bg-accent-gold rounded-full block"></span>
+                  Leituras Recomendadas
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {recommended.map((rPost) => (
+                    <Link
+                      key={rPost.id}
+                      to={`/blog/${rPost.slug}`}
+                      className="flex gap-4 bg-white border border-light-gray p-4 rounded-2xl hover:shadow-md hover:border-accent-gold/40 transition group"
+                    >
+                      {rPost.featuredImageUrl && (
+                        <div className="w-24 h-20 rounded-xl overflow-hidden shrink-0">
+                          <img src={rPost.featuredImageUrl} alt={rPost.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                        </div>
+                      )}
+                      <div className="flex flex-col justify-center min-w-0">
+                        <h5 className="text-sm font-bold text-primary mb-1.5 group-hover:text-accent-gold transition-colors duration-200 line-clamp-2">
+                          {rPost.title}
+                        </h5>
+                        <span className="text-[10px] text-accent-gold font-bold">Ler artigo →</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </div>
             );
 
