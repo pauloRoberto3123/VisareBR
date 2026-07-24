@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { Article } from '../api/blogService';
 import { getArticles } from '../api/blogService';
 import { Calendar, User } from 'lucide-react';
@@ -7,6 +7,8 @@ import { Calendar, User } from 'lucide-react';
 export default function BlogList() {
   const [posts, setPosts] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
     getArticles()
@@ -15,23 +17,52 @@ export default function BlogList() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filteredPosts = posts.filter(post => 
+    post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    post.summary.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) return <div className="py-20 text-center text-primary">Carregando artigos...</div>;
 
   return (
     <div className="bg-secondary py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-primary mb-4">Artigos VisareBR</h1>
-          <p className="text-xl text-dark-gray">Dicas, notícias e guias completos sobre vistos americanos.</p>
+          <h1 className="text-4xl font-bold text-primary mb-4">
+            {searchQuery ? 'Resultados da Pesquisa' : 'Artigos VisareBR'}
+          </h1>
+          <p className="text-xl text-dark-gray">
+            {searchQuery 
+              ? `Mostrando resultados para "${searchQuery}"` 
+              : 'Dicas, notícias e guias completos sobre vistos americanos.'}
+          </p>
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchParams({})} 
+              className="mt-4 inline-flex items-center gap-1.5 text-accent-gold font-bold hover:underline cursor-pointer"
+            >
+              Limpar busca / Ver todos
+            </button>
+          )}
         </div>
 
         {posts.length === 0 ? (
           <div className="text-center py-20 bg-light-gray rounded-2xl">
             <p className="text-dark-gray">Nenhum artigo publicado ainda. Em breve novidades!</p>
           </div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="text-center py-20 bg-light-gray rounded-2xl">
+            <p className="text-dark-gray">Nenhum artigo encontrado para "{searchQuery}".</p>
+            <button 
+              onClick={() => setSearchParams({})} 
+              className="mt-4 bg-primary text-secondary px-6 py-2.5 rounded-xl font-bold hover:bg-opacity-95 transition-all text-sm cursor-pointer shadow-md"
+            >
+              Ver todos os artigos
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
+            {filteredPosts.map((post) => (
               <Link 
                 key={post.id} 
                 to={`/blog/${post.slug}`} 

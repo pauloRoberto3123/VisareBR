@@ -42,6 +42,7 @@ export interface Article {
     fullName: string;
   };
   authorName?: string;
+  showInVisaDropdown?: boolean;
 }
 
 export interface Evaluation {

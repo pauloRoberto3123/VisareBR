@@ -31,6 +31,7 @@ public class Article
     public string AuthorId { get; set; } = string.Empty;
     public ApplicationUser? Author { get; set; }
     public string? AuthorName { get; set; }
+    public bool ShowInVisaDropdown { get; set; } = false;
 }
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
@@ -152,4 +153,16 @@ public class StandaloneService
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public bool IsActive { get; set; } = true;
+}
+
+public class CarouselItem
+{
+    public int Id { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? Subtitle { get; set; }
+    public string? LinkUrl { get; set; }
+    public int Order { get; set; } = 0;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

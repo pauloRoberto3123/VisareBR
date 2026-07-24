@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PlanBenefit> PlanBenefits { get; set; }
     public DbSet<PlanPricingTier> PlanPricingTiers { get; set; }
     public DbSet<StandaloneService> StandaloneServices { get; set; }
+    public DbSet<CarouselItem> CarouselItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

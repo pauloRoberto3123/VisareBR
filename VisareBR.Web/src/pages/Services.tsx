@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plane, RefreshCw, GraduationCap, Briefcase, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
@@ -34,6 +36,28 @@ const services = [
 
 export default function Services() {
   const { whatsappUrl } = useSettings();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        // Wait briefly for page to load and scroll under the sticky navbar (approx 160px height)
+        setTimeout(() => {
+          const offset = 160;
+          const bodyRect = document.body.getBoundingClientRect().top;
+          const elementRect = element.getBoundingClientRect().top;
+          const elementPosition = elementRect - bodyRect;
+          const offsetPosition = elementPosition - offset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }, 100);
+      }
+    }
+  }, [location.hash]);
 
   return (
     <div className="bg-secondary">
@@ -52,7 +76,7 @@ export default function Services() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {services.map((service) => (
-              <div key={service.id} className="bg-light-gray rounded-3xl p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-accent-gold group">
+              <div id={service.id} key={service.id} className="bg-light-gray rounded-3xl p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-accent-gold group">
                 <div className="flex flex-col md:flex-row gap-6 items-start">
                   <div className="bg-secondary p-4 rounded-2xl shadow-sm group-hover:scale-110 transition-transform border border-light-gray">
                     {service.icon}
