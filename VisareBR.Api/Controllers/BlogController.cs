@@ -30,6 +30,7 @@ public class BlogController : ControllerBase
         public List<string> Tags { get; set; } = new();
         public List<ArticleBlock> ContentBlocks { get; set; } = new();
         public string? AuthorName { get; set; }
+        public bool ShowInVisaDropdown { get; set; }
     }
 
     public BlogController(ApplicationDbContext context, IMemoryCache cache, IArticleEventDispatcher dispatcher)
@@ -118,6 +119,7 @@ public class BlogController : ControllerBase
             MetaDescription = dto.MetaDescription,
             Tags = dto.Tags,
             AuthorName = dto.AuthorName,
+            ShowInVisaDropdown = dto.ShowInVisaDropdown,
             AuthorId = userId,
             CreatedAt = DateTime.UtcNow,
             Slug = await GetUniqueSlugAsync(dto.Title),
@@ -173,6 +175,7 @@ public class BlogController : ControllerBase
         article.MetaDescription = dto.MetaDescription;
         article.Tags = dto.Tags;
         article.AuthorName = dto.AuthorName;
+        article.ShowInVisaDropdown = dto.ShowInVisaDropdown;
         article.UpdatedAt = DateTime.UtcNow;
 
         article.ContentBlocks = dto.ContentBlocks.Select((b, idx) =>
@@ -209,6 +212,22 @@ public class BlogController : ControllerBase
 
         // Dispatch cache invalidation event
         await _dispatcher.DispatchAsync(new ArticlePublishedOrUpdatedEvent(new Article { Slug = slug }, IsNew: false));
+
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPut("{id}/toggle-dropdown")]
+    public async Task<IActionResult> ToggleDropdown(int id, [FromQuery] bool show)
+    {
+        var article = await _context.Articles.FindAsync(id);
+        if (article == null) return NotFound();
+
+        article.ShowInVisaDropdown = show;
+        await _context.SaveChangesAsync();
+
+        // Dispatch cache invalidation event
+        await _dispatcher.DispatchAsync(new ArticlePublishedOrUpdatedEvent(article, IsNew: false));
 
         return NoContent();
     }

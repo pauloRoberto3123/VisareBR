@@ -6,6 +6,15 @@ import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, File
 import { useNavigate } from 'react-router-dom';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { 
+  getAllCarouselItems, 
+  createCarouselItem, 
+  updateCarouselItem, 
+  deleteCarouselItem, 
+  toggleCarouselItem, 
+  reorderCarouselItems 
+} from '../api/carouselService';
+import type { CarouselItem } from '../api/carouselService';
 import Ds160Visualizer from '../components/Ds160Visualizer';
 
 const Delta = Quill.import('delta') as any;
@@ -23,7 +32,7 @@ interface StandaloneService {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing' | 'metrics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing' | 'metrics' | 'menu-vistos' | 'carousel'>('overview');
   const [posts, setPosts] = useState<Article[]>([]);
   const [evals, setEvals] = useState<Evaluation[]>([]);
   const [ds160Forms, setDs160Forms] = useState<Ds160Submission[]>([]);
@@ -32,6 +41,131 @@ export default function AdminDashboard() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [standaloneServices, setStandaloneServices] = useState<StandaloneService[]>([]);
   const [editingStandaloneService, setEditingStandaloneService] = useState<StandaloneService | null>(null);
+
+  // Carousel Form State
+  const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
+  const [newSlide, setNewSlide] = useState({
+    imageUrl: '',
+    title: '',
+    subtitle: '',
+    linkUrl: '',
+    isActive: true
+  });
+  const [editingSlideId, setEditingSlideId] = useState<number | null>(null);
+
+  const handleSaveSlide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSlide.imageUrl) {
+      alert("Por favor, selecione ou faça upload de uma imagem.");
+      return;
+    }
+
+    try {
+      if (editingSlideId !== null) {
+        await updateCarouselItem(editingSlideId, {
+          imageUrl: newSlide.imageUrl,
+          title: newSlide.title,
+          subtitle: newSlide.subtitle,
+          linkUrl: newSlide.linkUrl,
+          isActive: newSlide.isActive,
+          order: carouselItems.find(x => x.id === editingSlideId)?.order || 0
+        });
+        alert("Slide atualizado com sucesso!");
+      } else {
+        await createCarouselItem({
+          imageUrl: newSlide.imageUrl,
+          title: newSlide.title,
+          subtitle: newSlide.subtitle,
+          linkUrl: newSlide.linkUrl,
+          isActive: newSlide.isActive,
+          order: carouselItems.length
+        });
+        alert("Slide criado com sucesso!");
+      }
+
+      setNewSlide({
+        imageUrl: '',
+        title: '',
+        subtitle: '',
+        linkUrl: '',
+        isActive: true
+      });
+      setEditingSlideId(null);
+      
+      const res = await getAllCarouselItems();
+      setCarouselItems(res.data);
+    } catch (err) {
+      alert("Erro ao salvar o slide.");
+    }
+  };
+
+  const handleEditSlide = (slide: CarouselItem) => {
+    setNewSlide({
+      imageUrl: slide.imageUrl,
+      title: slide.title || '',
+      subtitle: slide.subtitle || '',
+      linkUrl: slide.linkUrl || '',
+      isActive: slide.isActive
+    });
+    setEditingSlideId(slide.id);
+  };
+
+  const handleDeleteSlide = async (id: number) => {
+    if (confirm("Deseja realmente excluir este slide?")) {
+      try {
+        await deleteCarouselItem(id);
+        const res = await getAllCarouselItems();
+        setCarouselItems(res.data);
+      } catch (err) {
+        alert("Erro ao excluir slide.");
+      }
+    }
+  };
+
+  const handleToggleSlide = async (id: number, currentStatus: boolean) => {
+    try {
+      await toggleCarouselItem(id, !currentStatus);
+      setCarouselItems(prev => prev.map(item => item.id === id ? { ...item, isActive: !currentStatus } : item));
+    } catch (err) {
+      alert("Erro ao alterar status do slide.");
+    }
+  };
+
+  const handleMoveSlide = async (index: number, direction: 'up' | 'down') => {
+    const items = [...carouselItems];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+
+    const temp = items[index];
+    items[index] = items[targetIndex];
+    items[targetIndex] = temp;
+
+    try {
+      const ids = items.map(item => item.id);
+      await reorderCarouselItems(ids);
+      setCarouselItems(items.map((item, idx) => ({ ...item, order: idx })));
+    } catch (err) {
+      alert("Erro ao reordenar slides.");
+    }
+  };
+
+  const handleSlideImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setNewSlide(prev => ({ ...prev, imageUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
   
   // Blog Form State
   const [newPost, setNewPost] = useState({
@@ -43,7 +177,8 @@ export default function AdminDashboard() {
     metaDescription: '',
     tags: '',
     contentBlocks: [] as ArticleBlock[],
-    authorName: ''
+    authorName: '',
+    showInVisaDropdown: false
   });
   const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
@@ -249,6 +384,9 @@ export default function AdminDashboard() {
         ]);
         setPlans(plansRes.data);
         setStandaloneServices(servicesRes.data);
+      } else if (activeTab === 'carousel') {
+        const res = await getAllCarouselItems();
+        setCarouselItems(res.data);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -293,7 +431,8 @@ export default function AdminDashboard() {
         metaDescription: newPost.metaDescription || newPost.summary,
         tags: tagsArray,
         contentBlocks: newPost.contentBlocks,
-        authorName: newPost.authorName
+        authorName: newPost.authorName,
+        showInVisaDropdown: newPost.showInVisaDropdown
       };
 
       if (editorMode === 'edit' && editingPostId !== null) {
@@ -312,7 +451,8 @@ export default function AdminDashboard() {
         metaDescription: '',
         tags: '',
         contentBlocks: [],
-        authorName: ''
+        authorName: '',
+        showInVisaDropdown: false
       });
       setEditingPostId(null);
       setEditorMode('list');
@@ -332,7 +472,8 @@ export default function AdminDashboard() {
       metaDescription: post.metaDescription || '',
       tags: Array.isArray(post.tags) ? post.tags.join(', ') : (post.tags || ''),
       contentBlocks: post.contentBlocks || [],
-      authorName: post.authorName || ''
+      authorName: post.authorName || '',
+      showInVisaDropdown: post.showInVisaDropdown || false
     });
     setEditingPostId(post.id);
     setEditorMode('edit');
@@ -348,7 +489,8 @@ export default function AdminDashboard() {
       metaDescription: '',
       tags: '',
       contentBlocks: [],
-      authorName: ''
+      authorName: '',
+      showInVisaDropdown: false
     });
     setEditingPostId(null);
     setEditorMode('create');
@@ -387,7 +529,8 @@ export default function AdminDashboard() {
           metaDescription: '',
           tags: '',
           contentBlocks: [],
-          authorName: ''
+          authorName: '',
+          showInVisaDropdown: false
         });
       }
       fetchData();
@@ -500,6 +643,18 @@ export default function AdminDashboard() {
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'blog' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Gerenciar Artigos
+        </button>
+        <button 
+          onClick={() => setActiveTab('carousel')}
+          className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'carousel' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
+        >
+          Banner Carrossel
+        </button>
+        <button 
+          onClick={() => setActiveTab('menu-vistos')}
+          className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'menu-vistos' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
+        >
+          Vistos no Menu
         </button>
         <button 
           onClick={() => setActiveTab('evaluations')}
@@ -1161,6 +1316,20 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
+                  {/* Visibilidade no Menu Dropdown */}
+                  <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
+                    <input 
+                      type="checkbox"
+                      id="showInVisaDropdown"
+                      className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
+                      checked={newPost.showInVisaDropdown}
+                      onChange={e => setNewPost({ ...newPost, showInVisaDropdown: e.target.checked })}
+                    />
+                    <label htmlFor="showInVisaDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
+                      Mostrar este artigo no menu "Tipos de Vistos" do cabeçalho
+                    </label>
+                  </div>
+
                   {/* Tags section (up to 3 tags) */}
                   <div className="space-y-4 pt-4 border-t border-gray-100">
                     <label className="block text-sm font-bold text-primary">Otimização de Tags (Max: 3)</label>
@@ -1673,6 +1842,311 @@ export default function AdminDashboard() {
               Salvar Métricas
             </button>
           </form>
+        </div>
+      )}
+
+      {activeTab === 'menu-vistos' && (
+        <div className="bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray animate-fade-in max-w-4xl text-left">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-primary">Vistos no Menu do Cabeçalho</h2>
+            <p className="text-dark-gray text-sm mt-1">
+              Selecione quais artigos informativos serão exibidos sob a categoria <strong>"Tipos de Vistos Americanos"</strong> no menu do cabeçalho.
+            </p>
+            <p className="text-accent-red text-xs font-semibold mt-2">
+              💡 Nota: Caso nenhum artigo esteja selecionado, o site exibirá automaticamente os links padrão do sistema.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {posts.length === 0 ? (
+              <p className="text-dark-gray py-4 text-center">Nenhum artigo publicado no momento. Publique artigos primeiro na aba "Gerenciar Artigos".</p>
+            ) : (
+              <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden bg-white">
+                {posts.map((post) => (
+                  <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                      {post.featuredImageUrl ? (
+                        <img 
+                          src={post.featuredImageUrl} 
+                          alt={post.title} 
+                          className="w-16 h-12 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] text-dark-gray font-bold">SEM FOTO</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-primary truncate">{post.title}</h3>
+                        <p className="text-xs text-dark-gray truncate mt-0.5">{post.summary || 'Sem resumo disponível'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        post.showInVisaDropdown 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}>
+                        {post.showInVisaDropdown ? 'Visível no Menu' : 'Invisível'}
+                      </span>
+
+                      <button
+                        onClick={async () => {
+                          try {
+                            const newStatus = !post.showInVisaDropdown;
+                            await api.put(`/blog/${post.id}/toggle-dropdown?show=${newStatus}`);
+                            // Update local list state
+                            setPosts(prev => prev.map(p => p.id === post.id ? { ...p, showInVisaDropdown: newStatus } : p));
+                          } catch (err) {
+                            alert('Erro ao alterar visibilidade do artigo no menu.');
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${
+                          post.showInVisaDropdown 
+                            ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow' 
+                            : 'bg-white text-primary border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {post.showInVisaDropdown ? 'Remover' : 'Adicionar'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'carousel' && (
+        <div className="space-y-8 animate-fade-in text-left">
+          <div className="bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray max-w-4xl">
+            <h2 className="text-xl font-bold mb-2 text-primary">
+              {editingSlideId !== null ? 'Editar Slide' : 'Adicionar Novo Slide'}
+            </h2>
+            <p className="text-dark-gray text-xs mb-6">
+              Faça upload de uma imagem e configure um título, subtítulo e link (opcionais) para o banner rotativo da página inicial.
+            </p>
+
+            <form onSubmit={handleSaveSlide} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Image Upload Area */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-primary">Imagem do Banner (Recomendado: 1920x600 ou similar)</label>
+                  <div className="flex flex-col gap-4">
+                    {newSlide.imageUrl ? (
+                      <div className="relative group max-w-md">
+                        <img 
+                          src={newSlide.imageUrl} 
+                          alt="Banner Preview" 
+                          className="w-full h-40 object-cover rounded-xl border border-gray-200" 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewSlide(prev => ({ ...prev, imageUrl: '' }))}
+                          className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full shadow hover:bg-red-700 transition"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-8 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <Upload size={32} className="text-dark-gray/60 mb-2" />
+                        <span className="text-xs font-bold text-primary">Clique para fazer upload de imagem</span>
+                        <span className="text-[10px] text-dark-gray/60 mt-1">PNG, JPG, JPEG até 2MB</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleSlideImageUpload} 
+                          className="hidden" 
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Form fields */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-primary mb-1">Título do Slide (Opcional)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Sua aprovação do Visto começa aqui"
+                      className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                      value={newSlide.title}
+                      onChange={e => setNewSlide(prev => ({ ...prev, title: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-primary mb-1">Subtítulo do Slide (Opcional)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Assessoria completa para vistos de turismo e negócios"
+                      className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                      value={newSlide.subtitle}
+                      onChange={e => setNewSlide(prev => ({ ...prev, subtitle: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-primary mb-1">Link de Ação URL (Opcional)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: /vistos ou https://wa.me/..."
+                      className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
+                      value={newSlide.linkUrl}
+                      onChange={e => setNewSlide(prev => ({ ...prev, linkUrl: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <input 
+                      type="checkbox"
+                      id="slideIsActive"
+                      className="w-4 h-4 accent-accent-gold cursor-pointer"
+                      checked={newSlide.isActive}
+                      onChange={e => setNewSlide(prev => ({ ...prev, isActive: e.target.checked }))}
+                    />
+                    <label htmlFor="slideIsActive" className="text-xs font-bold text-primary cursor-pointer select-none">
+                      Slide Ativo (visível no carrossel)
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                {editingSlideId !== null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewSlide({ imageUrl: '', title: '', subtitle: '', linkUrl: '', isActive: true });
+                      setEditingSlideId(null);
+                    }}
+                    className="px-6 py-2 bg-gray-100 text-primary border border-gray-200 rounded-full font-bold hover:bg-gray-200 transition text-xs cursor-pointer"
+                  >
+                    Cancelar Edição
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-accent-red text-white rounded-full font-bold hover:bg-opacity-95 transition text-xs shadow cursor-pointer"
+                >
+                  {editingSlideId !== null ? 'Atualizar Slide' : 'Criar Slide'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Carousel items list */}
+          <div className="bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray max-w-4xl">
+            <h2 className="text-xl font-bold mb-2 text-primary">Slides Cadastrados</h2>
+            <p className="text-dark-gray text-xs mb-6">
+              Arraste ou clique nas setas para alterar a ordem de exibição. A ordem do carrossel segue a sequência abaixo.
+            </p>
+
+            {carouselItems.length === 0 ? (
+              <p className="text-dark-gray text-sm text-center py-6">Nenhum slide cadastrado ainda. Use o formulário acima para adicionar.</p>
+            ) : (
+              <div className="space-y-4">
+                {carouselItems.map((item, index) => (
+                  <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow transition-shadow">
+                    <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                      {/* Image Thumbnail */}
+                      <img 
+                        src={item.imageUrl} 
+                        alt={item.title || 'Slide Thumbnail'} 
+                        className="w-24 h-16 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                      />
+                      
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-primary truncate">
+                          {item.title || <span className="text-dark-gray/50 italic">Sem Título</span>}
+                        </h3>
+                        <p className="text-xs text-dark-gray truncate mt-0.5">
+                          {item.subtitle || <span className="text-dark-gray/50 italic">Sem Subtítulo</span>}
+                        </p>
+                        {item.linkUrl && (
+                          <span className="text-[10px] text-accent-gold font-bold truncate block mt-0.5">
+                            Link: {item.linkUrl}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Move Controls */}
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveSlide(index, 'up')}
+                          disabled={index === 0}
+                          className="p-1 hover:bg-gray-100 rounded text-primary disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                          title="Mover para Cima"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveSlide(index, 'down')}
+                          disabled={index === carouselItems.length - 1}
+                          className="p-1 hover:bg-gray-100 rounded text-primary disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                          title="Mover para Baixo"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Status Tag */}
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                        item.isActive 
+                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                          : 'bg-gray-50 text-gray-500 border border-gray-200'
+                      }`}>
+                        {item.isActive ? 'Ativo' : 'Inativo'}
+                      </span>
+
+                      {/* Edit, Toggle & Delete Buttons */}
+                      <div className="flex items-center gap-1.5 ml-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSlide(item.id, item.isActive)}
+                          className={`p-2 rounded-xl border text-xs font-bold transition shadow-sm cursor-pointer ${
+                            item.isActive 
+                              ? 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50' 
+                              : 'bg-green-600 text-white hover:bg-opacity-95'
+                          }`}
+                          title={item.isActive ? 'Desativar Slide' : 'Ativar Slide'}
+                        >
+                          {item.isActive ? 'Pausar' : 'Ativar'}
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => handleEditSlide(item)}
+                          className="p-2 bg-white text-primary border border-gray-200 hover:bg-gray-50 rounded-xl shadow-sm transition cursor-pointer"
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSlide(item.id)}
+                          className="p-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 rounded-xl shadow-sm transition cursor-pointer"
+                          title="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
