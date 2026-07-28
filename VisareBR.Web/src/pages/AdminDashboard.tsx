@@ -182,6 +182,7 @@ export default function AdminDashboard() {
   });
   const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  const [isDraggingBlogImage, setIsDraggingBlogImage] = useState(false);
 
   const addBlock = (type: 'text' | 'image' | 'video' | 'button' | 'recommendation') => {
     const newBlock: ArticleBlock = {
@@ -496,10 +497,7 @@ export default function AdminDashboard() {
     setEditorMode('create');
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
       alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
       return;
@@ -512,6 +510,37 @@ export default function AdminDashboard() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleBlogImageDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingBlogImage(true);
+  };
+
+  const handleBlogImageDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingBlogImage(false);
+  };
+
+  const handleBlogImageDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingBlogImage(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        processFile(file);
+      } else {
+        alert('Por favor, selecione apenas arquivos de imagem.');
+      }
+    }
   };
 
   const handleDeletePost = async (id: number) => {
@@ -693,7 +722,10 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-bold text-primary">Dashboard de Desempenho</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4">
+            <div 
+              onClick={() => { setActiveTab('ds160'); setSelectedDs160(null); }}
+              className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-accent-gold/30 hover:scale-[1.01] transition-all duration-300"
+            >
               <div className="p-4 bg-accent-gold/[0.2] text-accent-gold rounded-xl">
                 <FileText size={32} />
               </div>
@@ -703,7 +735,10 @@ export default function AdminDashboard() {
               </div>
             </div>
             
-            <div className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4">
+            <div 
+              onClick={() => setActiveTab('evaluations')}
+              className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-accent-gold/30 hover:scale-[1.01] transition-all duration-300"
+            >
               <div className="p-4 bg-accent-red/[0.1] text-accent-red rounded-xl">
                 <MessageSquare size={32} />
               </div>
@@ -713,7 +748,10 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4">
+            <div 
+              onClick={() => setActiveTab('blog')}
+              className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-accent-gold/30 hover:scale-[1.01] transition-all duration-300"
+            >
               <div className="p-4 bg-green-500/10 text-green-500 rounded-xl">
                 <TrendingUp size={32} />
               </div>
@@ -903,11 +941,28 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 bg-slate-50 flex flex-col items-center justify-center text-center text-dark-gray hover:border-accent-gold/50 transition">
-                      <FileText size={36} className="text-gray-400 mb-2" />
-                      <p className="text-sm font-bold text-gray-500">Sem imagem de capa</p>
-                      <p className="text-xs text-gray-400 mt-1 mb-4">Adicione uma URL abaixo ou selecione um arquivo local para a capa do artigo</p>
-                    </div>
+                    <label 
+                      onDragOver={handleBlogImageDragOver}
+                      onDragLeave={handleBlogImageDragLeave}
+                      onDrop={handleBlogImageDrop}
+                      className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-dark-gray transition-all cursor-pointer ${
+                        isDraggingBlogImage 
+                          ? 'border-accent-gold bg-accent-gold/5' 
+                          : 'border-gray-200 bg-slate-50 hover:border-accent-gold/50'
+                      }`}
+                    >
+                      <Upload size={36} className={`mb-2 transition-colors ${isDraggingBlogImage ? 'text-accent-gold' : 'text-gray-400'}`} />
+                      <p className="text-sm font-bold text-gray-500">
+                        {isDraggingBlogImage ? 'Solte a imagem aqui' : 'Arraste ou clique para selecionar uma imagem'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG até 2MB</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                      />
+                    </label>
                   )}
                   
                   <div className="flex flex-col sm:flex-row gap-3">
