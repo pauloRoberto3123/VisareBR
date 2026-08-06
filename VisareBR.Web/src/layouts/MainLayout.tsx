@@ -38,7 +38,8 @@ export default function MainLayout() {
                 <li><Link to="/como-funciona" className="text-gray-400 hover:text-accent-gold transition-colors">Passo a Passo</Link></li>
                 {/* <li><Link to="/precos" className="text-gray-400 hover:text-accent-gold transition-colors">Preços</Link></li> */}
                 <li><Link to="/blog" className="text-gray-400 hover:text-accent-gold transition-colors">Artigos</Link></li>
-                <li><Link to="/avaliacoes" className="text-gray-400 hover:text-accent-gold transition-colors">Depoimentos</Link></li>
+                <li><Link to="/avaliacoes" className="text-gray-400 hover:text-accent-gold transition-colors">Nossos Clientes</Link></li>
+                <li><Link to="/duvidas" className="text-gray-400 hover:text-accent-gold transition-colors">Dúvidas Frequentes</Link></li>
               </ul>
             </div>
 

@@ -10,6 +10,8 @@ import Services from './pages/Services';
 import StepByStep from './pages/StepByStep';
 import Ds160Form from './pages/Ds160Form';
 import PricingSection from './pages/PricingSection';
+import ServicesList from './pages/ServicesList';
+import FaqList from './pages/FaqList';
 import './App.css';
 import api from './api/blogService';
 
@@ -67,6 +69,8 @@ function App() {
           <Route path="avaliacoes" element={<Evaluations />} />
           <Route path="ds-160" element={<Ds160Form />} />
           <Route path="precos" element={<PricingSection />} />
+           <Route path="servicos" element={<ServicesList />} />
+          <Route path="duvidas" element={<FaqList />} />
 
         </Route>
       </Routes>

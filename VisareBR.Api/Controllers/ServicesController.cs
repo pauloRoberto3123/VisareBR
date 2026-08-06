@@ -56,6 +56,9 @@ public class ServicesController : ControllerBase
         service.Name = updatedService.Name;
         service.Price = updatedService.Price;
         service.IsActive = updatedService.IsActive;
+        service.Description = updatedService.Description;
+        service.Features = updatedService.Features;
+        service.IconName = updatedService.IconName;
 
         await _context.SaveChangesAsync();
         return NoContent();

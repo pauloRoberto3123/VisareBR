@@ -18,7 +18,8 @@ public static class SeedData
 
         // 2. Seed Admin User
         string adminEmail = "admin@visarebr.com.br";
-        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        string normalizedEmail = adminEmail.ToUpperInvariant();
+        var adminUser = await userManager.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
         if (adminUser == null)
         {
             adminUser = new ApplicationUser
