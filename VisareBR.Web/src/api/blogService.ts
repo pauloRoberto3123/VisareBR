@@ -64,10 +64,22 @@ export interface Ds160Submission {
   isReviewed: boolean;
 }
 
+export interface FaqItem {
+  id: number;
+  question: string;
+  answer: string;
+  displayOrder: number;
+  isActive: boolean;
+  category: string;
+}
+
 export const getArticles = () => api.get<Article[]>('/blog');
 export const getArticleBySlug = (slug: string) => api.get<Article>(`/blog/${slug}`);
 export const getEvaluations = () => api.get<Evaluation[]>('/evaluations');
 export const submitEvaluation = (evaluation: { userName: string; comment: string; rating: number }) => 
   api.post('/evaluations', evaluation);
+
+export const getFaqs = () => api.get<FaqItem[]>('/faqs');
+export const getAdminFaqs = () => api.get<FaqItem[]>('/faqs/admin-all');
 
 export default api;

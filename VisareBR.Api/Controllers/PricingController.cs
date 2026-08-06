@@ -27,7 +27,7 @@ public class PricingController : ControllerBase
             .ToListAsync();
 
         // Ordem do menor preço no tier base, para listar do mais barato (Padrão) ao VIP
-        var sortedPlans = plans.OrderBy(p => p.PricingTiers.Min(t => t.TotalPrice)).ToList();
+        var sortedPlans = plans.OrderBy(p => p.PricingTiers.Any() ? p.PricingTiers.Min(t => t.TotalPrice) : 0).ToList();
 
         return Ok(sortedPlans);
     }

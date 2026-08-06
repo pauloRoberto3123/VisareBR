@@ -41,7 +41,7 @@ export default function Evaluations() {
         
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-primary mb-4">Depoimentos dos Clientes</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">Nossos Clientes</h1>
           <p className="text-xl text-dark-gray mb-8">Veja a experiência de quem já conquistou o visto com a VisareBR.</p>
           
           <button 

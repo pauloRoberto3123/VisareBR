@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import api from '../api/blogService';
-import type { Article, ArticleBlock, Evaluation, Ds160Submission } from '../api/blogService';
+import type { Article, ArticleBlock, Evaluation, Ds160Submission, FaqItem } from '../api/blogService';
 import type { Plan } from './PricingSection';
-import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { 
-  getAllCarouselItems, 
-  createCarouselItem, 
-  updateCarouselItem, 
-  deleteCarouselItem, 
-  toggleCarouselItem, 
-  reorderCarouselItems 
+import {
+  getAllCarouselItems,
+  createCarouselItem,
+  updateCarouselItem,
+  deleteCarouselItem,
+  toggleCarouselItem,
+  reorderCarouselItems
 } from '../api/carouselService';
 import type { CarouselItem } from '../api/carouselService';
 import Ds160Visualizer from '../components/Ds160Visualizer';
@@ -28,11 +28,14 @@ interface StandaloneService {
   name: string;
   price: number;
   isActive: boolean;
+  description: string;
+  features: string;
+  iconName: string;
 }
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing' | 'metrics' | 'menu-vistos' | 'carousel'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blog' | 'evaluations' | 'settings' | 'ds160' | 'pricing' | 'metrics' | 'menu-vistos' | 'carousel' | 'faq'>('overview');
   const [posts, setPosts] = useState<Article[]>([]);
   const [evals, setEvals] = useState<Evaluation[]>([]);
   const [ds160Forms, setDs160Forms] = useState<Ds160Submission[]>([]);
@@ -41,6 +44,10 @@ export default function AdminDashboard() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [standaloneServices, setStandaloneServices] = useState<StandaloneService[]>([]);
   const [editingStandaloneService, setEditingStandaloneService] = useState<StandaloneService | null>(null);
+  const [plansSectionOpen, setPlansSectionOpen] = useState(true);
+  const [standaloneSectionOpen, setStandaloneSectionOpen] = useState(true);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
 
   // Carousel Form State
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -91,7 +98,7 @@ export default function AdminDashboard() {
         isActive: true
       });
       setEditingSlideId(null);
-      
+
       const res = await getAllCarouselItems();
       setCarouselItems(res.data);
     } catch (err) {
@@ -166,7 +173,7 @@ export default function AdminDashboard() {
     };
     reader.readAsDataURL(file);
   };
-  
+
   // Blog Form State
   const [newPost, setNewPost] = useState({
     title: '',
@@ -249,11 +256,11 @@ export default function AdminDashboard() {
   }, [videoEmbedUrl]);
 
   // Settings State
-  const [settings, setSettings] = useState({ 
-    whatsappNumber: '', 
-    whatsappDefaultMessage: '', 
-    cnpj: '', 
-    address: '', 
+  const [settings, setSettings] = useState({
+    whatsappNumber: '',
+    whatsappDefaultMessage: '',
+    cnpj: '',
+    address: '',
     companyEmail: '',
     metric1Value: '',
     metric1Label: '',
@@ -264,6 +271,37 @@ export default function AdminDashboard() {
   });
 
   const quillModules = {
+    history: {
+      delay: 500,
+      maxStack: 1000,
+      userOnly: true
+    },
+    keyboard: {
+      bindings: {
+        customUndo: {
+          key: 'Z',
+          shortKey: true,
+          handler: function (this: any) {
+            this.quill.history.undo();
+          }
+        },
+        customRedo: {
+          key: 'Y',
+          shortKey: true,
+          handler: function (this: any) {
+            this.quill.history.redo();
+          }
+        },
+        customRedoShift: {
+          key: 'Z',
+          shortKey: true,
+          shiftKey: true,
+          handler: function (this: any) {
+            this.quill.history.redo();
+          }
+        }
+      }
+    },
     toolbar: {
       container: [
         [{ 'header': [1, 2, 3, 4, 5, 6, false] }, { 'font': [] }],
@@ -276,7 +314,7 @@ export default function AdminDashboard() {
         ['clean']
       ],
       handlers: {
-        video: function() {
+        video: function () {
           const quill = (this as any).quill;
           (window as any).currentQuillInstance = quill;
           setIsVideoModalOpen(true);
@@ -388,6 +426,9 @@ export default function AdminDashboard() {
       } else if (activeTab === 'carousel') {
         const res = await getAllCarouselItems();
         setCarouselItems(res.data);
+      } else if (activeTab === 'faq') {
+        const res = await api.get('/faqs/admin-all');
+        setFaqs(res.data);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -399,7 +440,7 @@ export default function AdminDashboard() {
       const res = await api.get('/settings');
       setSettings(res.data);
     } catch (err) {
-        console.error("Error fetching settings:", err);
+      console.error("Error fetching settings:", err);
     }
   };
 
@@ -409,7 +450,7 @@ export default function AdminDashboard() {
       alert('O artigo precisa ter pelo menos um bloco de conteúdo.');
       return;
     }
-    
+
     // Validate accessibility
     for (const block of newPost.contentBlocks) {
       if (block.type === 'image' && !block.altText) {
@@ -532,7 +573,7 @@ export default function AdminDashboard() {
   const handleBlogImageDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingBlogImage(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (file) {
       if (file.type.startsWith('image/')) {
@@ -584,7 +625,7 @@ export default function AdminDashboard() {
   const handleUpdatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlan) return;
-    
+
     try {
       await api.put(`/pricing/${selectedPlan.id}`, selectedPlan);
       alert('Valores do plano atualizados com sucesso!');
@@ -616,8 +657,8 @@ export default function AdminDashboard() {
     if (!editingStandaloneService) return;
 
     const serviceToSave = {
-        ...editingStandaloneService,
-        price: Number(editingStandaloneService.price) || 0
+      ...editingStandaloneService,
+      price: Number(editingStandaloneService.price) || 0
     };
 
     try {
@@ -648,62 +689,93 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSaveFaq = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFaq) return;
+
+    try {
+      if (editingFaq.id !== 0) {
+        await api.put(`/faqs/${editingFaq.id}`, editingFaq);
+      } else {
+        await api.post('/faqs', editingFaq);
+      }
+      alert('Dúvida salva com sucesso!');
+      setEditingFaq(null);
+      fetchData();
+    } catch (err) {
+      alert('Erro ao salvar dúvida.');
+      console.error(err);
+    }
+  };
+
+  const handleDeleteFaq = async (id: number) => {
+    if (confirm('Tem certeza que deseja excluir esta dúvida?')) {
+      try {
+        await api.delete(`/faqs/${id}`);
+        alert('Dúvida excluída com sucesso!');
+        fetchData();
+      } catch (err) {
+        alert('Erro ao excluir dúvida.');
+      }
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-secondary min-h-[80vh]">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-primary">Painel de Controle</h1>
-        <button 
+        <button
           onClick={handleManualLogout}
           className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-2.5 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-200"
         >
           <LogOut size={20} /> Sair do Sistema
         </button>
       </div>
-      
+
       <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2 -mx-4 px-4">
-        <button 
+        <button
           onClick={() => setActiveTab('overview')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'overview' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Visão Geral
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('blog')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'blog' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Gerenciar Artigos
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('carousel')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'carousel' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Banner Carrossel
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('menu-vistos')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'menu-vistos' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Vistos no Menu
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('evaluations')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'evaluations' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Aprovar Avaliações
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('settings')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'settings' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Configurações do Site
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('metrics'); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'metrics' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Métricas da Home
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('ds160'); setSelectedDs160(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'ds160' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
@@ -713,16 +785,22 @@ export default function AdminDashboard() {
           onClick={() => { setActiveTab('pricing'); setSelectedPlan(null); setEditingStandaloneService(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'pricing' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
-          Planos e Preços
+          Serviços e Preços
+        </button>
+        <button 
+          onClick={() => { setActiveTab('faq'); setEditingFaq(null); }}
+          className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'faq' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
+        >
+          Dúvidas Frequentes
         </button>
       </div>
 
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-fade-in">
           <h2 className="text-2xl font-bold text-primary">Dashboard de Desempenho</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div 
+            <div
               onClick={() => { setActiveTab('ds160'); setSelectedDs160(null); }}
               className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-accent-gold/30 hover:scale-[1.01] transition-all duration-300"
             >
@@ -734,8 +812,8 @@ export default function AdminDashboard() {
                 <p className="text-3xl font-black text-primary">{ds160Forms.length}</p>
               </div>
             </div>
-            
-            <div 
+
+            <div
               onClick={() => setActiveTab('evaluations')}
               className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-accent-gold/30 hover:scale-[1.01] transition-all duration-300"
             >
@@ -748,7 +826,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div 
+            <div
               onClick={() => setActiveTab('blog')}
               className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-accent-gold/30 hover:scale-[1.01] transition-all duration-300"
             >
@@ -767,7 +845,7 @@ export default function AdminDashboard() {
               <BarChart3 size={20} className="text-accent-gold" />
               Submissões de Visto (Últimos 7 dias)
             </h3>
-            
+
             <div className="h-64 flex items-end justify-between gap-2 sm:gap-4 mt-8 relative">
               {/* Linhas de fundo do gráfico */}
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
@@ -784,25 +862,25 @@ export default function AdminDashboard() {
                   d.setDate(d.getDate() - (6 - i));
                   return d.toISOString().split('T')[0];
                 });
-                
+
                 const chartData = last7Days.map(date => {
                   const count = ds160Forms.filter(f => new Date(f.createdAt).toISOString().split('T')[0] === date).length;
                   const dateObj = new Date(date + 'T12:00:00Z');
-                  return { 
-                    date: dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), 
-                    count 
+                  return {
+                    date: dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                    count
                   };
                 });
-                
+
                 const maxCount = Math.max(...chartData.map(d => d.count), 5); // Teto mínimo visual de 5
-                
+
                 return chartData.map((d, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-2 z-10 h-full justify-end group">
                     <div className="text-xs font-bold text-dark-gray opacity-0 group-hover:opacity-100 transition-opacity">
                       {d.count}
                     </div>
-                    <div 
-                      className="w-full bg-accent-gold rounded-t-md transition-all duration-1000 ease-out hover:bg-opacity-80" 
+                    <div
+                      className="w-full bg-accent-gold rounded-t-md transition-all duration-1000 ease-out hover:bg-opacity-80"
                       style={{ height: `${(d.count / maxCount) * 100}%`, minHeight: d.count > 0 ? '8px' : '2px' }}
                     ></div>
                     <span className="text-xs font-medium text-dark-gray">{d.date}</span>
@@ -941,15 +1019,14 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <label 
+                    <label
                       onDragOver={handleBlogImageDragOver}
                       onDragLeave={handleBlogImageDragLeave}
                       onDrop={handleBlogImageDrop}
-                      className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-dark-gray transition-all cursor-pointer ${
-                        isDraggingBlogImage 
-                          ? 'border-accent-gold bg-accent-gold/5' 
+                      className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-dark-gray transition-all cursor-pointer ${isDraggingBlogImage
+                          ? 'border-accent-gold bg-accent-gold/5'
                           : 'border-gray-200 bg-slate-50 hover:border-accent-gold/50'
-                      }`}
+                        }`}
                     >
                       <Upload size={36} className={`mb-2 transition-colors ${isDraggingBlogImage ? 'text-accent-gold' : 'text-gray-400'}`} />
                       <p className="text-sm font-bold text-gray-500">
@@ -964,7 +1041,7 @@ export default function AdminDashboard() {
                       />
                     </label>
                   )}
-                  
+
                   <div className="flex flex-col sm:flex-row gap-3">
                     <input
                       type="text"
@@ -1070,13 +1147,13 @@ export default function AdminDashboard() {
                     font-size: 1rem;
                   }
                 `}</style>
-                
+
                 {/* Dynamic Blocks Container */}
                 <div className="space-y-6 text-left my-8">
                   <label className="block text-lg font-black text-primary border-b border-gray-100 pb-2">
                     Blocos de Conteúdo ({newPost.contentBlocks.length})
                   </label>
-                  
+
                   {newPost.contentBlocks.length === 0 ? (
                     <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 bg-slate-50 text-center text-dark-gray/60 italic">
                       Nenhum bloco de conteúdo adicionado ainda. Use os botões abaixo para montar seu artigo.
@@ -1170,11 +1247,11 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               <label className="text-xs font-bold text-gray-500 block">URL de Origem do Vídeo</label>
                               <input
-                                  type="text"
-                                  value={block.sourceUrl || ''}
-                                  onChange={(e) => updateBlock(index, { ...block, sourceUrl: e.target.value })}
-                                  placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                                  className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
+                                type="text"
+                                value={block.sourceUrl || ''}
+                                onChange={(e) => updateBlock(index, { ...block, sourceUrl: e.target.value })}
+                                placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                                className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
                               />
                               <p className="text-xs text-dark-gray/50 italic">Insira links do YouTube, Instagram ou TikTok. O sistema converterá automaticamente para o player nativo.</p>
                             </div>
@@ -1232,11 +1309,10 @@ export default function AdminDashboard() {
                                   .map(p => {
                                     const isSelected = block.recommendedArticleIds?.includes(p.id) || false;
                                     return (
-                                      <label key={p.id} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition ${
-                                        isSelected 
-                                          ? 'border-accent-gold bg-accent-gold/5 font-semibold text-primary' 
+                                      <label key={p.id} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition ${isSelected
+                                          ? 'border-accent-gold bg-accent-gold/5 font-semibold text-primary'
                                           : 'border-gray-200 hover:bg-slate-50 text-dark-gray'
-                                      }`}>
+                                        }`}>
                                         <input
                                           type="checkbox"
                                           checked={isSelected}
@@ -1317,7 +1393,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-2 text-xs font-bold text-dark-gray/60 uppercase tracking-wider">
                       <span className="text-emerald-600 font-extrabold">G</span> Exibição na Busca (Google Snippet)
                     </div>
-                    
+
                     <div className="bg-white p-5 rounded-xl border border-gray-200/50 shadow-sm space-y-1">
                       <div className="flex items-center gap-1.5 text-xs text-dark-gray/70">
                         <span className="bg-gray-100 p-0.5 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">V</span>
@@ -1373,7 +1449,7 @@ export default function AdminDashboard() {
 
                   {/* Visibilidade no Menu Dropdown */}
                   <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
-                    <input 
+                    <input
                       type="checkbox"
                       id="showInVisaDropdown"
                       className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
@@ -1391,7 +1467,7 @@ export default function AdminDashboard() {
                     <p className="text-xs text-dark-gray/60 -mt-2">
                       Pressione Enter ou clique em "+" para adicionar tags relevantes. Limite de 3 tags.
                     </p>
-                    
+
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -1446,8 +1522,8 @@ export default function AdminDashboard() {
                     <div className="flex flex-wrap gap-2.5 pt-2">
                       {newPost.tags ? (
                         newPost.tags.split(',').filter(Boolean).map((tag, idx) => (
-                          <span 
-                            key={idx} 
+                          <span
+                            key={idx}
                             className="px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold border bg-light-gray text-dark-gray border-gray-200"
                           >
                             #{tag}
@@ -1490,17 +1566,17 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={() => handleApproveEval(ev.id, true)}
                       className={`p-2 rounded-lg transition-colors ${ev.isApproved ? 'text-secondary bg-accent-red' : 'text-dark-gray bg-light-gray hover:text-accent-gold hover:bg-light-gray'}`}
                     >
-                      <CheckCircle size={20}/>
+                      <CheckCircle size={20} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleApproveEval(ev.id, false)}
                       className={`p-2 rounded-lg transition-colors ${!ev.isApproved ? 'text-red-500 bg-red-100' : 'text-dark-gray bg-light-gray hover:text-red-500 hover:bg-red-100'}`}
                     >
-                      <XCircle size={20}/>
+                      <XCircle size={20} />
                     </button>
                   </div>
                 </div>
@@ -1518,44 +1594,44 @@ export default function AdminDashboard() {
           <form onSubmit={handleUpdateSettings} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-primary">Número do WhatsApp (Ex: 5511999999999)</label>
-              <input 
+              <input
                 className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
                 value={settings.whatsappNumber}
-                onChange={e => setSettings({...settings, whatsappNumber: e.target.value})}
+                onChange={e => setSettings({ ...settings, whatsappNumber: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1 text-primary">Mensagem Padrão do WhatsApp</label>
-              <input 
+              <input
                 className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
                 value={settings.whatsappDefaultMessage}
-                onChange={e => setSettings({...settings, whatsappDefaultMessage: e.target.value})}
+                onChange={e => setSettings({ ...settings, whatsappDefaultMessage: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-primary">CNPJ</label>
-                <input 
+                <input
                   className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
                   value={settings.cnpj}
-                  onChange={e => setSettings({...settings, cnpj: e.target.value})}
+                  onChange={e => setSettings({ ...settings, cnpj: e.target.value })}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1 text-primary">Email da Empresa</label>
-                <input 
+                <input
                   className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
                   value={settings.companyEmail}
-                  onChange={e => setSettings({...settings, companyEmail: e.target.value})}
+                  onChange={e => setSettings({ ...settings, companyEmail: e.target.value })}
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1 text-primary">Endereço</label>
-              <input 
+              <input
                 className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
                 value={settings.address}
-                onChange={e => setSettings({...settings, address: e.target.value})}
+                onChange={e => setSettings({ ...settings, address: e.target.value })}
               />
             </div>
             <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
@@ -1568,7 +1644,7 @@ export default function AdminDashboard() {
       {activeTab === 'ds160' && (
         <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-primary">Formulários DS-160 Recebidos</h2>
-          
+
           {selectedDs160 ? (
             <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
               <button onClick={() => setSelectedDs160(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline">
@@ -1636,183 +1712,437 @@ export default function AdminDashboard() {
       )}
 
       {activeTab === 'pricing' && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold mb-6 text-primary">Gerenciar Planos e Preços</h2>
-
-          {selectedPlan ? (
-            <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
-              <button onClick={() => setSelectedPlan(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline">
-                ← Voltar para a lista
-              </button>
-
-              <form onSubmit={handleUpdatePlan} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-primary">Nome do Plano</label>
-                    <input
-                      className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
-                      value={selectedPlan.name}
-                      onChange={e => setSelectedPlan({ ...selectedPlan, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-primary">Tempo de Processamento</label>
-                    <input
-                      className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
-                      value={selectedPlan.processingTime}
-                      onChange={e => setSelectedPlan({ ...selectedPlan, processingTime: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-bold text-primary mb-4 border-b border-light-gray pb-2 flex items-center gap-2"><DollarSign size={20} className="text-accent-gold"/> Preços por Quantidade de Solicitantes</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(count => {
-                      const tier = selectedPlan.pricingTiers.find(t => t.applicantCount === count);
-                      return (
-                        <div key={count} className="bg-light-gray p-4 rounded-xl border border-dark-gray/20">
-                          <label className="block text-sm font-bold text-dark-gray mb-2">{count} {count === 1 ? 'Pessoa' : 'Pessoas'}</label>
-                          <div className="flex items-center gap-2">
-                            <span className="text-primary font-medium">R$</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              className="w-full p-2 border border-dark-gray rounded-md focus:ring-2 focus:ring-accent-gold"
-                              value={tier ? tier.totalPrice : ''}
-                              placeholder="0.00"
-                              onChange={e => handleTierChange(count, e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-dark-gray mt-2 italic">* Deixe o campo vazio para não exibir o plano para aquela quantidade de solicitantes.</p>
-                </div>
-
-                <button type="submit" className="bg-accent-red text-secondary px-8 py-3 rounded-xl font-bold hover:bg-opacity-90 transition-colors">
-                  Salvar Valores
-                </button>
-              </form>
+        <div className="space-y-6 text-left">
+          {/* Gerenciar Planos e Preços Header */}
+          <div 
+            onClick={() => setPlansSectionOpen(!plansSectionOpen)}
+            className="flex justify-between items-center bg-white p-5 rounded-2xl border border-light-gray cursor-pointer hover:bg-slate-50 hover:border-gray-300 transition-all select-none shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <DollarSign className="text-accent-gold w-6 h-6" />
+              <h2 className="text-xl font-bold text-primary">Gerenciar Planos e Preços</h2>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {plans.map(plan => (
-                <div key={plan.id} className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                  <h3 className="text-2xl font-bold text-primary mb-2">{plan.name}</h3>
-                  <p className="text-dark-gray text-sm mb-6">Processamento: {plan.processingTime}</p>
-                  
-                  <div className="mb-6 space-y-2 flex-grow">
-                    <p className="text-xs font-bold text-dark-gray uppercase tracking-wider">Tiers Cadastrados</p>
-                    <div className="flex flex-wrap gap-2">
-                      {plan.pricingTiers.map(t => (
-                        <span key={t.id} className="bg-light-gray text-primary text-xs px-2 py-1 rounded-md font-medium border border-dark-gray/20">
-                          {t.applicantCount}p: R$ {t.totalPrice}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+            {plansSectionOpen ? <ChevronUp className="text-dark-gray" /> : <ChevronDown className="text-dark-gray" />}
+          </div>
 
-                  <button
-                    onClick={() => setSelectedPlan(JSON.parse(JSON.stringify(plan)))}
-                    className="w-full bg-primary text-secondary py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors mt-auto"
-                  >
-                    Editar Valores
+          {plansSectionOpen && (
+            <div className="space-y-4 animate-fade-in">
+              {selectedPlan ? (
+                <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
+                  <button onClick={() => setSelectedPlan(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline">
+                    ← Voltar para a lista
                   </button>
+
+                  <form onSubmit={handleUpdatePlan} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-primary">Nome do Plano</label>
+                        <input
+                          className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
+                          value={selectedPlan.name}
+                          onChange={e => setSelectedPlan({ ...selectedPlan, name: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-primary">Tempo de Processamento</label>
+                        <input
+                          className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
+                          value={selectedPlan.processingTime}
+                          onChange={e => setSelectedPlan({ ...selectedPlan, processingTime: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-bold text-primary mb-4 border-b border-light-gray pb-2 flex items-center gap-2"><DollarSign size={20} className="text-accent-gold" /> Preços por Quantidade de Solicitantes</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(count => {
+                          const tier = selectedPlan.pricingTiers.find(t => t.applicantCount === count);
+                          return (
+                            <div key={count} className="bg-light-gray p-4 rounded-xl border border-dark-gray/20">
+                              <label className="block text-sm font-bold text-dark-gray mb-2">{count} {count === 1 ? 'Pessoa' : 'Pessoas'}</label>
+                              <div className="flex items-center gap-2">
+                                <span className="text-primary font-medium">R$</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  className="w-full p-2 border border-dark-gray rounded-md focus:ring-2 focus:ring-accent-gold"
+                                  value={tier ? tier.totalPrice : ''}
+                                  placeholder="0.00"
+                                  onChange={e => handleTierChange(count, e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-dark-gray mt-2 italic">* Deixe o campo vazio para não exibir o plano para aquela quantidade de solicitantes.</p>
+                    </div>
+
+                    <button type="submit" className="bg-accent-red text-secondary px-8 py-3 rounded-xl font-bold hover:bg-opacity-90 transition-colors">
+                      Salvar Valores
+                    </button>
+                  </form>
                 </div>
-              ))}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {plans.map(plan => (
+                    <div key={plan.id} className="bg-secondary p-6 rounded-2xl border border-light-gray shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                      <h3 className="text-2xl font-bold text-primary mb-2">{plan.name}</h3>
+                      <p className="text-dark-gray text-sm mb-6">Processamento: {plan.processingTime}</p>
+
+                      <div className="mb-6 space-y-2 flex-grow">
+                        <p className="text-xs font-bold text-dark-gray uppercase tracking-wider">Tiers Cadastrados</p>
+                        <div className="flex flex-wrap gap-2">
+                          {plan.pricingTiers.map(t => (
+                            <span key={t.id} className="bg-light-gray text-primary text-xs px-2 py-1 rounded-md font-medium border border-dark-gray/20">
+                              {t.applicantCount}p: R$ {t.totalPrice}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setSelectedPlan(JSON.parse(JSON.stringify(plan)))}
+                        className="w-full bg-primary text-secondary py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors mt-auto"
+                      >
+                        Editar Valores
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Standalone Services Management */}
-          <div className="mt-16 pt-12 border-t border-light-gray">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-primary">Gerenciar Serviços Avulsos</h2>
-              <button
-                onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true })}
-                className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
-              >
-                <Plus size={20} /> Adicionar Serviço
-              </button>
+          {/* Gerenciar Serviços Avulsos Section */}
+          <div className="mt-8 pt-8 border-t border-light-gray space-y-4">
+            <div 
+              onClick={() => setStandaloneSectionOpen(!standaloneSectionOpen)}
+              className="flex justify-between items-center bg-white p-5 rounded-2xl border border-light-gray cursor-pointer hover:bg-slate-50 hover:border-gray-300 transition-all select-none shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <Plus className="text-accent-gold w-6 h-6" />
+                <h2 className="text-xl font-bold text-primary">Gerenciar Serviços Avulsos</h2>
+              </div>
+              {standaloneSectionOpen ? <ChevronUp className="text-dark-gray" /> : <ChevronDown className="text-dark-gray" />}
             </div>
 
-            {editingStandaloneService && (
-              <div className="bg-light-gray p-6 rounded-2xl border border-dark-gray/20 mb-8">
-                <h3 className="text-lg font-bold text-primary mb-4">
-                  {editingStandaloneService.id !== '00000000-0000-0000-0000-000000000000' ? 'Editando Serviço' : 'Novo Serviço Avulso'}
-                </h3>
-                <form onSubmit={handleSaveStandaloneService} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            {standaloneSectionOpen && (
+              <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true, description: '', features: '', iconName: 'Briefcase' })}
+                    className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
+                  >
+                    <Plus size={20} /> Adicionar Serviço
+                  </button>
+                </div>
+
+                {editingStandaloneService && (
+                  <div className="bg-light-gray p-6 rounded-2xl border border-dark-gray/20">
+                    <h3 className="text-lg font-bold text-primary mb-4">
+                      {editingStandaloneService.id !== '00000000-0000-0000-0000-000000000000' ? 'Editando Serviço' : 'Novo Serviço Avulso'}
+                    </h3>
+                    <form onSubmit={handleSaveStandaloneService} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-left">
+                          <label className="block text-sm font-medium text-primary mb-1">Nome do Serviço</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingStandaloneService.name}
+                            onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, name: e.target.value })}
+                            className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                          />
+                        </div>
+                        <div className="text-left">
+                          <label className="block text-sm font-medium text-primary mb-1">Preço (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            value={editingStandaloneService.price}
+                            onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, price: parseFloat(e.target.value) || 0 })}
+                            className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                          />
+                        </div>
+                        <div className="text-left">
+                          <label className="block text-sm font-medium text-primary mb-1">Ícone</label>
+                          {editingStandaloneService.iconName && editingStandaloneService.iconName.startsWith('data:') ? (
+                            <div className="flex items-center gap-3 p-1.5 border border-dark-gray rounded-xl bg-white h-[50px]">
+                              <img src={editingStandaloneService.iconName} alt="Preview" className="w-10 h-10 object-contain rounded border" />
+                              <button
+                                type="button"
+                                onClick={() => setEditingStandaloneService({ ...editingStandaloneService, iconName: 'Briefcase' })}
+                                className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-100 font-bold"
+                              >
+                                Remover Personalizado
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <select
+                                value={editingStandaloneService.iconName || 'Briefcase'}
+                                onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, iconName: e.target.value })}
+                                className="flex-1 p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold bg-white"
+                              >
+                                <option value="Briefcase">Maleta (Briefcase)</option>
+                                <option value="Plane">Avião (Plane)</option>
+                                <option value="RefreshCw">Atualização/Renovação (RefreshCw)</option>
+                                <option value="GraduationCap">Estudante (GraduationCap)</option>
+                                <option value="FileText">Documento/Formulário (FileText)</option>
+                                <option value="ShieldCheck">Escudo/Segurança (ShieldCheck)</option>
+                                <option value="Calendar">Calendário/Agendamento (Calendar)</option>
+                                <option value="HelpCircle">Ajuda/Simulação (HelpCircle)</option>
+                              </select>
+                              <label className="flex items-center justify-center p-3 border border-dark-gray rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer text-sm font-bold text-primary gap-1 select-none">
+                                <Upload size={18} />
+                                <span>Upload</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      if (file.size > 500 * 1024) {
+                                        alert("O ícone selecionado é muito grande. Escolha uma imagem de até 500KB.");
+                                        return;
+                                      }
+                                      const reader = new FileReader();
+                                      reader.onloadend = () => {
+                                        if (typeof reader.result === 'string') {
+                                          setEditingStandaloneService({ ...editingStandaloneService, iconName: reader.result });
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="text-left">
+                          <label className="block text-sm font-medium text-primary mb-1">Descrição</label>
+                          <textarea
+                            rows={3}
+                            value={editingStandaloneService.description || ''}
+                            onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, description: e.target.value })}
+                            placeholder="Breve descrição sobre o serviço..."
+                            className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                          />
+                        </div>
+                        <div className="text-left">
+                          <label className="block text-sm font-medium text-primary mb-1">Recursos / Features (separe por ponto e vírgula `;`)</label>
+                          <textarea
+                            rows={3}
+                            value={editingStandaloneService.features || ''}
+                            onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, features: e.target.value })}
+                            placeholder="Ex: Preenchimento do DS-160; Agendamento consular; Dicas para entrevista"
+                            className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 mt-2">
+                        <button type="submit" className="bg-primary text-secondary px-6 py-2 rounded-lg font-bold hover:bg-opacity-90">
+                          Salvar
+                        </button>
+                        <button type="button" onClick={() => setEditingStandaloneService(null)} className="text-dark-gray font-bold hover:underline">
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                <div className="bg-secondary rounded-2xl border border-light-gray shadow-sm overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-light-gray text-primary text-sm border-b border-gray-200">
+                      <tr className="bg-light-gray text-primary text-sm border-b border-gray-200">
+                        <th className="p-4 font-bold">Nome do Serviço</th>
+                        <th className="p-4 font-bold">Preço</th>
+                        <th className="p-4 font-bold text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {standaloneServices.map(service => (
+                        <tr key={service.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="p-4 font-medium text-primary">{service.name}</td>
+                          <td className="p-4 text-dark-gray">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                          </td>
+                          <td className="p-4 text-right flex gap-2 justify-end">
+                            <button
+                              onClick={() => setEditingStandaloneService(JSON.parse(JSON.stringify(service)))}
+                              className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStandaloneService(service.id)}
+                              className="p-2 text-dark-gray hover:text-red-500 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'faq' && (
+        <div className="space-y-6 text-left animate-fade-in">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-primary">Gerenciar Dúvidas Frequentes</h2>
+            <button
+              onClick={() => setEditingFaq({ id: 0, question: '', answer: '', displayOrder: faqs.length + 1, isActive: true, category: 'Geral' })}
+              className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
+            >
+              <Plus size={20} /> Adicionar Dúvida
+            </button>
+          </div>
+
+          {editingFaq && (
+            <div className="bg-light-gray p-6 rounded-2xl border border-dark-gray/20 mb-6">
+              <h3 className="text-lg font-bold text-primary mb-4">
+                {editingFaq.id !== 0 ? 'Editando Dúvida' : 'Nova Dúvida'}
+              </h3>
+              <form onSubmit={handleSaveFaq} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2 text-left">
-                    <label className="block text-sm font-medium text-primary mb-1">Nome do Serviço</label>
+                    <label className="block text-sm font-medium text-primary mb-1">Pergunta</label>
                     <input
                       type="text"
                       required
-                      value={editingStandaloneService.name}
-                      onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, name: e.target.value })}
+                      value={editingFaq.question}
+                      onChange={(e) => setEditingFaq({ ...editingFaq, question: e.target.value })}
                       className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
                     />
                   </div>
                   <div className="text-left">
-                    <label className="block text-sm font-medium text-primary mb-1">Preço (R$)</label>
+                    <label className="block text-sm font-medium text-primary mb-1">Categoria</label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
                       required
-                      value={editingStandaloneService.price}
-                      onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, price: parseFloat(e.target.value) || 0 })}
+                      placeholder="Ex: Geral, Documentos, Agendamento..."
+                      value={editingFaq.category}
+                      onChange={(e) => setEditingFaq({ ...editingFaq, category: e.target.value })}
                       className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
                     />
                   </div>
-                  <div className="md:col-span-3 flex gap-4 mt-2">
-                    <button type="submit" className="bg-primary text-secondary px-6 py-2 rounded-lg font-bold hover:bg-opacity-90">
-                      Salvar
-                    </button>
-                    <button type="button" onClick={() => setEditingStandaloneService(null)} className="text-dark-gray font-bold hover:underline">
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
+                </div>
 
-            <div className="bg-secondary rounded-2xl border border-light-gray shadow-sm overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-light-gray text-primary text-sm border-b border-gray-200">
-                  <tr className="bg-light-gray text-primary text-sm border-b border-gray-200">
-                    <th className="p-4 font-bold">Nome do Serviço</th>
-                    <th className="p-4 font-bold">Preço</th>
-                    <th className="p-4 font-bold text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {standaloneServices.map(service => (
-                    <tr key={service.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="p-4 font-medium text-primary">{service.name}</td>
-                      <td className="p-4 text-dark-gray">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
-                      </td>
-                      <td className="p-4 text-right flex gap-2 justify-end">
-                        <button
-                          onClick={() => setEditingStandaloneService(JSON.parse(JSON.stringify(service)))}
-                          className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteStandaloneService(service.id)}
-                          className="p-2 text-dark-gray hover:text-red-500 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2 text-left">
+                    <label className="block text-sm font-medium text-primary mb-1">Resposta</label>
+                    <textarea
+                      rows={4}
+                      required
+                      value={editingFaq.answer}
+                      onChange={(e) => setEditingFaq({ ...editingFaq, answer: e.target.value })}
+                      className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                    />
+                  </div>
+                  <div className="space-y-4 text-left">
+                    <div>
+                      <label className="block text-sm font-medium text-primary mb-1">Ordem de Exibição</label>
+                      <input
+                        type="number"
+                        required
+                        value={editingFaq.displayOrder}
+                        onChange={(e) => setEditingFaq({ ...editingFaq, displayOrder: parseInt(e.target.value) || 0 })}
+                        className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <input
+                        type="checkbox"
+                        id="faqIsActive"
+                        className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
+                        checked={editingFaq.isActive}
+                        onChange={(e) => setEditingFaq({ ...editingFaq, isActive: e.target.checked })}
+                      />
+                      <label htmlFor="faqIsActive" className="text-sm font-bold text-primary cursor-pointer select-none">
+                        Dúvida Ativa (Visível no Site)
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 mt-2">
+                  <button type="submit" className="bg-primary text-secondary px-6 py-2 rounded-lg font-bold hover:bg-opacity-90">
+                    Salvar
+                  </button>
+                  <button type="button" onClick={() => setEditingFaq(null)} className="text-dark-gray font-bold hover:underline">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
             </div>
+          )}
+
+          <div className="bg-secondary rounded-2xl border border-light-gray shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-light-gray text-primary text-sm border-b border-gray-200">
+                <tr className="bg-light-gray text-primary text-sm border-b border-gray-200">
+                  <th className="p-4 font-bold">Ordem</th>
+                  <th className="p-4 font-bold">Pergunta</th>
+                  <th className="p-4 font-bold">Categoria</th>
+                  <th className="p-4 font-bold">Status</th>
+                  <th className="p-4 font-bold text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {faqs.map(faq => (
+                  <tr key={faq.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="p-4 font-medium text-dark-gray">{faq.displayOrder}</td>
+                    <td className="p-4 font-medium text-primary max-w-xs truncate" title={faq.question}>{faq.question}</td>
+                    <td className="p-4 text-dark-gray">
+                      <span className="bg-light-gray text-primary text-xs px-2.5 py-1 rounded-full font-bold border border-gray-200">
+                        {faq.category}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        faq.isActive 
+                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                          : 'bg-gray-50 text-gray-500 border border-gray-200'
+                      }`}>
+                        {faq.isActive ? 'Ativa' : 'Inativa'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right flex gap-2 justify-end">
+                      <button
+                        onClick={() => setEditingFaq(JSON.parse(JSON.stringify(faq)))}
+                        className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteFaq(faq.id)}
+                        className="p-2 text-dark-gray hover:text-red-500 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -1826,19 +2156,19 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
                   <label className="block text-xs font-bold text-gray-500 mb-1">Valor (ex: +5000)</label>
-                  <input 
+                  <input
                     className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                     value={settings.metric1Value || ''}
-                    onChange={e => setSettings({...settings, metric1Value: e.target.value})}
+                    onChange={e => setSettings({ ...settings, metric1Value: e.target.value })}
                     required
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-gray-500 mb-1">Descrição (ex: Vistos Aprovados)</label>
-                  <input 
+                  <input
                     className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                     value={settings.metric1Label || ''}
-                    onChange={e => setSettings({...settings, metric1Label: e.target.value})}
+                    onChange={e => setSettings({ ...settings, metric1Label: e.target.value })}
                     required
                   />
                 </div>
@@ -1850,19 +2180,19 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
                   <label className="block text-xs font-bold text-gray-500 mb-1">Valor (ex: 98%)</label>
-                  <input 
+                  <input
                     className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                     value={settings.metric2Value || ''}
-                    onChange={e => setSettings({...settings, metric2Value: e.target.value})}
+                    onChange={e => setSettings({ ...settings, metric2Value: e.target.value })}
                     required
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-gray-500 mb-1">Descrição (ex: Índice de Sucesso)</label>
-                  <input 
+                  <input
                     className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                     value={settings.metric2Label || ''}
-                    onChange={e => setSettings({...settings, metric2Label: e.target.value})}
+                    onChange={e => setSettings({ ...settings, metric2Label: e.target.value })}
                     required
                   />
                 </div>
@@ -1874,19 +2204,19 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
                   <label className="block text-xs font-bold text-gray-500 mb-1">Valor (ex: Suporte 24/7)</label>
-                  <input 
+                  <input
                     className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                     value={settings.metric3Value || ''}
-                    onChange={e => setSettings({...settings, metric3Value: e.target.value})}
+                    onChange={e => setSettings({ ...settings, metric3Value: e.target.value })}
                     required
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-gray-500 mb-1">Descrição (ex: Atendimento Especializado)</label>
-                  <input 
+                  <input
                     className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                     value={settings.metric3Label || ''}
-                    onChange={e => setSettings({...settings, metric3Label: e.target.value})}
+                    onChange={e => setSettings({ ...settings, metric3Label: e.target.value })}
                     required
                   />
                 </div>
@@ -1921,9 +2251,9 @@ export default function AdminDashboard() {
                   <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
                       {post.featuredImageUrl ? (
-                        <img 
-                          src={post.featuredImageUrl} 
-                          alt={post.title} 
+                        <img
+                          src={post.featuredImageUrl}
+                          alt={post.title}
                           className="w-16 h-12 object-cover rounded-lg border border-gray-100 flex-shrink-0"
                         />
                       ) : (
@@ -1938,11 +2268,10 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        post.showInVisaDropdown 
-                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${post.showInVisaDropdown
+                          ? 'bg-green-100 text-green-700 border border-green-200'
                           : 'bg-gray-100 text-gray-600 border border-gray-200'
-                      }`}>
+                        }`}>
                         {post.showInVisaDropdown ? 'Visível no Menu' : 'Invisível'}
                       </span>
 
@@ -1957,11 +2286,10 @@ export default function AdminDashboard() {
                             alert('Erro ao alterar visibilidade do artigo no menu.');
                           }
                         }}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${
-                          post.showInVisaDropdown 
-                            ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow' 
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${post.showInVisaDropdown
+                            ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow'
                             : 'bg-white text-primary border-gray-200 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {post.showInVisaDropdown ? 'Remover' : 'Adicionar'}
                       </button>
@@ -1992,10 +2320,10 @@ export default function AdminDashboard() {
                   <div className="flex flex-col gap-4">
                     {newSlide.imageUrl ? (
                       <div className="relative group max-w-md">
-                        <img 
-                          src={newSlide.imageUrl} 
-                          alt="Banner Preview" 
-                          className="w-full h-40 object-cover rounded-xl border border-gray-200" 
+                        <img
+                          src={newSlide.imageUrl}
+                          alt="Banner Preview"
+                          className="w-full h-40 object-cover rounded-xl border border-gray-200"
                         />
                         <button
                           type="button"
@@ -2010,11 +2338,11 @@ export default function AdminDashboard() {
                         <Upload size={32} className="text-dark-gray/60 mb-2" />
                         <span className="text-xs font-bold text-primary">Clique para fazer upload de imagem</span>
                         <span className="text-[10px] text-dark-gray/60 mt-1">PNG, JPG, JPEG até 2MB</span>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={handleSlideImageUpload} 
-                          className="hidden" 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleSlideImageUpload}
+                          className="hidden"
                         />
                       </label>
                     )}
@@ -2025,8 +2353,8 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-primary mb-1">Título do Slide (Opcional)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Ex: Sua aprovação do Visto começa aqui"
                       className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                       value={newSlide.title}
@@ -2035,8 +2363,8 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-primary mb-1">Subtítulo do Slide (Opcional)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Ex: Assessoria completa para vistos de turismo e negócios"
                       className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                       value={newSlide.subtitle}
@@ -2045,8 +2373,8 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-primary mb-1">Link de Ação URL (Opcional)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Ex: /vistos ou https://wa.me/..."
                       className="w-full p-2.5 bg-white border border-dark-gray/30 rounded-lg text-primary text-sm font-semibold focus:ring-2 focus:ring-accent-gold focus:outline-none"
                       value={newSlide.linkUrl}
@@ -2054,7 +2382,7 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className="flex items-center gap-2 pt-2">
-                    <input 
+                    <input
                       type="checkbox"
                       id="slideIsActive"
                       className="w-4 h-4 accent-accent-gold cursor-pointer"
@@ -2106,12 +2434,12 @@ export default function AdminDashboard() {
                   <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow transition-shadow">
                     <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
                       {/* Image Thumbnail */}
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.title || 'Slide Thumbnail'} 
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title || 'Slide Thumbnail'}
                         className="w-24 h-16 object-cover rounded-lg border border-gray-100 flex-shrink-0"
                       />
-                      
+
                       <div className="min-w-0">
                         <h3 className="text-sm font-bold text-primary truncate">
                           {item.title || <span className="text-dark-gray/50 italic">Sem Título</span>}
@@ -2155,11 +2483,10 @@ export default function AdminDashboard() {
                       </div>
 
                       {/* Status Tag */}
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                        item.isActive 
-                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${item.isActive
+                          ? 'bg-green-50 text-green-700 border border-green-200'
                           : 'bg-gray-50 text-gray-500 border border-gray-200'
-                      }`}>
+                        }`}>
                         {item.isActive ? 'Ativo' : 'Inativo'}
                       </span>
 
@@ -2168,16 +2495,15 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           onClick={() => handleToggleSlide(item.id, item.isActive)}
-                          className={`p-2 rounded-xl border text-xs font-bold transition shadow-sm cursor-pointer ${
-                            item.isActive 
-                              ? 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50' 
+                          className={`p-2 rounded-xl border text-xs font-bold transition shadow-sm cursor-pointer ${item.isActive
+                              ? 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                               : 'bg-green-600 text-white hover:bg-opacity-95'
-                          }`}
+                            }`}
                           title={item.isActive ? 'Desativar Slide' : 'Ativar Slide'}
                         >
                           {item.isActive ? 'Pausar' : 'Ativar'}
                         </button>
-                        
+
                         <button
                           type="button"
                           onClick={() => handleEditSlide(item)}
@@ -2186,7 +2512,7 @@ export default function AdminDashboard() {
                         >
                           <Edit size={14} />
                         </button>
-                        
+
                         <button
                           type="button"
                           onClick={() => handleDeleteSlide(item.id)}
@@ -2209,7 +2535,7 @@ export default function AdminDashboard() {
       {isVideoModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[999] flex items-center justify-center p-4">
           <div className="bg-[#18181b] text-white border border-[#27272a] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in p-6 relative">
-            
+
             {/* Modal Header controls style as in image: small top-left controls */}
             <div className="flex justify-between items-center mb-6">
               <div className="flex gap-1.5 items-center bg-[#27272a]/50 p-1.5 rounded-lg border border-[#3f3f46]/30">
@@ -2310,22 +2636,22 @@ export default function AdminDashboard() {
                     alert("Por favor, insira um link de vídeo do YouTube válido.");
                     return;
                   }
-                  
+
                   const quill = (window as any).currentQuillInstance;
                   if (!quill) {
                     alert("Erro ao acessar o editor.");
                     return;
                   }
-                  
+
                   const range = quill.getSelection(true);
-                  
+
                   const embedHtml = `
                     <iframe class="ql-video" src="https://www.youtube.com/embed/${videoPreviewId}" allowfullscreen="true"></iframe>
                     ${videoCaption ? `<p class="video-caption text-center text-sm text-dark-gray italic my-2">${videoCaption}</p>` : ''}
                   `;
-                  
+
                   quill.clipboard.dangerouslyPasteHTML(range.index, embedHtml);
-                  
+
                   setIsVideoModalOpen(false);
                   setVideoEmbedUrl('');
                   setVideoCaption('');

@@ -29,6 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PlanPricingTier> PlanPricingTiers { get; set; }
     public DbSet<StandaloneService> StandaloneServices { get; set; }
     public DbSet<CarouselItem> CarouselItems { get; set; }
+    public DbSet<FaqItem> Faqs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -166,6 +167,100 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new StandaloneService { Id = Guid.Parse("88888888-8888-8888-8888-888888888888"), Name = "Antecipação de Entrevista", Price = 150.00m, IsActive = true },
             new StandaloneService { Id = Guid.Parse("99999999-9999-9999-9999-999999999999"), Name = "Simulação de Entrevista", Price = 500.00m, IsActive = true },
             new StandaloneService { Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), Name = "Revisão do DS-160", Price = 350.00m, IsActive = true }
+        );
+
+        // Seed Data: FAQs
+        builder.Entity<FaqItem>().HasData(
+            new FaqItem
+            {
+                Id = 1,
+                Question = "O que é o visto americano e quem precisa dele?",
+                Answer = "O visto americano é um documento que permite a entrada nos Estados Unidos para diversos fins, como turismo, negócios, estudo ou trabalho. Brasileiros precisam de visto para entrar nos EUA. A VisareBR auxilia em todo o processo de solicitação.",
+                DisplayOrder = 1,
+                IsActive = true,
+                Category = "Geral"
+            },
+            new FaqItem
+            {
+                Id = 2,
+                Question = "Quanto tempo demora para conseguir o visto americano?",
+                Answer = "O tempo varia conforme a demanda do consulado. Após o pagamento das taxas e preenchimento do DS-160, é possível agendar a entrevista. A disponibilidade de datas varia entre consulados. Após a entrevista, se aprovado, o passaporte com o visto geralmente é devolvido em até 10 dias úteis.",
+                DisplayOrder = 2,
+                IsActive = true,
+                Category = "Geral"
+            },
+            new FaqItem
+            {
+                Id = 3,
+                Question = "Qual a diferença entre visto de turismo e visto de negócios?",
+                Answer = "O visto B1/B2 é o mais comum e serve tanto para turismo quanto para negócios. O B1 (negócios) é para reuniões, conferências e consultas. O B2 (turismo) é para férias, visitar amigos/família e tratamento médico. Geralmente, ambos vêm juntos no mesmo visto.",
+                DisplayOrder = 3,
+                IsActive = true,
+                Category = "Processo"
+            },
+            new FaqItem
+            {
+                Id = 4,
+                Question = "É possível adiantar as datas da entrevista?",
+                Answer = "Sim, a VisareBR conta com serviços de antecipação de datas para os próximos 60 dias. Temos um monitoramento de datas constante em que conseguimos pegar datas que liberam por diversos motivos como cancelamento de agendamento, reagendamento ou novos lotes de datas disponibilizados pelo Consulado.",
+                DisplayOrder = 4,
+                IsActive = true,
+                Category = "Agendamento"
+            },
+            new FaqItem
+            {
+                Id = 5,
+                Question = "Quais documentos preciso para solicitar o visto americano?",
+                Answer = "Você precisará de: passaporte válido, formulário DS-160 preenchido, comprovante de pagamento das taxas (MRV), foto recente no padrão americano, e documentos que comprovem vínculos com o Brasil (emprego, propriedades, vínculos familiares) e capacidade financeira para a viagem.",
+                DisplayOrder = 5,
+                IsActive = true,
+                Category = "Documentos"
+            },
+            new FaqItem
+            {
+                Id = 6,
+                Question = "O que é o formulário DS-160?",
+                Answer = "O DS-160 é o formulário de solicitação de visto não-imigrante. Deve ser preenchido online em inglês no site do Departamento de Estado dos EUA. Ele contém informações pessoais, sobre a viagem, educação, trabalho e segurança. É importante preencher com atenção e veracidade. A VisareBR auxilia no preenchimento correto.",
+                DisplayOrder = 6,
+                IsActive = true,
+                Category = "Documentos"
+            },
+            new FaqItem
+            {
+                Id = 7,
+                Question = "Como funciona a entrevista no consulado?",
+                Answer = "A entrevista é presencial no consulado americano. Você apresentará seus documentos ao oficial consular, que fará perguntas sobre sua viagem, vínculos com o Brasil e situação financeira. É importante ser honesto e objetivo nas respostas. A VisareBR prepara você com orientações específicas sobre a entrevista.",
+                DisplayOrder = 7,
+                IsActive = true,
+                Category = "Entrevista"
+            },
+            new FaqItem
+            {
+                Id = 8,
+                Question = "Quais são os principais motivos de negativa de visto?",
+                Answer = "Os principais motivos incluem: falta de comprovação de vínculos com o Brasil, suspeita de intenção de imigração, informações inconsistentes ou falsas no formulário ou entrevista, falta de recursos financeiros comprovados, e histórico de violação de leis de imigração. A preparação adequada reduz muito o risco de negativa.",
+                DisplayOrder = 8,
+                IsActive = true,
+                Category = "Entrevista"
+            },
+            new FaqItem
+            {
+                Id = 9,
+                Question = "Preciso de assessoria para tirar o visto americano?",
+                Answer = "Não é obrigatório, mas uma assessoria especializada como a VisareBR aumenta significativamente suas chances de aprovação. Auxiliamos no preenchimento correto do DS-160, análise de documentos, preparação para a entrevista e acompanhamento de todo o processo, evitando erros que podem causar negativas.",
+                DisplayOrder = 9,
+                IsActive = true,
+                Category = "Geral"
+            },
+            new FaqItem
+            {
+                Id = 10,
+                Question = "É possível renovar o visto americano sem entrevista?",
+                Answer = "Sim, em alguns casos é possível renovar através do programa de Renovação sem Entrevista. Alguns dos requisitos são ter o visto anterior ainda válido ou vencido há menos de 48 meses, mesma categoria de visto, e nunca ter tido problemas de imigração nos EUA. A VisareBR verifica sua elegibilidade.",
+                DisplayOrder = 10,
+                IsActive = true,
+                Category = "Processo"
+            }
         );
     }
 

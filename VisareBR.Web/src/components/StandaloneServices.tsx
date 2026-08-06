@@ -8,6 +8,9 @@ export interface StandaloneService {
   name: string;
   price: number;
   isActive: boolean;
+  description?: string;
+  features?: string;
+  iconName?: string;
 }
 
 export default function StandaloneServices() {
