@@ -58,61 +58,61 @@ export default function Navbar() {
   return (
     <div className="w-full">
       {/* STICKY CONTAINER FOR MAIN NAVIGATION & ACTIONS */}
-      <nav className="sticky top-0 z-50 shadow-sm bg-white border-b border-gray-100">
+      <nav className="sticky top-0 z-50 shadow-md bg-[#0B1E3F] border-b border-white/10">
         <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20 gap-8">
 
             {/* Logo (Left) */}
             <Link to="/" className="flex items-center shrink-0">
-              <img src="/logo.png" alt="VisareBR Logo" className="h-12 md:h-14 w-auto brightness-0" />
+              <img src="/logo.png" alt="VisareBR Logo" className="h-12 md:h-14 w-auto brightness-0 invert" />
             </Link>
 
             {/* Navigation links (Center - Desktop only) */}
             <div className="hidden lg:flex items-center lg:gap-3 xl:gap-6">
               {/* Home */}
-              <Link to="/" className="text-slate-800 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Início</Link>
+              <Link to="/" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Início</Link>
 
               {/* Serviços */}
-              <Link to="/servicos" className="text-slate-800 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Serviços</Link>
+              <Link to="/servicos" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Serviços</Link>
 
               {/* Tipos de Vistos Dropdown */}
               <div className="relative group">
-                <button className="flex items-center gap-1 text-slate-800 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap h-20 transition-colors cursor-pointer">
-                  Tipos de Vistos <ChevronDown size={12} className="text-slate-800 group-hover:text-accent-gold transition-colors" />
+                <button className="flex items-center gap-1 text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap h-20 transition-colors cursor-pointer">
+                  Tipos de Vistos <ChevronDown size={12} className="text-slate-200 group-hover:text-accent-gold transition-colors" />
                 </button>
-                <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-white border border-gray-100 rounded-b-xl shadow-lg py-2 w-64 z-50">
+                <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-[#0B1E3F] border border-white/10 rounded-b-xl shadow-lg py-2 w-64 z-50">
                   {dropdownArticles.length > 0 ? (
                     dropdownArticles.map((art) => (
                       <Link
                         key={art.id}
                         to={`/blog/${art.slug}`}
-                        className="block px-4 py-2.5 text-slate-800 hover:bg-slate-50 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-slate-100 last:border-b-0"
+                        className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5 last:border-b-0"
                       >
                         {art.title}
                       </Link>
                     ))
                   ) : (
                     <>
-                      <Link to="/vistos#turismo" className="block px-4 py-2.5 text-slate-800 hover:bg-slate-50 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-slate-100">Visto de Turismo (B2)</Link>
-                      <Link to="/vistos#negocios" className="block px-4 py-2.5 text-slate-800 hover:bg-slate-50 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-slate-100">Visto de Negócios (B1)</Link>
-                      <Link to="/vistos#renovacao" className="block px-4 py-2.5 text-slate-800 hover:bg-slate-50 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-slate-100">Renovação de Visto</Link>
-                      <Link to="/vistos#estudante" className="block px-4 py-2.5 text-slate-800 hover:bg-slate-50 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider">Visto de Estudante (F1)</Link>
+                      <Link to="/vistos#turismo" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5">Visto de Turismo (B2)</Link>
+                      <Link to="/vistos#negocios" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5">Visto de Negócios (B1)</Link>
+                      <Link to="/vistos#renovacao" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5">Renovação de Visto</Link>
+                      <Link to="/vistos#estudante" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider">Visto de Estudante (F1)</Link>
                     </>
                   )}
                 </div>
               </div>
 
               {/* Passo a Passo */}
-              <Link to="/como-funciona" className="text-slate-800 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Passo a Passo</Link>
+              <Link to="/como-funciona" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Passo a Passo</Link>
 
               {/* Nossos Clientes */}
-              <Link to="/avaliacoes" className="text-slate-800 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Nossos Clientes</Link>
+              <Link to="/avaliacoes" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Nossos Clientes</Link>
 
               {/* Dúvidas */}
-              <Link to="/duvidas" className="text-slate-800 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Dúvidas</Link>
+              <Link to="/duvidas" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Dúvidas</Link>
 
               {/* Artigos */}
-              <Link to="/blog" className="text-slate-800 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Artigos</Link>
+              <Link to="/blog" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Artigos</Link>
             </div>
 
             {/* Desktop Action: WhatsApp Button (Right - Desktop only) */}
@@ -124,9 +124,9 @@ export default function Navbar() {
                   placeholder="Busque sobre vistos..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border border-gray-200 rounded-full pl-4 pr-10 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-accent-gold lg:w-28 xl:w-40 transition-all bg-slate-50 hover:bg-white"
+                  className="border border-white/20 rounded-full pl-4 pr-10 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-accent-gold lg:w-28 xl:w-40 transition-all bg-white/10 hover:bg-white/15"
                 />
-                <button type="submit" className="absolute right-3 text-slate-800 hover:text-accent-gold cursor-pointer">
+                <button type="submit" className="absolute right-3 text-slate-300 hover:text-accent-gold cursor-pointer">
                   <Search size={14} />
                 </button>
               </form>
@@ -162,7 +162,7 @@ export default function Navbar() {
               {/* Search Toggle */}
               <button
                 onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                className={`p-2 rounded-full border transition-colors shadow-sm cursor-pointer ${isMobileSearchOpen ? 'bg-accent-gold border-accent-gold text-primary' : 'bg-slate-50 border-gray-200 text-primary'
+                className={`p-2 rounded-full border transition-colors shadow-sm cursor-pointer ${isMobileSearchOpen ? 'bg-accent-gold border-accent-gold text-primary' : 'bg-white/10 border-white/10 text-white'
                   }`}
                 title="Buscar"
               >
@@ -172,7 +172,7 @@ export default function Navbar() {
               {/* Burger Button */}
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-2 text-primary hover:text-accent-gold transition-colors cursor-pointer"
+                className="p-2 text-white hover:text-accent-gold transition-colors cursor-pointer"
               >
                 {isOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
