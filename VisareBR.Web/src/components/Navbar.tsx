@@ -58,7 +58,7 @@ export default function Navbar() {
   return (
     <div className="w-full">
       {/* STICKY CONTAINER FOR MAIN NAVIGATION & ACTIONS */}
-      <nav className="sticky top-0 z-50 shadow-md bg-[#0B1E3F] border-b border-white/10">
+      <nav className="sticky top-0 z-50 shadow-md bg-primary border-b border-white/10">
         <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20 gap-8">
 
@@ -80,7 +80,7 @@ export default function Navbar() {
                 <button className="flex items-center gap-1 text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap h-20 transition-colors cursor-pointer">
                   Tipos de Vistos <ChevronDown size={12} className="text-slate-200 group-hover:text-accent-gold transition-colors" />
                 </button>
-                <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-[#0B1E3F] border border-white/10 rounded-b-xl shadow-lg py-2 w-64 z-50">
+                <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-primary border border-white/10 rounded-b-xl shadow-lg py-2 w-64 z-50">
                   {dropdownArticles.length > 0 ? (
                     dropdownArticles.map((art) => (
                       <Link
