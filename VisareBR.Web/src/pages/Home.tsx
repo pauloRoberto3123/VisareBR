@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { getCarouselItems } from '../api/carouselService';
 import type { CarouselItem } from '../api/carouselService';
+import YoutubeSection from '../components/YoutubeSection';
 
 export default function Home() {
   const { whatsappUrl, settings } = useSettings();
@@ -199,6 +200,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* YouTube Channel Videos Section */}
+      <YoutubeSection />
 
       {/* Testimonials Preview (Emulating the reference) */}
       <section className="py-20 bg-light-gray">

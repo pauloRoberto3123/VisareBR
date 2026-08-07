@@ -97,6 +97,8 @@ public class SiteSettings
     public string Address { get; set; } = string.Empty;
     public string Cnpj { get; set; } = string.Empty;
 
+    public string YoutubeChannelId { get; set; } = string.Empty;
+
     // Metrics for Home Page
     public string Metric1Value { get; set; } = "+5000";
     public string Metric1Label { get; set; } = "Vistos Aprovados";

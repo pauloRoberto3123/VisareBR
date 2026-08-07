@@ -262,6 +262,7 @@ export default function AdminDashboard() {
     cnpj: '',
     address: '',
     companyEmail: '',
+    youtubeChannelId: '',
     metric1Value: '',
     metric1Label: '',
     metric2Value: '',
@@ -1632,6 +1633,15 @@ export default function AdminDashboard() {
                 className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
                 value={settings.address}
                 onChange={e => setSettings({ ...settings, address: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-primary">ID do Canal do YouTube (Ex: UCwU9H2tE8gZl3vBfB9L4d8A)</label>
+              <input
+                className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
+                value={settings.youtubeChannelId || ''}
+                onChange={e => setSettings({ ...settings, youtubeChannelId: e.target.value })}
+                placeholder="Insira o ID do canal (começando com UC)"
               />
             </div>
             <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">

@@ -7,6 +7,7 @@ interface SiteSettings {
   companyEmail: string;
   address: string;
   cnpj: string;
+  youtubeChannelId?: string;
   metric1Value?: string;
   metric1Label?: string;
   metric2Value?: string;
