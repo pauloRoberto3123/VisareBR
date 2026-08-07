@@ -21,6 +21,11 @@ WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
+# Disable configuration reload on change to prevent inotify instance limit errors on Render
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
+ENV DOTNET_SYSTEM_IO_DISABLEFILEWATCHING=true
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+
 # Copy Backend Build
 COPY --from=build-backend /app/publish .
 
