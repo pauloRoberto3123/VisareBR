@@ -47,7 +47,8 @@ public static class SeedData
                 Metric2Value = "98%",
                 Metric2Label = "Índice de Sucesso",
                 Metric3Value = "Suporte 24/7",
-                Metric3Label = "Atendimento Especializado"
+                Metric3Label = "Atendimento Especializado",
+                YoutubeChannelId = "UCq8A_H80-879P2pWn-l7c0A" // Seed with a sample channel ID (like Google / generic)
             });
         }
 
