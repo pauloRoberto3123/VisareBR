@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Menu, X, Phone, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, X, Search, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { getArticles } from '../api/blogService';
@@ -17,17 +17,12 @@ const WhatsAppIcon = ({ size = 20 }: { size?: number }) => (
   </svg>
 );
 
-const announcements = [
-  { text: "ATENDEMOS TODO O BRASIL", highlight: "TIRE SEU VISTO DE TURISTA AQUI!" },
-  { text: "AGILIDADE E SEGURANÇA", highlight: "ASSESSORIA COMPLETA!" },
-  { text: "+5000 CLIENTES SATISFEITOS", highlight: "ALTA TAXA DE APROVAÇÃO!" }
-];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobileVistosOpen, setIsMobileVistosOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [annoIndex, setAnnoIndex] = useState(0);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [dropdownArticles, setDropdownArticles] = useState<Article[]>([]);
 
@@ -45,30 +40,9 @@ export default function Navbar() {
       .catch((err: any) => console.error("Error loading dropdown articles:", err));
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAnnoIndex((prev) => (prev + 1) % announcements.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
 
-  const formatPhoneNumber = (numStr?: string) => {
-    if (!numStr) return '';
-    const digits = numStr.replace(/\D/g, '');
-    if (digits.length === 13 && digits.startsWith('55')) {
-      const area = digits.slice(2, 4);
-      const first = digits.slice(4, 9);
-      const second = digits.slice(9);
-      return `(${area}) ${first}-${second}`;
-    }
-    if (digits.length === 11) {
-      const area = digits.slice(0, 2);
-      const first = digits.slice(2, 7);
-      const second = digits.slice(7);
-      return `(${area}) ${first}-${second}`;
-    }
-    return numStr;
-  };
+
+
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

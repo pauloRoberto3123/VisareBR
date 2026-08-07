@@ -20,10 +20,6 @@ export default function ServicesList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
-  };
-
   const getIcon = (iconName?: string) => {
     if (iconName && (iconName.startsWith('data:') || iconName.startsWith('http'))) {
       return <img src={iconName} alt="Service Icon" className="w-10 h-10 object-contain mx-auto" />;
