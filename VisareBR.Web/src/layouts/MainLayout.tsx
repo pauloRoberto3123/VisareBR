@@ -34,8 +34,8 @@ export default function MainLayout() {
               <h3 className="text-lg font-bold mb-6 text-accent-gold">Navegação</h3>
               <ul className="space-y-3">
                 <li><Link to="/" className="text-gray-400 hover:text-accent-gold transition-colors">Início</Link></li>
-                <li><Link to="/vistos" className="text-gray-400 hover:text-accent-gold transition-colors">Tipos de Vistos</Link></li>
-                <li><Link to="/como-funciona" className="text-gray-400 hover:text-accent-gold transition-colors">Passo a Passo</Link></li>
+                <li><Link to="/vistos" className="text-gray-400 hover:text-accent-gold transition-colors">Tipos de Vistos Americano</Link></li>
+                <li><Link to="/como-funciona" className="text-gray-400 hover:text-accent-gold transition-colors">Quem Somos</Link></li>
                 {/* <li><Link to="/precos" className="text-gray-400 hover:text-accent-gold transition-colors">Preços</Link></li> */}
                 <li><Link to="/blog" className="text-gray-400 hover:text-accent-gold transition-colors">Artigos</Link></li>
                 <li><Link to="/avaliacoes" className="text-gray-400 hover:text-accent-gold transition-colors">Nossos Clientes</Link></li>
