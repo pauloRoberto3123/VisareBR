@@ -78,7 +78,7 @@ export default function Navbar() {
               {/* Tipos de Vistos Dropdown */}
               <div className="relative group">
                 <button className="flex items-center gap-1 text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap h-20 transition-colors cursor-pointer">
-                  Tipos de Vistos <ChevronDown size={12} className="text-slate-200 group-hover:text-accent-gold transition-colors" />
+                  Tipos de Vistos Americano <ChevronDown size={12} className="text-slate-200 group-hover:text-accent-gold transition-colors" />
                 </button>
                 <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-primary border border-white/10 rounded-b-xl shadow-lg py-2 w-64 z-50">
                   {dropdownArticles.length > 0 ? (
@@ -102,8 +102,8 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Passo a Passo */}
-              <Link to="/como-funciona" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Passo a Passo</Link>
+              {/* Quem Somos */}
+              <Link to="/como-funciona" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Quem Somos</Link>
 
               {/* Nossos Clientes */}
               <Link to="/avaliacoes" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Nossos Clientes</Link>
@@ -212,7 +212,7 @@ export default function Navbar() {
                   onClick={() => setIsMobileVistosOpen(!isMobileVistosOpen)}
                   className="w-full flex items-center justify-between px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors cursor-pointer"
                 >
-                  <span>Tipos de Vistos</span>
+                  <span>Tipos de Vistos Americano</span>
                   <ChevronDown size={16} className={`transition-transform duration-300 ${isMobileVistosOpen ? 'rotate-180 text-accent-gold' : 'text-slate-800'}`} />
                 </button>
 
@@ -242,7 +242,7 @@ export default function Navbar() {
               </div>
 
               <Link to="/servicos" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Serviços</Link>
-              <Link to="/como-funciona" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Passo a Passo</Link>
+              <Link to="/como-funciona" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Quem Somos</Link>
               <Link to="/avaliacoes" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Nossos Clientes</Link>
               <Link to="/duvidas" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Dúvidas</Link>
               <Link to="/blog" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Artigos</Link>

@@ -782,13 +782,13 @@ export default function AdminDashboard() {
         >
           Formulários DS-160
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('pricing'); setSelectedPlan(null); setEditingStandaloneService(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'pricing' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Serviços e Preços
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('faq'); setEditingFaq(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'faq' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
@@ -1025,8 +1025,8 @@ export default function AdminDashboard() {
                       onDragLeave={handleBlogImageDragLeave}
                       onDrop={handleBlogImageDrop}
                       className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-dark-gray transition-all cursor-pointer ${isDraggingBlogImage
-                          ? 'border-accent-gold bg-accent-gold/5'
-                          : 'border-gray-200 bg-slate-50 hover:border-accent-gold/50'
+                        ? 'border-accent-gold bg-accent-gold/5'
+                        : 'border-gray-200 bg-slate-50 hover:border-accent-gold/50'
                         }`}
                     >
                       <Upload size={36} className={`mb-2 transition-colors ${isDraggingBlogImage ? 'text-accent-gold' : 'text-gray-400'}`} />
@@ -1311,8 +1311,8 @@ export default function AdminDashboard() {
                                     const isSelected = block.recommendedArticleIds?.includes(p.id) || false;
                                     return (
                                       <label key={p.id} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition ${isSelected
-                                          ? 'border-accent-gold bg-accent-gold/5 font-semibold text-primary'
-                                          : 'border-gray-200 hover:bg-slate-50 text-dark-gray'
+                                        ? 'border-accent-gold bg-accent-gold/5 font-semibold text-primary'
+                                        : 'border-gray-200 hover:bg-slate-50 text-dark-gray'
                                         }`}>
                                         <input
                                           type="checkbox"
@@ -1458,7 +1458,7 @@ export default function AdminDashboard() {
                       onChange={e => setNewPost({ ...newPost, showInVisaDropdown: e.target.checked })}
                     />
                     <label htmlFor="showInVisaDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
-                      Mostrar este artigo no menu "Tipos de Vistos" do cabeçalho
+                      Mostrar este artigo no menu "Tipos de Vistos Americano" do cabeçalho
                     </label>
                   </div>
 
@@ -1724,7 +1724,7 @@ export default function AdminDashboard() {
       {activeTab === 'pricing' && (
         <div className="space-y-6 text-left">
           {/* Gerenciar Planos e Preços Header */}
-          <div 
+          <div
             onClick={() => setPlansSectionOpen(!plansSectionOpen)}
             className="flex justify-between items-center bg-white p-5 rounded-2xl border border-light-gray cursor-pointer hover:bg-slate-50 hover:border-gray-300 transition-all select-none shadow-sm"
           >
@@ -1829,7 +1829,7 @@ export default function AdminDashboard() {
 
           {/* Gerenciar Serviços Avulsos Section */}
           <div className="mt-8 pt-8 border-t border-light-gray space-y-4">
-            <div 
+            <div
               onClick={() => setStandaloneSectionOpen(!standaloneSectionOpen)}
               className="flex justify-between items-center bg-white p-5 rounded-2xl border border-light-gray cursor-pointer hover:bg-slate-50 hover:border-gray-300 transition-all select-none shadow-sm"
             >
@@ -2127,11 +2127,10 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        faq.isActive 
-                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${faq.isActive
+                          ? 'bg-green-50 text-green-700 border border-green-200'
                           : 'bg-gray-50 text-gray-500 border border-gray-200'
-                      }`}>
+                        }`}>
                         {faq.isActive ? 'Ativa' : 'Inativa'}
                       </span>
                     </td>
@@ -2279,8 +2278,8 @@ export default function AdminDashboard() {
 
                     <div className="flex items-center gap-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${post.showInVisaDropdown
-                          ? 'bg-green-100 text-green-700 border border-green-200'
-                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200'
                         }`}>
                         {post.showInVisaDropdown ? 'Visível no Menu' : 'Invisível'}
                       </span>
@@ -2297,8 +2296,8 @@ export default function AdminDashboard() {
                           }
                         }}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${post.showInVisaDropdown
-                            ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow'
-                            : 'bg-white text-primary border-gray-200 hover:bg-gray-50'
+                          ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow'
+                          : 'bg-white text-primary border-gray-200 hover:bg-gray-50'
                           }`}
                       >
                         {post.showInVisaDropdown ? 'Remover' : 'Adicionar'}
@@ -2494,8 +2493,8 @@ export default function AdminDashboard() {
 
                       {/* Status Tag */}
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${item.isActive
-                          ? 'bg-green-50 text-green-700 border border-green-200'
-                          : 'bg-gray-50 text-gray-500 border border-gray-200'
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-gray-50 text-gray-500 border border-gray-200'
                         }`}>
                         {item.isActive ? 'Ativo' : 'Inativo'}
                       </span>
@@ -2506,8 +2505,8 @@ export default function AdminDashboard() {
                           type="button"
                           onClick={() => handleToggleSlide(item.id, item.isActive)}
                           className={`p-2 rounded-xl border text-xs font-bold transition shadow-sm cursor-pointer ${item.isActive
-                              ? 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                              : 'bg-green-600 text-white hover:bg-opacity-95'
+                            ? 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                            : 'bg-green-600 text-white hover:bg-opacity-95'
                             }`}
                           title={item.isActive ? 'Desativar Slide' : 'Ativar Slide'}
                         >
