@@ -159,6 +159,7 @@ public class StandaloneService
     public string Description { get; set; } = string.Empty;
     public string Features { get; set; } = string.Empty;
     public string IconName { get; set; } = "Briefcase";
+    public int Order { get; set; } = 0;
 }
 
 public class CarouselItem

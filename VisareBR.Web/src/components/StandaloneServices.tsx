@@ -11,6 +11,7 @@ export interface StandaloneService {
   description?: string;
   features?: string;
   iconName?: string;
+  order?: number;
 }
 
 export default function StandaloneServices() {
