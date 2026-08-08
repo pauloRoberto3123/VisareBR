@@ -10,6 +10,7 @@ import {
   Users, 
   Briefcase, 
   ShieldAlert, 
+  ShieldCheck,
   FileText,
   Phone,
   Mail,
@@ -90,7 +91,20 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="space-y-4">
+      {/* Botão de Exportação para PDF (Visível apenas na tela) */}
+      <div className="flex justify-end print:hidden mb-2">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="flex items-center gap-2 bg-primary hover:bg-opacity-90 text-white font-bold px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer text-xs uppercase tracking-wider"
+        >
+          <FileText size={14} />
+          <span>Exportar PDF / Imprimir</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start print:hidden">
       {/* Mobile step selector */}
       <div className="lg:hidden col-span-1 space-y-2">
         <label className="block text-xs font-bold text-primary uppercase tracking-wider">Passo do Formulário</label>
@@ -867,6 +881,129 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
           </div>
         )}
       </div>
+    </div>
+
+      {/* Versão Completa para Impressão (Visível apenas no print/PDF) */}
+      <div className="hidden print:block space-y-8 text-black font-sans bg-white p-4">
+        <div className="border-b-2 border-primary pb-4 mb-6">
+          <h1 className="text-xl font-black text-primary">Formulário de Solicitação DS-160 Completo</h1>
+          <p className="text-xs text-gray-500 mt-1">Requerente: <strong>{submission.applicantName}</strong> | Passaporte: <strong>{submission.passportNumber}</strong> | Data de Envio: <strong>{new Date(submission.createdAt).toLocaleString('pt-BR')}</strong></p>
+        </div>
+
+        {/* 1. Dados Pessoais */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="1. Dados Pessoais e Nascimento" icon={User} />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailField label="Nome Completo" value={formData.step1?.fullName} />
+            <DetailField label="Nome em Alfabeto Nativo" value={formData.step1?.nativeName} />
+            <DetailField label="Gênero" value={formData.step1?.gender} />
+            <DetailField label="Estado Civil" value={formData.step1?.maritalStatus} />
+            {formData.step1?.maritalStatusExplain && <DetailField label="Explicação Estado Civil" value={formData.step1?.maritalStatusExplain} />}
+            <DetailField label="Data de Nascimento" value={formData.step1?.birthDate} />
+            <DetailField label="Cidade de Nascimento" value={formData.step1?.birthCity} />
+            <DetailField label="Estado de Nascimento" value={formData.step1?.birthState} />
+            <DetailField label="País de Nascimento" value={formData.step1?.birthCountry} />
+            <DetailField label="CPF" value={formData.step1?.cpf} />
+            <DetailField label="RG" value={formData.step1?.rg} />
+            <DetailField label="Emissor do RG" value={formData.step1?.rgIssuer} />
+          </div>
+        </div>
+
+        {/* 2. Endereço e Contato */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="2. Endereço e Contato" icon={MapPin} />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailField label="Endereço Residencial" value={formData.step2?.homeAddress} />
+            <DetailField label="Cidade/Estado/CEP" value={`${formData.step2?.homeCity || ''}, ${formData.step2?.homeState || ''} - CEP: ${formData.step2?.homeZip || ''}`} />
+            <DetailField label="Telefone Principal" value={formData.step2?.primaryPhone} />
+            <DetailField label="E-mail Principal" value={formData.step2?.primaryEmail} />
+            {formData.step2?.hasSocialMedia === 'Yes' && formData.step2?.socialMediaProfiles && formData.step2.socialMediaProfiles.length > 0 && (
+              <DetailField label="Redes Sociais" value={formData.step2.socialMediaProfiles.map((p: any) => `${p.platform}: ${p.identifier}`).join(', ')} />
+            )}
+          </div>
+        </div>
+
+        {/* 3. Documento de Viagem */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="3. Passaporte e Viagem" icon={CreditCard} />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailField label="Número do Passaporte" value={formData.step3?.passportNumber} />
+            <DetailField label="País Emissor" value={formData.step3?.passportIssuerCountry} />
+            <DetailField label="Cidade/Estado de Emissão" value={`${formData.step3?.passportIssuerCity || ''} / ${formData.step3?.passportIssuerState || ''}`} />
+            <DetailField label="Data de Emissão" value={formData.step3?.passportIssueDate} />
+            <DetailField label="Data de Expiração" value={formData.step3?.passportExpiryDate} />
+          </div>
+        </div>
+
+        {/* 4. Detalhes da Viagem */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="4. Detalhes da Viagem e Estadia nos EUA" icon={Plane} />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailField label="Posto Consular" value={formData.step4?.consularPost} />
+            <DetailField label="Propósito da Viagem" value={formData.step4?.tripPurpose} />
+            <DetailField label="Data Prevista de Chegada" value={formData.step4?.intendedArrivalDate} />
+            <DetailField label="Duração da Estadia" value={formData.step4?.intendedStayLength} />
+            <DetailField label="Endereço nos EUA" value={`${formData.step4?.usAddressStreet || ''}, ${formData.step4?.usAddressCity || ''}, ${formData.step4?.usAddressState || ''} - CEP: ${formData.step4?.usAddressZip || ''}`} />
+            <DetailField label="Quem pagará pela viagem?" value={formData.step4?.payingParty} />
+          </div>
+        </div>
+
+        {/* 5. Histórico de Viagens */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="5. Histórico de Viagens e Vistos Anteriores" icon={History} />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailField label="Já esteve nos EUA?" value={formData.step5?.hasBeenToUS === 'Yes' ? 'Sim' : 'Não'} />
+            <DetailField label="Já teve visto americano?" value={formData.step5?.hasUSVisa === 'Yes' ? 'Sim' : 'Não'} />
+            <DetailField label="Visto recusado?" value={formData.step5?.hasRefusedUSVisa === 'Yes' ? 'Sim' : 'Não'} />
+            {formData.step5?.refusedUSVisaExplanation && <DetailField label="Explicação de Recusa" value={formData.step5?.refusedUSVisaExplanation} />}
+          </div>
+        </div>
+
+        {/* 6. Informações Familiares */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="6. Informações Familiares" icon={Users} />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailField label="Nome do Pai" value={formData.step6?.fatherFullName} />
+            <DetailField label="Nome da Mãe" value={formData.step6?.motherFullName} />
+            <DetailField label="Parentes nos EUA?" value={formData.step6?.hasImmediateRelativesInUS === 'Yes' ? 'Sim' : 'Não'} />
+          </div>
+        </div>
+
+        {/* 7. Trabalho e Educação */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="7. Trabalho e Educação" icon={Briefcase} />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailField label="Ocupação Principal" value={formData.step7?.primaryOccupation} />
+            <DetailField label="Empresa / Escola" value={formData.step7?.currentEmployerSchoolName} />
+            <DetailField label="Salário Mensal" value={formData.step7?.currentMonthlySalary} />
+            <DetailField label="Endereço do Trabalho" value={formData.step7?.currentEmployerSchoolAddress} />
+          </div>
+        </div>
+
+        {/* 8. Segurança e Assinatura */}
+        <div className="space-y-3 break-inside-avoid">
+          <SectionHeader title="8. Segurança, Histórico e Assinatura" icon={ShieldCheck} />
+          <div className="space-y-2 text-xs border border-gray-150 p-4 rounded-xl">
+            <p><strong>Doenças transmissíveis:</strong> {formData.step8?.disease === 'Yes' ? 'Sim' : 'Não'}</p>
+            <p><strong>Histórico Criminal:</strong> {formData.step8?.criminal === 'Yes' ? 'Sim' : 'Não'}</p>
+            <p><strong>Segurança & Terrorismo:</strong> {formData.step8?.terrorism === 'Yes' ? 'Sim' : 'Não'}</p>
+            <p><strong>Assinatura Digital (Nome Completo):</strong> {formData.step8?.signature}</p>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media print {
+          body {
+            background-color: white !important;
+            color: black !important;
+          }
+          .break-inside-avoid {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+        }
+      `}</style>
     </div>
   );
 }

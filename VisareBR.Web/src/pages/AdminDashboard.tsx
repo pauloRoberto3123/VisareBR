@@ -48,6 +48,7 @@ export default function AdminDashboard() {
   const [standaloneSectionOpen, setStandaloneSectionOpen] = useState(true);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
+  const [vistosSubTab, setVistosSubTab] = useState<'american' | 'others'>('american');
 
   // Carousel Form State
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -185,7 +186,8 @@ export default function AdminDashboard() {
     tags: '',
     contentBlocks: [] as ArticleBlock[],
     authorName: '',
-    showInVisaDropdown: false
+    showInVisaDropdown: false,
+    showInOthersDropdown: false
   });
   const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
@@ -475,7 +477,8 @@ export default function AdminDashboard() {
         tags: tagsArray,
         contentBlocks: newPost.contentBlocks,
         authorName: newPost.authorName,
-        showInVisaDropdown: newPost.showInVisaDropdown
+        showInVisaDropdown: newPost.showInVisaDropdown,
+        showInOthersDropdown: newPost.showInOthersDropdown
       };
 
       if (editorMode === 'edit' && editingPostId !== null) {
@@ -495,7 +498,8 @@ export default function AdminDashboard() {
         tags: '',
         contentBlocks: [],
         authorName: '',
-        showInVisaDropdown: false
+        showInVisaDropdown: false,
+        showInOthersDropdown: false
       });
       setEditingPostId(null);
       setEditorMode('list');
@@ -516,7 +520,8 @@ export default function AdminDashboard() {
       tags: Array.isArray(post.tags) ? post.tags.join(', ') : (post.tags || ''),
       contentBlocks: post.contentBlocks || [],
       authorName: post.authorName || '',
-      showInVisaDropdown: post.showInVisaDropdown || false
+      showInVisaDropdown: post.showInVisaDropdown || false,
+      showInOthersDropdown: post.showInOthersDropdown || false
     });
     setEditingPostId(post.id);
     setEditorMode('edit');
@@ -533,7 +538,8 @@ export default function AdminDashboard() {
       tags: '',
       contentBlocks: [],
       authorName: '',
-      showInVisaDropdown: false
+      showInVisaDropdown: false,
+      showInOthersDropdown: false
     });
     setEditingPostId(null);
     setEditorMode('create');
@@ -601,7 +607,8 @@ export default function AdminDashboard() {
           tags: '',
           contentBlocks: [],
           authorName: '',
-          showInVisaDropdown: false
+          showInVisaDropdown: false,
+          showInOthersDropdown: false
         });
       }
       fetchData();
@@ -723,7 +730,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-secondary min-h-[80vh]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 print:hidden">
         <h1 className="text-3xl font-bold text-primary">Painel de Controle</h1>
         <button
           onClick={handleManualLogout}
@@ -733,7 +740,7 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2 -mx-4 px-4">
+      <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2 -mx-4 px-4 print:hidden">
         <button
           onClick={() => setActiveTab('overview')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'overview' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
@@ -1209,18 +1216,55 @@ export default function AdminDashboard() {
                             </div>
                           )}
 
-                          {block.type === 'image' && (
-                            <div className="space-y-3">
+                           {block.type === 'image' && (
+                            <div className="space-y-3 text-left">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                  <label className="text-xs font-bold text-gray-500">URL da Imagem</label>
-                                  <input
-                                    type="text"
-                                    value={block.imageUrl || ''}
-                                    onChange={(e) => updateBlock(index, { ...block, imageUrl: e.target.value })}
-                                    placeholder="https://exemplo.com/imagem.jpg"
-                                    className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
-                                  />
+                                  <label className="text-xs font-bold text-gray-500 block mb-1">Origem da Imagem (URL ou Arquivo Local)</label>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      value={(block.imageUrl || '').startsWith('data:image') ? 'Imagem carregada localmente (Base64)' : (block.imageUrl || '')}
+                                      onChange={(e) => updateBlock(index, { ...block, imageUrl: e.target.value })}
+                                      placeholder="https://exemplo.com/imagem.jpg"
+                                      disabled={(block.imageUrl || '').startsWith('data:image')}
+                                      className="flex-grow p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary disabled:bg-gray-50 disabled:text-gray-400"
+                                    />
+                                    {(block.imageUrl || '').startsWith('data:image') ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => updateBlock(index, { ...block, imageUrl: '' })}
+                                        className="bg-red-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-red-700 transition-all text-xs cursor-pointer shadow-sm shrink-0"
+                                      >
+                                        Limpar
+                                      </button>
+                                    ) : (
+                                      <label className="bg-primary text-secondary px-3 py-2 rounded-xl font-bold hover:bg-opacity-95 transition-all text-xs cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shadow-sm shrink-0">
+                                        <Upload size={14} /> Local
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              if (file.size > 2 * 1024 * 1024) {
+                                                alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
+                                                return;
+                                              }
+                                              const reader = new FileReader();
+                                              reader.onloadend = () => {
+                                                if (typeof reader.result === 'string') {
+                                                  updateBlock(index, { ...block, imageUrl: reader.result });
+                                                }
+                                              };
+                                              reader.readAsDataURL(file);
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="space-y-1">
                                   <label className="text-xs font-bold text-gray-500 flex items-center gap-1">
@@ -1449,17 +1493,32 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Visibilidade no Menu Dropdown */}
-                  <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="showInVisaDropdown"
-                      className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
-                      checked={newPost.showInVisaDropdown}
-                      onChange={e => setNewPost({ ...newPost, showInVisaDropdown: e.target.checked })}
-                    />
-                    <label htmlFor="showInVisaDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
-                      Mostrar este artigo no menu "Tipos de Vistos Americano" do cabeçalho
-                    </label>
+                  <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="showInVisaDropdown"
+                        className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
+                        checked={newPost.showInVisaDropdown}
+                        onChange={e => setNewPost({ ...newPost, showInVisaDropdown: e.target.checked })}
+                      />
+                      <label htmlFor="showInVisaDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
+                        Mostrar este artigo no menu "Tipos de Vistos Americano" do cabeçalho
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="showInOthersDropdown"
+                        className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
+                        checked={newPost.showInOthersDropdown}
+                        onChange={e => setNewPost({ ...newPost, showInOthersDropdown: e.target.checked })}
+                      />
+                      <label htmlFor="showInOthersDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
+                        Mostrar este artigo no menu "Vistos de Outros Países" do cabeçalho
+                      </label>
+                    </div>
                   </div>
 
                   {/* Tags section (up to 3 tags) */}
@@ -1653,11 +1712,11 @@ export default function AdminDashboard() {
 
       {activeTab === 'ds160' && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold mb-6 text-primary">Formulários DS-160 Recebidos</h2>
+          <h2 className="text-xl font-bold mb-6 text-primary print:hidden">Formulários DS-160 Recebidos</h2>
 
           {selectedDs160 ? (
-            <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
-              <button onClick={() => setSelectedDs160(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline">
+            <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm print:bg-white print:p-0 print:border-none print:shadow-none">
+              <button onClick={() => setSelectedDs160(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline print:hidden">
                 ← Voltar para a lista
               </button>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pb-8 border-b border-light-gray">
@@ -2244,11 +2303,30 @@ export default function AdminDashboard() {
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-primary">Vistos no Menu do Cabeçalho</h2>
             <p className="text-dark-gray text-sm mt-1">
-              Selecione quais artigos informativos serão exibidos sob a categoria <strong>"Tipos de Vistos Americanos"</strong> no menu do cabeçalho.
+              Selecione quais artigos informativos serão exibidos sob as categorias do menu do cabeçalho.
             </p>
             <p className="text-accent-red text-xs font-semibold mt-2">
               💡 Nota: Caso nenhum artigo esteja selecionado, o site exibirá automaticamente os links padrão do sistema.
             </p>
+          </div>
+
+          <div className="flex border-b border-light-gray mb-6">
+            <button
+              onClick={() => setVistosSubTab('american')}
+              className={`pb-2 px-4 font-bold text-sm transition-colors cursor-pointer ${
+                vistosSubTab === 'american' ? 'border-b-2 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'
+              }`}
+            >
+              Tipos de Vistos Americano
+            </button>
+            <button
+              onClick={() => setVistosSubTab('others')}
+              className={`pb-2 px-4 font-bold text-sm transition-colors cursor-pointer ${
+                vistosSubTab === 'others' ? 'border-b-2 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'
+              }`}
+            >
+              Vistos de Outros Países
+            </button>
           </div>
 
           <div className="space-y-4">
@@ -2256,55 +2334,70 @@ export default function AdminDashboard() {
               <p className="text-dark-gray py-4 text-center">Nenhum artigo publicado no momento. Publique artigos primeiro na aba "Gerenciar Artigos".</p>
             ) : (
               <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden bg-white">
-                {posts.map((post) => (
-                  <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                      {post.featuredImageUrl ? (
-                        <img
-                          src={post.featuredImageUrl}
-                          alt={post.title}
-                          className="w-16 h-12 object-cover rounded-lg border border-gray-100 flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] text-dark-gray font-bold">SEM FOTO</span>
+                {posts.map((post) => {
+                  const isVisible = vistosSubTab === 'american' ? post.showInVisaDropdown : post.showInOthersDropdown;
+                  return (
+                    <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                        {post.featuredImageUrl ? (
+                          <img
+                            src={post.featuredImageUrl}
+                            alt={post.title}
+                            className="w-16 h-12 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] text-dark-gray font-bold">SEM FOTO</span>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-primary truncate">{post.title}</h3>
+                          <p className="text-xs text-dark-gray truncate mt-0.5">{post.summary || 'Sem resumo disponível'}</p>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-primary truncate">{post.title}</h3>
-                        <p className="text-xs text-dark-gray truncate mt-0.5">{post.summary || 'Sem resumo disponível'}</p>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isVisible
+                          ? 'bg-green-100 text-green-700 border border-green-200'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}>
+                          {isVisible ? 'Visível no Menu' : 'Invisível'}
+                        </span>
+
+                        <button
+                          onClick={async () => {
+                            try {
+                              const newStatus = !isVisible;
+                              const endpoint = vistosSubTab === 'american' 
+                                ? `/blog/${post.id}/toggle-dropdown?show=${newStatus}`
+                                : `/blog/${post.id}/toggle-others-dropdown?show=${newStatus}`;
+                              
+                              await api.put(endpoint);
+                              
+                              // Update local list state
+                              setPosts(prev => prev.map(p => {
+                                if (p.id === post.id) {
+                                  return vistosSubTab === 'american'
+                                    ? { ...p, showInVisaDropdown: newStatus }
+                                    : { ...p, showInOthersDropdown: newStatus };
+                                }
+                                return p;
+                              }));
+                            } catch (err) {
+                              alert('Erro ao alterar visibilidade do artigo no menu.');
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${isVisible
+                            ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow'
+                            : 'bg-white text-primary border-gray-200 hover:bg-gray-50'
+                            }`}
+                        >
+                          {isVisible ? 'Remover' : 'Adicionar'}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${post.showInVisaDropdown
-                        ? 'bg-green-100 text-green-700 border border-green-200'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200'
-                        }`}>
-                        {post.showInVisaDropdown ? 'Visível no Menu' : 'Invisível'}
-                      </span>
-
-                      <button
-                        onClick={async () => {
-                          try {
-                            const newStatus = !post.showInVisaDropdown;
-                            await api.put(`/blog/${post.id}/toggle-dropdown?show=${newStatus}`);
-                            // Update local list state
-                            setPosts(prev => prev.map(p => p.id === post.id ? { ...p, showInVisaDropdown: newStatus } : p));
-                          } catch (err) {
-                            alert('Erro ao alterar visibilidade do artigo no menu.');
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${post.showInVisaDropdown
-                          ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow'
-                          : 'bg-white text-primary border-gray-200 hover:bg-gray-50'
-                          }`}
-                      >
-                        {post.showInVisaDropdown ? 'Remover' : 'Adicionar'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

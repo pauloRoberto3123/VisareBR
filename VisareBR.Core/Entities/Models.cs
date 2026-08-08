@@ -32,6 +32,7 @@ public class Article
     public ApplicationUser? Author { get; set; }
     public string? AuthorName { get; set; }
     public bool ShowInVisaDropdown { get; set; } = false;
+    public bool ShowInOthersDropdown { get; set; } = false;
 }
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]

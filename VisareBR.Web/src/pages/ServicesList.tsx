@@ -40,14 +40,19 @@ export default function ServicesList() {
       <section className="bg-primary py-24 text-secondary text-center relative overflow-hidden">
         {/* Subtle decorative background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-accent-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-white">
-            Nossos Serviços Avulsos
+            Nossos Serviços
           </h1>
-          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
-            Soluções ágeis e pontuais para cada etapa da sua solicitação de visto. Contrate apenas o que você precisa, com a segurança e expertise da VisareBR.
+          <p className="text-lg md:text-xl text-gray-300 mb-6 max-w-3xl mx-auto leading-relaxed font-light">
+            VisareBR Assessoria completa para o seu visto americano.
           </p>
+          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
+            Sabemos que solicitar um visto pode parecer um processo cheio de etapas, formulários e detalhes que assustam. A nossa missão é simples: tirar esse peso de você e fazer o processo acontecer do jeito certo, do início ao fim.
+          </p>
+
+
         </div>
       </section>
 
@@ -74,8 +79,8 @@ export default function ServicesList() {
                   : [];
 
                 return (
-                  <a 
-                    key={service.id} 
+                  <a
+                    key={service.id}
                     href={getWhatsAppLinkForService(service.name)}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -91,7 +96,7 @@ export default function ServicesList() {
                       <h2 className="text-xl font-bold text-primary mb-3 text-center group-hover:text-accent-gold transition-colors line-clamp-2">
                         {service.name}
                       </h2>
-                      
+
                       {service.description && (
                         <p className="text-dark-gray text-sm mb-6 text-center leading-relaxed line-clamp-3">
                           {service.description}
@@ -125,9 +130,9 @@ export default function ServicesList() {
           <p className="text-dark-gray text-lg mb-8 leading-relaxed">
             Fale conosco diretamente via WhatsApp. Nós respondemos suas dúvidas e ajudamos você a escolher a melhor opção para a conquista do seu visto.
           </p>
-          <a 
-            href={whatsappUrl} 
-            target="_blank" 
+          <a
+            href={whatsappUrl}
+            target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md shadow-[#25D366]/20"
           >

@@ -47,8 +47,8 @@ function App() {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
-          <Route path="blog" element={<BlogList />} />
-          <Route path="blog/:slug" element={<BlogPost />} />
+          <Route path="artigos" element={<BlogList />} />
+          <Route path="artigos/:slug" element={<BlogPost />} />
         <Route 
           path="login" 
           element={
@@ -65,8 +65,8 @@ function App() {
             } 
           />
           <Route path="vistos" element={<Services />} />
-          <Route path="como-funciona" element={<StepByStep />} />
-          <Route path="avaliacoes" element={<Evaluations />} />
+          <Route path="quem-somos" element={<StepByStep />} />
+          <Route path="nossos-clientes" element={<Evaluations />} />
           <Route path="ds-160" element={<Ds160Form />} />
           <Route path="precos" element={<PricingSection />} />
            <Route path="servicos" element={<ServicesList />} />
