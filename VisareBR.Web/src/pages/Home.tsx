@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { getCarouselItems } from '../api/carouselService';
 import type { CarouselItem } from '../api/carouselService';
+import { getEvaluations } from '../api/blogService';
+import type { Evaluation } from '../api/blogService';
 import YoutubeSection from '../components/YoutubeSection';
 
 export default function Home() {
   const { whatsappUrl, settings } = useSettings();
   const [slides, setSlides] = useState<CarouselItem[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -17,6 +20,12 @@ export default function Home() {
         setSlides(res.data);
       })
       .catch(err => console.error("Error fetching slides:", err));
+
+    getEvaluations()
+      .then((res: any) => {
+        setEvaluations(res.data);
+      })
+      .catch(err => console.error("Error fetching evaluations:", err));
   }, []);
 
   useEffect(() => {
@@ -38,20 +47,19 @@ export default function Home() {
               return (
                 <div
                   key={slide.id}
-                  className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${
-                    isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                  }`}
+                  className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                    }`}
                 >
                   {/* Background Image */}
-                  <img 
-                    src={slide.imageUrl} 
-                    alt={slide.title || 'Slide Image'} 
+                  <img
+                    src={slide.imageUrl}
+                    alt={slide.title || 'Slide Image'}
                     className="w-full h-full object-cover"
                   />
-                  
+
                   {/* Overlay layer to ensure text readability */}
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/85 via-primary/60 to-transparent"></div>
-                  
+
                   {/* Overlay Text Content */}
                   <div className="absolute inset-0 flex items-center">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -66,39 +74,39 @@ export default function Home() {
                             {slide.subtitle}
                           </p>
                         )}
-                        
+
                         {/* Action buttons */}
                         <div className="flex flex-col sm:flex-row gap-4 pt-2">
                           {slide.linkUrl ? (
                             slide.linkUrl.startsWith('http') ? (
-                              <a 
-                                href={slide.linkUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
+                              <a
+                                href={slide.linkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="bg-accent-red text-secondary px-8 py-3.5 rounded-lg font-bold text-base hover:bg-opacity-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg"
                               >
                                 Solicitar Agora
                               </a>
                             ) : (
-                              <Link 
-                                to={slide.linkUrl} 
+                              <Link
+                                to={slide.linkUrl}
                                 className="bg-accent-red text-secondary px-8 py-3.5 rounded-lg font-bold text-base hover:bg-opacity-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg"
                               >
                                 Solicitar Agora
                               </Link>
                             )
                           ) : (
-                            <a 
-                              href={whatsappUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="bg-accent-red text-secondary px-8 py-3.5 rounded-lg font-bold text-base hover:bg-opacity-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg"
                             >
                               Solicitar via WhatsApp
                             </a>
                           )}
-                          <Link 
-                            to="/vistos" 
+                          <Link
+                            to="/servicos"
                             className="bg-transparent text-white border-2 border-white/80 px-8 py-3.5 rounded-lg font-bold text-base hover:bg-white hover:text-primary transition-all text-center"
                           >
                             Ver tipos de vistos
@@ -136,9 +144,8 @@ export default function Home() {
                   <button
                     key={idx}
                     onClick={() => setCurrentSlide(idx)}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 cursor-pointer ${
-                      idx === currentSlide ? 'bg-accent-gold w-6' : 'bg-white/50 hover:bg-white'
-                    }`}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 cursor-pointer ${idx === currentSlide ? 'bg-accent-gold w-6' : 'bg-white/50 hover:bg-white'
+                      }`}
                     title={`Ir para Slide ${idx + 1}`}
                   />
                 ))}
@@ -154,14 +161,14 @@ export default function Home() {
                 Sua aprovação do <span className="text-accent-gold">Visto Americano</span> começa aqui.
               </h1>
               <p className="text-xl text-dark-gray mb-10 max-w-2xl">
-                Assessoria especializada para vistos de turismo, negócios e renovação. 
+                Assessoria especializada para vistos de turismo, negócios e renovação.
                 Processo simplificado, seguro e com acompanhamento completo.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <a href={whatsappUrl} className="bg-accent-red text-secondary px-8 py-4 rounded-lg font-bold text-lg hover:bg-opacity-90 transition-all text-center flex items-center justify-center gap-2">
                   Solicitar via WhatsApp
                 </a>
-                <Link to="/vistos" className="bg-secondary text-primary border-2 border-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-light-gray transition-all text-center">
+                <Link to="/servicos" className="bg-secondary text-primary border-2 border-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-light-gray transition-all text-center">
                   Ver tipos de vistos
                 </Link>
               </div>
@@ -214,22 +221,24 @@ export default function Home() {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* We'll make this dynamic later with the API */}
-            <div className="bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray">
-              <p className="text-dark-gray italic mb-6">"Experiência excelente com a VisareBR! Renovei meu visto com total tranquilidade. Atendimento claro e rápido."</p>
-              <div className="font-bold text-primary">Ana Paula Moreira</div>
-            </div>
-            <div className="bg-secondary p-8 rounded-2xl shadow-sm border-t-4 border-accent-gold">
-              <p className="text-dark-gray italic mb-6">"Tive meu visto aprovado sem transtorno. Os meninos foram incríveis e prestativos em todo o processo."</p>
-              <div className="font-bold text-primary">Carolina Reese</div>
-            </div>
-            <div className="bg-secondary p-8 rounded-2xl shadow-sm border border-light-gray">
-              <p className="text-dark-gray italic mb-6">"A assessoria foi impecável do início ao fim. Me orientaram em cada etapa, não tive nenhuma preocupação."</p>
-              <div className="font-bold text-primary">Isabela Clebis</div>
-            </div>
+            {(evaluations.length > 0 ? evaluations.slice(0, 3) : [
+              { userName: 'Ana Paula Moreira', comment: 'Experiência excelente com a VisareBR! Renovei meu visto com total tranquilidade. Atendimento claro e rápido.' },
+              { userName: 'Carolina Reese', comment: 'Tive meu visto aprovado sem transtorno. Os meninos foram incríveis e prestativos em todo o processo.' },
+              { userName: 'Isabela Clebis', comment: 'A assessoria foi impecável do início ao fim. Me orientaram em cada etapa, não tive nenhuma preocupação.' }
+            ]).map((ev: any, idx: number) => (
+              <div 
+                key={idx} 
+                className={`bg-secondary p-8 rounded-2xl shadow-sm border ${
+                  idx === 1 ? 'border-t-4 border-accent-gold border-x-light-gray border-b-light-gray' : 'border-light-gray'
+                }`}
+              >
+                <p className="text-dark-gray italic mb-6">"{ev.comment}"</p>
+                <div className="font-bold text-primary">{ev.userName}</div>
+              </div>
+            ))}
           </div>
           <div className="text-center mt-12">
-            <Link to="/avaliacoes" className="text-accent-gold font-bold hover:underline">Ver todas as avaliações →</Link>
+            <Link to="/nossos-clientes" className="text-accent-gold font-bold hover:underline">Ver todas as avaliações →</Link>
           </div>
         </div>
       </section>

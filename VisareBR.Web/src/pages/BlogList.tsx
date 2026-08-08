@@ -17,10 +17,15 @@ export default function BlogList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredPosts = posts.filter(post => 
-    post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    post.summary.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const removeAccents = (str: string) => 
+    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const filteredPosts = posts.filter(post => {
+    const normQuery = removeAccents(searchQuery.toLowerCase());
+    const normTitle = removeAccents(post.title.toLowerCase());
+    const normSummary = removeAccents(post.summary.toLowerCase());
+    return normTitle.includes(normQuery) || normSummary.includes(normQuery);
+  });
 
   if (loading) return <div className="py-20 text-center text-primary">Carregando artigos...</div>;
 
@@ -65,7 +70,7 @@ export default function BlogList() {
             {filteredPosts.map((post) => (
               <Link 
                 key={post.id} 
-                to={`/blog/${post.slug}`} 
+                to={`/artigos/${post.slug}`} 
                 className="flex flex-col bg-secondary border border-light-gray rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-accent-gold/40 transition-all duration-300 group"
               >
                 <div className="h-48 bg-light-gray flex items-center justify-center text-dark-gray overflow-hidden">
