@@ -146,6 +146,9 @@ export default function Navbar() {
 
               {/* Dúvidas */}
               <Link to="/duvidas" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Dúvidas</Link>
+
+              {/* Contato */}
+              <Link to="/contato" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Contato</Link>
             </div>
 
             {/* Desktop Action: WhatsApp Button (Right - Desktop only) */}
@@ -315,7 +318,7 @@ export default function Navbar() {
               <Link to="/nossos-clientes" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Nossos Clientes</Link>
               <Link to="/duvidas" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Dúvidas</Link>
               <Link to="/artigos" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Artigos</Link>
-              <a href={whatsappUrl} onClick={() => setIsOpen(false)} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-accent-gold hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Contato</a>
+              <Link to="/contato" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-accent-gold hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Contato</Link>
             </div>
           </div>
         )}
