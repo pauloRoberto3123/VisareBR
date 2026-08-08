@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import api from '../api/blogService';
 import Navbar from '../components/Navbar';
 import WhatsAppButton from '../components/WhatsAppButton';
 import { useSettings } from '../context/SettingsContext';
@@ -6,6 +8,16 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 
 export default function MainLayout() {
   const { settings } = useSettings();
+  const [services, setServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/services/standalone')
+      .then((res) => {
+        const active = res.data.filter((s: any) => s.isActive);
+        setServices(active);
+      })
+      .catch((err) => console.error('Erro ao buscar serviços no rodapé:', err));
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary">
@@ -51,11 +63,21 @@ export default function MainLayout() {
             <div>
               <h3 className="text-lg font-bold mb-6 text-accent-gold">Serviços</h3>
               <ul className="space-y-3 text-gray-400">
-                <li>Visto de Turismo (B2)</li>
-                <li>Visto de Negócios (B1)</li>
-                <li>Renovação de Visto</li>
-                <li>Visto de Estudante (F1)</li>
-                <li>Simulado de Entrevista</li>
+                {services.length > 0 ? (
+                  services.slice(0, 6).map((service) => (
+                    <li key={service.id}>
+                      <Link to="/servicos" className="hover:text-accent-gold transition-colors">{service.name}</Link>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li>Visto de Turismo (B2)</li>
+                    <li>Visto de Negócios (B1)</li>
+                    <li>Renovação de Visto</li>
+                    <li>Visto de Estudante (F1)</li>
+                    <li>Simulado de Entrevista</li>
+                  </>
+                )}
               </ul>
             </div>
 
