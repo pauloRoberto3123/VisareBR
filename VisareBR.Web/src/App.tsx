@@ -12,6 +12,7 @@ import Ds160Form from './pages/Ds160Form';
 import PricingSection from './pages/PricingSection';
 import ServicesList from './pages/ServicesList';
 import FaqList from './pages/FaqList';
+import Contact from './pages/Contact';
 import './App.css';
 import api from './api/blogService';
 
@@ -71,6 +72,7 @@ function App() {
           <Route path="precos" element={<PricingSection />} />
            <Route path="servicos" element={<ServicesList />} />
           <Route path="duvidas" element={<FaqList />} />
+          <Route path="contato" element={<Contact />} />
 
         </Route>
       </Routes>
