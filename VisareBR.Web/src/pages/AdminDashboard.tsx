@@ -31,6 +31,7 @@ interface StandaloneService {
   description: string;
   features: string;
   iconName: string;
+  order?: number;
 }
 
 export default function AdminDashboard() {
@@ -694,6 +695,24 @@ export default function AdminDashboard() {
       } catch (err) {
         alert('Erro ao excluir serviço.');
       }
+    }
+  };
+
+  const handleMoveService = async (index: number, direction: 'up' | 'down') => {
+    const items = [...standaloneServices];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+
+    const temp = items[index];
+    items[index] = items[targetIndex];
+    items[targetIndex] = temp;
+
+    try {
+      const ids = items.map(item => item.id);
+      await api.post('/services/standalone/reorder', ids);
+      setStandaloneServices(items.map((item, idx) => ({ ...item, order: idx })));
+    } catch (err) {
+      alert("Erro ao reordenar serviços.");
     }
   };
 
@@ -1903,7 +1922,7 @@ export default function AdminDashboard() {
               <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end">
                   <button
-                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true, description: '', features: '', iconName: 'Briefcase' })}
+                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true, description: '', features: '', iconName: 'Briefcase', order: 0 })}
                     className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
                   >
                     <Plus size={20} /> Adicionar Serviço
@@ -2042,13 +2061,31 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {standaloneServices.map(service => (
+                      {standaloneServices.map((service, index) => (
                         <tr key={service.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="p-4 font-medium text-primary">{service.name}</td>
                           <td className="p-4 text-dark-gray">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
                           </td>
-                          <td className="p-4 text-right flex gap-2 justify-end">
+                          <td className="p-4 text-right flex gap-1.5 justify-end items-center">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveService(index, 'up')}
+                              disabled={index === 0}
+                              className="p-1 px-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-xs font-bold"
+                              title="Mover para cima"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveService(index, 'down')}
+                              disabled={index === standaloneServices.length - 1}
+                              className="p-1 px-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-xs font-bold mr-2"
+                              title="Mover para baixo"
+                            >
+                              ↓
+                            </button>
                             <button
                               onClick={() => setEditingStandaloneService(JSON.parse(JSON.stringify(service)))}
                               className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"
