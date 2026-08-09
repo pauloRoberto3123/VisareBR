@@ -160,6 +160,7 @@ public class StandaloneService
     public string Features { get; set; } = string.Empty;
     public string IconName { get; set; } = "Briefcase";
     public int Order { get; set; } = 0;
+    public string? WhatsappCustomMessage { get; set; }
 }
 
 public class CarouselItem

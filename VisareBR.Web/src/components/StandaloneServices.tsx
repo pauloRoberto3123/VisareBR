@@ -12,6 +12,7 @@ export interface StandaloneService {
   features?: string;
   iconName?: string;
   order?: number;
+  whatsappCustomMessage?: string;
 }
 
 export default function StandaloneServices() {

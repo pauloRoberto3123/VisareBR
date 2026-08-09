@@ -32,6 +32,7 @@ interface StandaloneService {
   features: string;
   iconName: string;
   order?: number;
+  whatsappCustomMessage?: string;
 }
 
 export default function AdminDashboard() {
@@ -1922,7 +1923,7 @@ export default function AdminDashboard() {
               <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end">
                   <button
-                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true, description: '', features: '', iconName: 'Briefcase', order: 0 })}
+                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true, description: '', features: '', iconName: 'Briefcase', order: 0, whatsappCustomMessage: '' })}
                     className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
                   >
                     <Plus size={20} /> Adicionar Serviço
@@ -2037,6 +2038,17 @@ export default function AdminDashboard() {
                             className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
                           />
                         </div>
+                      </div>
+
+                      <div className="text-left">
+                        <label className="block text-sm font-medium text-primary mb-1">Mensagem Customizada do WhatsApp (Opcional)</label>
+                        <textarea
+                          rows={2}
+                          value={editingStandaloneService.whatsappCustomMessage || ''}
+                          onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, whatsappCustomMessage: e.target.value })}
+                          placeholder="Ex: Olá! Gostaria de contratar o serviço avulso de Emissão de Passaporte. (Deixe em branco para usar a mensagem padrão)"
+                          className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                        />
                       </div>
 
                       <div className="flex gap-4 mt-2">

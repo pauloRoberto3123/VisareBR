@@ -127,7 +127,6 @@ export default function Evaluations() {
                 <p className="text-dark-gray italic mb-6 flex-grow">"{ev.comment}"</p>
                 <div className="border-t border-light-gray pt-4">
                   <span className="font-bold text-primary">{ev.userName}</span>
-                  <p className="text-xs text-dark-gray mt-1">{new Date(ev.createdAt).toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
             ))}

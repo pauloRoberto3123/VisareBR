@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Play, X, RotateCw } from 'lucide-react';
 import api from '../api/blogService';
+import { useSettings } from '../context/SettingsContext';
 
 const YoutubeIcon = ({ size = 20 }: { size?: number }) => (
   <svg
@@ -27,6 +28,7 @@ interface YoutubeVideo {
 }
 
 export default function YoutubeSection() {
+  const { settings } = useSettings();
   const [videos, setVideos] = useState<YoutubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState<YoutubeVideo | null>(null);
@@ -135,7 +137,13 @@ export default function YoutubeSection() {
         {/* Footer Link to Channel */}
         <div className="text-center mt-12">
           <a
-            href={`https://www.youtube.com/channel/${videos[0]?.videoId ? 'UC' + videos[0].videoId.substring(2) : ''}`} // Fallback template link
+            href={
+              settings?.youtubeChannelId 
+                ? (settings.youtubeChannelId.trim().startsWith('@') 
+                    ? `https://www.youtube.com/${settings.youtubeChannelId.trim()}` 
+                    : `https://www.youtube.com/channel/${settings.youtubeChannelId.trim()}`)
+                : 'https://www.youtube.com'
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold px-8 py-3.5 rounded-2xl transition-all duration-300 shadow-md uppercase tracking-wider text-xs"

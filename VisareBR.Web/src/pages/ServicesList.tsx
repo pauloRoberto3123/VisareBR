@@ -28,10 +28,12 @@ export default function ServicesList() {
     return <IconComponent className="w-10 h-10 text-accent-gold" />;
   };
 
-  const getWhatsAppLinkForService = (serviceName: string) => {
+  const getWhatsAppLinkForService = (service: StandaloneService) => {
     if (!settings?.whatsappNumber) return whatsappUrl;
-    const defaultMsg = `Olá! Gostaria de contratar o serviço avulso: ${serviceName}`;
-    return `https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(defaultMsg)}`;
+    const msg = service.whatsappCustomMessage && service.whatsappCustomMessage.trim() !== ''
+      ? service.whatsappCustomMessage.trim()
+      : `Olá! Gostaria de contratar o serviço avulso: ${service.name}`;
+    return `https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
   };
 
   return (
@@ -81,7 +83,7 @@ export default function ServicesList() {
                 return (
                   <a
                     key={service.id}
-                    href={getWhatsAppLinkForService(service.name)}
+                    href={getWhatsAppLinkForService(service)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-white rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 flex flex-col justify-between text-center group cursor-pointer"
@@ -126,7 +128,7 @@ export default function ServicesList() {
       {/* Call to Action Banner */}
       <section className="bg-light-gray py-20 border-t border-gray-100">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-extrabold mb-6 text-primary tracking-tight">Precisa de assessoria personalizada?</h2>
+          <h2 className="text-3xl font-extrabold mb-6 text-primary tracking-tight">Precisa de ajuda para escolher o tipo de visto?</h2>
           <p className="text-dark-gray text-lg mb-8 leading-relaxed">
             Fale conosco diretamente via WhatsApp. Nós respondemos suas dúvidas e ajudamos você a escolher a melhor opção para a conquista do seu visto.
           </p>

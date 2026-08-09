@@ -400,9 +400,9 @@ export default function StepByStep() {
       <section className="mt-10">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <div className="bg-primary rounded-3xl p-12 text-secondary shadow-2xl shadow-dark-gray">
-            <h2 className="text-3xl font-bold mb-4 text-white">Pronto para tirar o peso do seu vir à América?</h2>
+            <h2 className="text-3xl font-bold mb-4 text-white">Pronto para tirar o peso do processo das suas costas?</h2>
             <p className="text-gray-300 text-lg mb-10 max-w-xl mx-auto">
-              Garanta sua assessoria agora e aumente suas chances de aprovação. Nossa equipe está pronta para te atender.
+              Deixe a burocracia com a gente. Garanta sua assessoria agora e aumente suas chances de aprovação. Nossa equipe está pronta para te atender do primeiro passo até o passaporte na mão.
             </p>
             <a href={whatsappUrl} className="bg-accent-red text-secondary px-10 py-4 rounded-full font-bold text-lg hover:bg-opacity-90 transition-all inline-block">
               Iniciar meu Processo Agora
