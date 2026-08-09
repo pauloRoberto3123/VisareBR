@@ -60,6 +60,7 @@ public class ServicesController : ControllerBase
         service.Features = updatedService.Features;
         service.IconName = updatedService.IconName;
         service.Order = updatedService.Order;
+        service.WhatsappCustomMessage = updatedService.WhatsappCustomMessage;
 
         await _context.SaveChangesAsync();
         return NoContent();
