@@ -49,16 +49,16 @@ function GoogleAnalyticsTracker() {
     if (!gaId) return;
 
     const scriptId = 'google-analytics-script';
-    let script = document.getElementById(scriptId);
+    const existingScript = document.getElementById(scriptId);
 
-    if (!script) {
+    if (!existingScript) {
       window.dataLayer = window.dataLayer || [];
       window.gtag = function () {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
 
-      script = document.createElement('script');
+      const script = document.createElement('script');
       script.id = scriptId;
       script.async = true;
       script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
