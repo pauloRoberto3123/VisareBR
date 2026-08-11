@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDs160 } from './Ds160Context';
 import { Trash2, CheckCircle } from 'lucide-react';
+import { compressImageFile } from '../utils/imageCompressor';
 
 export default function Step3Passport() {
   const { data, updateStepData } = useDs160();
@@ -16,61 +17,16 @@ export default function Step3Passport() {
     updateStepData('step3', { [e.target.name]: e.target.value });
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 15 * 1024 * 1024) { // Limite de 15MB
-        alert('A foto deve ter no máximo 15MB.');
-        return;
+      try {
+        const compressed = await compressImageFile(file, 1600, 0.70);
+        updateStepData('step3', { passportPhotoBase64: compressed });
+        showSuccessToast();
+      } catch (err) {
+        alert('Erro ao processar e comprimir a imagem do passaporte.');
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        
-        // Se o arquivo for maior que 1MB, realiza compressão
-        if (file.size > 1024 * 1024) {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-            const MAX_DIMENSION = 1200; // Limita a resolução máxima
-
-            if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-              if (width > height) {
-                height = Math.round((height * MAX_DIMENSION) / width);
-                width = MAX_DIMENSION;
-              } else {
-                width = Math.round((width * MAX_DIMENSION) / height);
-                height = MAX_DIMENSION;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              // Preenche fundo branco caso o usuário envie um PNG transparente
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fillRect(0, 0, width, height);
-              ctx.drawImage(img, 0, 0, width, height);
-              
-              // Comprime em JPEG com qualidade de 70%
-              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-              updateStepData('step3', { passportPhotoBase64: compressedBase64 });
-              showSuccessToast();
-            } else {
-              updateStepData('step3', { passportPhotoBase64: result });
-              showSuccessToast();
-            }
-          };
-          img.src = result;
-        } else {
-          updateStepData('step3', { passportPhotoBase64: result });
-          showSuccessToast();
-        }
-      };
-      reader.readAsDataURL(file);
     }
   };
 
