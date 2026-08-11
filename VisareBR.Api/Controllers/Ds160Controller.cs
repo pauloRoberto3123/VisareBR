@@ -137,4 +137,18 @@ public class Ds160Controller : ControllerBase
             
         return Ok(submissions);
     }
+
+    [Authorize]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSubmission(int id, [FromBody] Ds160Submission updated)
+    {
+        if (id != updated.Id) return BadRequest("ID mismatch");
+
+        var submission = await _context.Ds160Submissions.FindAsync(id);
+        if (submission == null) return NotFound("Submission not found");
+
+        submission.JsonData = updated.JsonData;
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
 }

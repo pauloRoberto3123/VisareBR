@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/blogService';
 import type { Article, ArticleBlock, Evaluation, Ds160Submission, FaqItem } from '../api/blogService';
 import type { Plan } from './PricingSection';
-import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -16,6 +16,7 @@ import {
 } from '../api/carouselService';
 import type { CarouselItem } from '../api/carouselService';
 import Ds160Visualizer from '../components/Ds160Visualizer';
+import { compressImageFile, compressBase64Image } from '../utils/imageCompressor';
 
 const Delta = Quill.import('delta') as any;
 const ColorStyle = Quill.import('attributors/style/color') as any;
@@ -51,6 +52,178 @@ export default function AdminDashboard() {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [vistosSubTab, setVistosSubTab] = useState<'american' | 'others'>('american');
+
+  const [optimizingState, setOptimizingState] = useState({
+    isOptimizing: false,
+    currentTask: '',
+    progress: 0,
+    detail: '',
+    resultMessage: ''
+  });
+
+  const runDatabaseOptimization = async () => {
+    setOptimizingState({
+      isOptimizing: true,
+      currentTask: 'Iniciando varredura...',
+      progress: 5,
+      detail: 'Conectando ao banco de dados...',
+      resultMessage: ''
+    });
+
+    let optimizedCount = 0;
+    let bytesSaved = 0;
+
+    try {
+      // 1. Process Carousel Items
+      setOptimizingState(p => ({ ...p, currentTask: 'Carrossel de Slides', progress: 10, detail: 'Buscando slides do carrossel...' }));
+      const carouselRes = await getAllCarouselItems();
+      const slides = carouselRes.data;
+      
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        if (slide.imageUrl && slide.imageUrl.startsWith('data:image')) {
+          setOptimizingState(p => ({ ...p, detail: `Otimizando slide ${i + 1}/${slides.length}...` }));
+          const originalLen = slide.imageUrl.length;
+          const compressed = await compressBase64Image(slide.imageUrl, 1920, 0.75);
+          if (compressed.length < originalLen) {
+            await updateCarouselItem(slide.id, {
+              ...slide,
+              imageUrl: compressed
+            });
+            optimizedCount++;
+            bytesSaved += (originalLen - compressed.length);
+          }
+        }
+      }
+
+      // 2. Process Standalone Services Custom Icons
+      setOptimizingState(p => ({ ...p, currentTask: 'Serviços Avulsos', progress: 30, detail: 'Buscando ícones de serviços...' }));
+      const servicesRes = await api.get<StandaloneService[]>('/services/standalone');
+      const sServices = servicesRes.data;
+
+      for (let i = 0; i < sServices.length; i++) {
+        const svc = sServices[i];
+        if (svc.iconName && svc.iconName.startsWith('data:image')) {
+          setOptimizingState(p => ({ ...p, detail: `Otimizando ícone de ${svc.name}...` }));
+          const originalLen = svc.iconName.length;
+          const compressed = await compressBase64Image(svc.iconName, 400, 0.75);
+          if (compressed.length < originalLen) {
+            await api.put(`/services/standalone/${svc.id}`, {
+              ...svc,
+              iconName: compressed
+            });
+            optimizedCount++;
+            bytesSaved += (originalLen - compressed.length);
+          }
+        }
+      }
+
+      // 3. Process Articles (Capa and Content Blocks)
+      setOptimizingState(p => ({ ...p, currentTask: 'Artigos do Blog', progress: 50, detail: 'Buscando artigos do blog...' }));
+      const articlesRes = await api.get<Article[]>('/blog');
+      const articles = articlesRes.data;
+
+      for (let i = 0; i < articles.length; i++) {
+        const article = articles[i];
+        let hasChanges = false;
+        let updatedArticle = { ...article };
+
+        setOptimizingState(p => ({ ...p, detail: `Otimizando artigo "${article.title.substring(0, 20)}..."` }));
+
+        // Check featured Cover image
+        if (article.featuredImageUrl && article.featuredImageUrl.startsWith('data:image')) {
+          const originalLen = article.featuredImageUrl.length;
+          const compressed = await compressBase64Image(article.featuredImageUrl, 1200, 0.75);
+          if (compressed.length < originalLen) {
+            updatedArticle.featuredImageUrl = compressed;
+            hasChanges = true;
+            optimizedCount++;
+            bytesSaved += (originalLen - compressed.length);
+          }
+        }
+
+        // Check blocks
+        if (article.contentBlocks && article.contentBlocks.length > 0) {
+          const updatedBlocks = [...article.contentBlocks];
+          for (let bIdx = 0; bIdx < updatedBlocks.length; bIdx++) {
+            const block = updatedBlocks[bIdx];
+            if (block.type === 'image' && block.imageUrl && block.imageUrl.startsWith('data:image')) {
+              const originalLen = block.imageUrl.length;
+              const compressed = await compressBase64Image(block.imageUrl, 1000, 0.75);
+              if (compressed.length < originalLen) {
+                updatedBlocks[bIdx] = { ...block, imageUrl: compressed };
+                hasChanges = true;
+                optimizedCount++;
+                bytesSaved += (originalLen - compressed.length);
+              }
+            }
+          }
+          if (hasChanges) {
+            updatedArticle.contentBlocks = updatedBlocks;
+          }
+        }
+
+        if (hasChanges) {
+          await api.put(`/blog/${article.id}`, updatedArticle);
+        }
+      }
+
+      // 4. Process DS-160 passportPhotoBase64 Submissions
+      setOptimizingState(p => ({ ...p, currentTask: 'Formulários DS-160', progress: 80, detail: 'Buscando cópias de passaportes...' }));
+      const dsRes = await api.get<Ds160Submission[]>('/ds160/admin');
+      const dsSubmissions = dsRes.data;
+
+      for (let i = 0; i < dsSubmissions.length; i++) {
+        const sub = dsSubmissions[i];
+        if (sub.jsonData) {
+          try {
+            const parsedJson = JSON.parse(sub.jsonData);
+            const passportPhoto = parsedJson?.step3?.passportPhotoBase64;
+            
+            if (passportPhoto && passportPhoto.startsWith('data:image')) {
+              setOptimizingState(p => ({ ...p, detail: `Otimizando passaporte de ${sub.applicantName}...` }));
+              const originalLen = passportPhoto.length;
+              const compressed = await compressBase64Image(passportPhoto, 1600, 0.70);
+              
+              if (compressed.length < originalLen) {
+                parsedJson.step3.passportPhotoBase64 = compressed;
+                const updatedSubmission = {
+                  ...sub,
+                  jsonData: JSON.stringify(parsedJson)
+                };
+                
+                await api.put(`/ds160/${sub.id}`, updatedSubmission);
+                optimizedCount++;
+                bytesSaved += (originalLen - compressed.length);
+              }
+            }
+          } catch (e) {
+            console.error("Erro ao otimizar JSON do DS-160:", e);
+          }
+        }
+      }
+
+      // Done
+      const mbSaved = (bytesSaved / (1024 * 1024)).toFixed(2);
+      setOptimizingState({
+        isOptimizing: false,
+        currentTask: '',
+        progress: 100,
+        detail: '',
+        resultMessage: `Sucesso! Otimização concluída. Foram otimizadas ${optimizedCount} imagens retroativas, resultando em uma economia estimada de ${mbSaved} MB no banco de dados e mitigação imediata de tráfego!`
+      });
+      alert(`Otimização concluída com sucesso! Economia de ${mbSaved} MB no banco de dados.`);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      setOptimizingState(p => ({
+        ...p,
+        isOptimizing: false,
+        resultMessage: 'Erro durante o processo de otimização automática. Verifique logs do console.'
+      }));
+      alert("Erro ao realizar otimização do banco de dados.");
+    }
+  };
 
   // Carousel Form State
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -159,22 +332,16 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSlideImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSlideImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
-      return;
+    try {
+      const compressed = await compressImageFile(file, 1920, 0.75);
+      setNewSlide(prev => ({ ...prev, imageUrl: compressed }));
+    } catch (err) {
+      alert("Erro ao processar imagem do slide.");
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setNewSlide(prev => ({ ...prev, imageUrl: reader.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   // Blog Form State
@@ -547,19 +714,13 @@ export default function AdminDashboard() {
     setEditorMode('create');
   };
 
-  const processFile = (file: File) => {
-    if (file.size > 2 * 1024 * 1024) {
-      alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
-      return;
+  const processFile = async (file: File) => {
+    try {
+      const compressed = await compressImageFile(file, 1200, 0.75);
+      setNewPost({ ...newPost, featuredImageUrl: compressed });
+    } catch (err) {
+      alert("Erro ao processar imagem de capa.");
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setNewPost({ ...newPost, featuredImageUrl: reader.result });
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1265,20 +1426,15 @@ export default function AdminDashboard() {
                                           type="file"
                                           accept="image/*"
                                           className="hidden"
-                                          onChange={(e) => {
+                                          onChange={async (e) => {
                                             const file = e.target.files?.[0];
                                             if (file) {
-                                              if (file.size > 2 * 1024 * 1024) {
-                                                alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
-                                                return;
+                                              try {
+                                                const compressed = await compressImageFile(file, 1000, 0.75);
+                                                updateBlock(index, { ...block, imageUrl: compressed });
+                                              } catch (err) {
+                                                alert("Erro ao processar imagem do bloco.");
                                               }
-                                              const reader = new FileReader();
-                                              reader.onloadend = () => {
-                                                if (typeof reader.result === 'string') {
-                                                  updateBlock(index, { ...block, imageUrl: reader.result });
-                                                }
-                                              };
-                                              reader.readAsDataURL(file);
                                             }
                                           }}
                                         />
@@ -1727,6 +1883,51 @@ export default function AdminDashboard() {
               Salvar Configurações
             </button>
           </form>
+
+          {/* Database Image Optimizer Box */}
+          <div className="mt-8 pt-8 border-t border-gray-200 text-left space-y-4">
+            <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+              <AlertCircle className="text-accent-gold" />
+              Otimização de Armazenamento e Banda
+            </h3>
+            <p className="text-xs text-dark-gray leading-relaxed">
+              Esta ferramenta busca no banco de dados todos os registros de artigos do blog, carrossel de slides, serviços avulsos e envios do DS-160 que possuem imagens salvas localmente em altíssima resolução. Ela redimensiona e comprime cada imagem retroativamente na sua máquina e salva as cópias otimizadas de volta, liberando espaço e reduzindo instantaneamente o uso da largura de banda do servidor.
+            </p>
+            
+            {optimizingState.isOptimizing ? (
+              <div className="bg-light-gray p-5 rounded-2xl border border-gray-200/50 space-y-3">
+                <div className="flex justify-between text-xs font-bold text-primary">
+                  <span>Processando: {optimizingState.currentTask}</span>
+                  <span>{optimizingState.progress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                  <div 
+                    className="bg-accent-gold h-2.5 rounded-full transition-all duration-300" 
+                    style={{ width: `${optimizingState.progress}%` }}
+                  ></div>
+                </div>
+                <p className="text-[10px] text-dark-gray/60 italic">{optimizingState.detail}</p>
+              </div>
+            ) : optimizingState.resultMessage ? (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex flex-col gap-2">
+                <span>{optimizingState.resultMessage}</span>
+                <button 
+                  onClick={() => setOptimizingState({ isOptimizing: false, currentTask: '', progress: 0, detail: '', resultMessage: '' })}
+                  className="text-accent-gold hover:underline text-left mt-1 cursor-pointer"
+                >
+                  Fechar relatório
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={runDatabaseOptimization}
+                className="flex items-center justify-center gap-2 bg-primary text-secondary px-6 py-3.5 rounded-xl font-bold hover:bg-dark-gray transition-colors text-xs uppercase tracking-wider cursor-pointer w-full shadow-md"
+              >
+                Otimizar Imagens do Banco de Dados
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1993,20 +2194,15 @@ export default function AdminDashboard() {
                                 <input
                                   type="file"
                                   accept="image/*"
-                                  onChange={(e) => {
+                                  onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      if (file.size > 500 * 1024) {
-                                        alert("O ícone selecionado é muito grande. Escolha uma imagem de até 500KB.");
-                                        return;
+                                      try {
+                                        const compressed = await compressImageFile(file, 400, 0.75);
+                                        setEditingStandaloneService({ ...editingStandaloneService, iconName: compressed });
+                                      } catch (err) {
+                                        alert("Erro ao processar ícone.");
                                       }
-                                      const reader = new FileReader();
-                                      reader.onloadend = () => {
-                                        if (typeof reader.result === 'string') {
-                                          setEditingStandaloneService({ ...editingStandaloneService, iconName: reader.result });
-                                        }
-                                      };
-                                      reader.readAsDataURL(file);
                                     }
                                   }}
                                   className="hidden"
