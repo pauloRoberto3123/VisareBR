@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Clock, MessageSquare, ShieldCheck, Send } from 'lucide-react';
+import { Mail, Phone, Clock, MessageSquare, ShieldCheck, Send } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
 export default function Contact() {
