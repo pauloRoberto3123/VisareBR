@@ -434,6 +434,7 @@ export default function AdminDashboard() {
     address: '',
     companyEmail: '',
     youtubeChannelId: '',
+    googleAnalyticsId: '',
     metric1Value: '',
     metric1Label: '',
     metric2Value: '',
@@ -1877,6 +1878,15 @@ export default function AdminDashboard() {
                 value={settings.youtubeChannelId || ''}
                 onChange={e => setSettings({ ...settings, youtubeChannelId: e.target.value })}
                 placeholder="Insira o ID do canal (começando com UC)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-primary">ID do Google Analytics (Ex: G-XXXXXXXXXX)</label>
+              <input
+                className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
+                value={settings.googleAnalyticsId || ''}
+                onChange={e => setSettings({ ...settings, googleAnalyticsId: e.target.value })}
+                placeholder="Insira o ID do Google Analytics (opcional)"
               />
             </div>
             <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">

@@ -99,6 +99,7 @@ public class SiteSettings
     public string Cnpj { get; set; } = string.Empty;
 
     public string YoutubeChannelId { get; set; } = string.Empty;
+    public string? GoogleAnalyticsId { get; set; }
 
     // Metrics for Home Page
     public string Metric1Value { get; set; } = "+5000";
