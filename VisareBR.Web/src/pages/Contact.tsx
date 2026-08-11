@@ -79,28 +79,22 @@ export default function Contact() {
             {/* Left Column: Info Cards */}
             <div className="lg:col-span-5 space-y-6 text-left">
               <h2 className="text-3xl font-extrabold text-primary tracking-tight mb-2">Canais de Atendimento</h2>
-              <p className="text-dark-gray text-sm leading-relaxed mb-8">
+              <p className="text-dark-gray text-sm leading-relaxed mb-6">
                 Escolha a forma mais confortável para falar com nossos assessores. Se preferir um atendimento ágil, envie o formulário para iniciar uma conversa estruturada no WhatsApp.
               </p>
 
-              {/* Info blocks */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-4">
-                <div className="bg-accent-gold/10 p-3 rounded-xl text-accent-gold shrink-0">
-                  <Phone size={24} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-primary text-base">WhatsApp</h3>
-                  <p className="text-slate-500 text-sm mt-1">Converse com nossos especialistas em minutos.</p>
-                  {settings?.whatsappNumber ? (
-                    <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-accent-gold font-bold hover:underline text-sm block mt-2">
-                      {settings.whatsappNumber}
-                    </a>
-                  ) : (
-                    <span className="text-dark-gray text-sm block mt-2">Disponível no link do cabeçalho</span>
-                  )}
-                </div>
-              </div>
+              {/* WhatsApp Call to Action Button */}
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white font-extrabold py-4 px-6 rounded-2xl transition-all duration-300 shadow-md hover:shadow-lg w-full text-center text-base uppercase tracking-wider mb-4"
+              >
+                <Phone size={20} />
+                Falar Conosco no WhatsApp
+              </a>
 
+              {/* Info blocks */}
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-4">
                 <div className="bg-accent-gold/10 p-3 rounded-xl text-accent-gold shrink-0">
                   <Mail size={24} />
@@ -124,19 +118,6 @@ export default function Contact() {
                   <span className="text-primary font-bold text-sm block mt-2">Segunda a Sexta: 09h às 18h</span>
                 </div>
               </div>
-
-              {settings?.address && (
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-4">
-                  <div className="bg-accent-gold/10 p-3 rounded-xl text-accent-gold shrink-0">
-                    <MapPin size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-primary text-base">Endereço</h3>
-                    <p className="text-slate-500 text-sm mt-1">Nosso escritório físico para atendimentos presenciais agendados:</p>
-                    <span className="text-primary font-bold text-sm block mt-2 leading-relaxed">{settings.address}</span>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Right Column: Interactive Form */}

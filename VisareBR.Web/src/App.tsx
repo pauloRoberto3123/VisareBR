@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import BlogList from './pages/BlogList';
@@ -15,6 +16,66 @@ import FaqList from './pages/FaqList';
 import Contact from './pages/Contact';
 import './App.css';
 import api from './api/blogService';
+
+// Declarations for Google Analytics global window variables
+declare global {
+  interface Window {
+    dataLayer: any[];
+    gtag: (...args: any[]) => void;
+  }
+}
+
+// Dynamic Google Analytics Tag manager loader and route tracker
+function GoogleAnalyticsTracker() {
+  const location = useLocation();
+  const [gaId, setGaId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await api.get('/settings');
+        const settingsData = response.data;
+        if (settingsData && settingsData.googleAnalyticsId) {
+          setGaId(settingsData.googleAnalyticsId);
+        }
+      } catch (err) {
+        console.error("Erro ao obter ID do Google Analytics das configurações:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    if (!gaId) return;
+
+    const scriptId = 'google-analytics-script';
+    let script = document.getElementById(scriptId);
+
+    if (!script) {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () {
+        window.dataLayer.push(arguments);
+      };
+      window.gtag('js', new Date());
+
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+      document.head.appendChild(script);
+    }
+  }, [gaId]);
+
+  useEffect(() => {
+    if (gaId && typeof window.gtag === 'function') {
+      window.gtag('config', gaId, {
+        page_path: location.pathname + location.search,
+      });
+    }
+  }, [location, gaId]);
+
+  return null;
+}
 
 // Interceptor Global do Axios para tratar 401 Unauthorized (Token JWT Expirado)
 api.interceptors.response.use(
@@ -45,6 +106,7 @@ const GuestRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <BrowserRouter>
+      <GoogleAnalyticsTracker />
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />

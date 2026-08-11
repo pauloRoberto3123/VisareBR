@@ -57,6 +57,7 @@ public class SettingsController : ControllerBase
             existing.Address = settings.Address;
             existing.Cnpj = settings.Cnpj;
             existing.YoutubeChannelId = settings.YoutubeChannelId;
+            existing.GoogleAnalyticsId = settings.GoogleAnalyticsId;
             
             // Map home page metrics
             existing.Metric1Value = settings.Metric1Value;
