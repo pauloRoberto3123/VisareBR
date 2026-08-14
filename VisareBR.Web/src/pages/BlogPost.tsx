@@ -246,7 +246,7 @@ export default function BlogPost() {
 
         {/* Breadcrumb / Go Back */}
         <div className="max-w-4xl mx-auto mb-8">
-          <Link to="/blog" className="inline-flex items-center gap-2 text-accent-gold font-bold hover:underline hover:text-primary transition-all duration-200">
+          <Link to="/artigos" className="inline-flex items-center gap-2 text-accent-gold font-bold hover:underline hover:text-primary transition-all duration-200">
             <ArrowLeft size={18} /> Voltar para os artigos
           </Link>
         </div>
@@ -370,7 +370,7 @@ export default function BlogPost() {
               {relatedPosts.map((rPost) => (
                 <Link 
                   key={rPost.id}
-                  to={`/blog/${rPost.slug}`}
+                  to={`/artigos/${rPost.slug}`}
                   className="flex flex-col bg-white border border-light-gray rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-accent-gold/45 hover:translate-y-[-2px] transition-all duration-300 group"
                 >
                   <div className="h-44 bg-light-gray overflow-hidden">

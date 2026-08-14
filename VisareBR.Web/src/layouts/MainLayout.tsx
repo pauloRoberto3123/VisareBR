@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import api from '../api/blogService';
 import Navbar from '../components/Navbar';
 import WhatsAppButton from '../components/WhatsAppButton';
 import { useSettings } from '../context/SettingsContext';
@@ -6,16 +8,30 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 
 export default function MainLayout() {
   const { settings } = useSettings();
+  const [services, setServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/services/standalone')
+      .then((res) => {
+        const active = res.data.filter((s: any) => s.isActive);
+        setServices(active);
+      })
+      .catch((err) => console.error('Erro ao buscar serviços no rodapé:', err));
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary">
-      <Navbar />
+      <div className="print:hidden">
+        <Navbar />
+      </div>
       <main className="flex-grow">
         <Outlet />
       </main>
-      <WhatsAppButton />
+      <div className="print:hidden">
+        <WhatsAppButton />
+      </div>
 
-      <footer className="bg-primary text-secondary pt-16 pb-8">
+      <footer className="bg-primary text-secondary pt-16 pb-8 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
 
@@ -34,11 +50,11 @@ export default function MainLayout() {
               <h3 className="text-lg font-bold mb-6 text-accent-gold">Navegação</h3>
               <ul className="space-y-3">
                 <li><Link to="/" className="text-gray-400 hover:text-accent-gold transition-colors">Início</Link></li>
-                <li><Link to="/vistos" className="text-gray-400 hover:text-accent-gold transition-colors">Tipos de Vistos</Link></li>
-                <li><Link to="/como-funciona" className="text-gray-400 hover:text-accent-gold transition-colors">Passo a Passo</Link></li>
+                <li><Link to="/vistos" className="text-gray-400 hover:text-accent-gold transition-colors">Tipos de Vistos Americano</Link></li>
+                <li><Link to="/quem-somos" className="text-gray-400 hover:text-accent-gold transition-colors">Quem Somos</Link></li>
                 {/* <li><Link to="/precos" className="text-gray-400 hover:text-accent-gold transition-colors">Preços</Link></li> */}
-                <li><Link to="/blog" className="text-gray-400 hover:text-accent-gold transition-colors">Artigos</Link></li>
-                <li><Link to="/avaliacoes" className="text-gray-400 hover:text-accent-gold transition-colors">Nossos Clientes</Link></li>
+                <li><Link to="/artigos" className="text-gray-400 hover:text-accent-gold transition-colors">Artigos</Link></li>
+                <li><Link to="/nossos-clientes" className="text-gray-400 hover:text-accent-gold transition-colors">Nossos Clientes</Link></li>
                 <li><Link to="/duvidas" className="text-gray-400 hover:text-accent-gold transition-colors">Dúvidas Frequentes</Link></li>
               </ul>
             </div>
@@ -47,11 +63,21 @@ export default function MainLayout() {
             <div>
               <h3 className="text-lg font-bold mb-6 text-accent-gold">Serviços</h3>
               <ul className="space-y-3 text-gray-400">
-                <li>Visto de Turismo (B2)</li>
-                <li>Visto de Negócios (B1)</li>
-                <li>Renovação de Visto</li>
-                <li>Visto de Estudante (F1)</li>
-                <li>Simulado de Entrevista</li>
+                {services.length > 0 ? (
+                  services.slice(0, 6).map((service) => (
+                    <li key={service.id}>
+                      <Link to="/servicos" className="hover:text-accent-gold transition-colors">{service.name}</Link>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li>Visto de Turismo (B2)</li>
+                    <li>Visto de Negócios (B1)</li>
+                    <li>Renovação de Visto</li>
+                    <li>Visto de Estudante (F1)</li>
+                    <li>Simulado de Entrevista</li>
+                  </>
+                )}
               </ul>
             </div>
 

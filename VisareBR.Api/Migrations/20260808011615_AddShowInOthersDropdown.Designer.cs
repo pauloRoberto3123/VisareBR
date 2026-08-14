@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VisareBR.Core.Data;
@@ -11,9 +12,11 @@ using VisareBR.Core.Data;
 namespace VisareBR.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808011615_AddShowInOthersDropdown")]
+    partial class AddShowInOthersDropdown
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -853,9 +856,6 @@ namespace VisareBR.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("GoogleAnalyticsId")
-                        .HasColumnType("text");
-
                     b.Property<string>("Metric1Label")
                         .IsRequired()
                         .HasColumnType("text");
@@ -922,15 +922,9 @@ namespace VisareBR.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("WhatsappCustomMessage")
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -945,7 +939,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Serviço de Passaporte",
-                            Order = 0,
                             Price = 250.00m
                         },
                         new
@@ -956,7 +949,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Emissão do eTA (eletrônico canadense)",
-                            Order = 0,
                             Price = 250.00m
                         },
                         new
@@ -967,7 +959,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Emissão do ESTA (eletrônico americano)",
-                            Order = 0,
                             Price = 250.00m
                         },
                         new
@@ -978,7 +969,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Serviço de Entrega Premium (renovação sem entrevista)",
-                            Order = 0,
                             Price = 250.00m
                         },
                         new
@@ -989,7 +979,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Visto Canadá Turismo",
-                            Order = 0,
                             Price = 490.00m
                         },
                         new
@@ -1000,7 +989,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Reversão de Negativa",
-                            Order = 0,
                             Price = 500.00m
                         },
                         new
@@ -1011,7 +999,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Somente Agendamento",
-                            Order = 0,
                             Price = 250.00m
                         },
                         new
@@ -1022,7 +1009,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Antecipação de Entrevista",
-                            Order = 0,
                             Price = 150.00m
                         },
                         new
@@ -1033,7 +1019,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Simulação de Entrevista",
-                            Order = 0,
                             Price = 500.00m
                         },
                         new
@@ -1044,7 +1029,6 @@ namespace VisareBR.Api.Migrations
                             IconName = "Briefcase",
                             IsActive = true,
                             Name = "Revisão do DS-160",
-                            Order = 0,
                             Price = 350.00m
                         });
                 });

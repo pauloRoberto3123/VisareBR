@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Play } from 'lucide-react';
+import { Play, X, RotateCw } from 'lucide-react';
 import api from '../api/blogService';
+import { useSettings } from '../context/SettingsContext';
 
 const YoutubeIcon = ({ size = 20 }: { size?: number }) => (
   <svg
@@ -27,8 +28,20 @@ interface YoutubeVideo {
 }
 
 export default function YoutubeSection() {
+  const { settings } = useSettings();
   const [videos, setVideos] = useState<YoutubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeVideo, setActiveVideo] = useState<YoutubeVideo | null>(null);
+  const [isModalVertical, setIsModalVertical] = useState(false);
+
+  useEffect(() => {
+    if (activeVideo) {
+      const isShort = activeVideo.title.toLowerCase().includes('#shorts') || 
+                      activeVideo.title.toLowerCase().includes('#short') || 
+                      activeVideo.videoUrl.includes('/shorts/');
+      setIsModalVertical(isShort);
+    }
+  }, [activeVideo]);
 
   useEffect(() => {
     api.get<YoutubeVideo[]>('/youtube/videos')
@@ -77,25 +90,21 @@ export default function YoutubeSection() {
         </div>
 
         {/* Video Grid optimized for YouTube Shorts */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
           {videos.map((video) => {
-            // Rewrite standard watch link to shorts link for better mobile vertical player experience
-            const shortsUrl = video.videoUrl.replace('watch?v=', 'shorts/');
+            const isShort = video.title.toLowerCase().includes('#shorts') || video.title.toLowerCase().includes('#short') || video.videoUrl.includes('/shorts/');
             return (
-              <a
+              <button
                 key={video.videoId}
-                href={shortsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group bg-[#1e293b]/40 backdrop-blur-sm rounded-2xl border border-[#334155]/30 overflow-hidden hover:border-red-500/30 transition-all duration-300 flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-1"
+                onClick={() => setActiveVideo(video)}
+                className="group text-left bg-[#1e293b]/40 backdrop-blur-sm rounded-2xl border border-[#334155]/30 overflow-hidden hover:border-red-500/30 transition-all duration-300 flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-1 w-full cursor-pointer"
               >
-                {/* Portrait Thumbnail Container (9:16) */}
-                <div className="relative aspect-[9/16] w-full overflow-hidden bg-black">
+                {/* Dynamic Aspect Ratio Thumbnail Container */}
+                <div className={`relative w-full overflow-hidden bg-black ${isShort ? 'aspect-[9/16]' : 'aspect-[16/9]'}`}>
                   <img
                     src={video.thumbnailUrl}
                     alt={video.title}
-                    // Zoom slightly (scale-135) to crop out the default 16:9 black pillarboxes for Shorts
-                    className="w-full h-full object-cover scale-[1.35] group-hover:scale-[1.42] transition-transform duration-500"
+                    className={`w-full h-full object-cover transition-transform duration-500 ${isShort ? 'scale-[1.35] group-hover:scale-[1.42]' : 'scale-100 group-hover:scale-105'}`}
                     loading="lazy"
                   />
                   
@@ -108,7 +117,7 @@ export default function YoutubeSection() {
                 </div>
 
                 {/* Video Info */}
-                <div className="p-4 flex flex-col flex-1 bg-slate-900/50">
+                <div className="p-4 flex flex-col flex-1 bg-slate-900/50 w-full">
                   <h3 className="font-bold text-sm text-white line-clamp-2 leading-snug group-hover:text-red-400 transition-colors flex-1 mb-2">
                     {video.title}
                   </h3>
@@ -120,7 +129,7 @@ export default function YoutubeSection() {
                     })}
                   </span>
                 </div>
-              </a>
+              </button>
             );
           })}
         </div>
@@ -128,7 +137,13 @@ export default function YoutubeSection() {
         {/* Footer Link to Channel */}
         <div className="text-center mt-12">
           <a
-            href={`https://www.youtube.com/channel/${videos[0]?.videoId ? 'UC' + videos[0].videoId.substring(2) : ''}`} // Fallback template link
+            href={
+              settings?.youtubeChannelId 
+                ? (settings.youtubeChannelId.trim().startsWith('@') 
+                    ? `https://www.youtube.com/${settings.youtubeChannelId.trim()}` 
+                    : `https://www.youtube.com/channel/${settings.youtubeChannelId.trim()}`)
+                : 'https://www.youtube.com'
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold px-8 py-3.5 rounded-2xl transition-all duration-300 shadow-md uppercase tracking-wider text-xs"
@@ -138,6 +153,51 @@ export default function YoutubeSection() {
         </div>
 
       </div>
+
+      {/* Lightbox Modal */}
+      {activeVideo && (
+        <div 
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setActiveVideo(null)}
+        >
+          {/* Modal Container */}
+          <div 
+            className={`relative bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10 transition-all duration-300 ${
+              isModalVertical
+                ? 'max-w-[360px] aspect-[9/16] w-full'
+                : 'max-w-4xl aspect-[16/9] w-full'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button 
+              onClick={() => setActiveVideo(null)}
+              className="absolute top-4 right-4 z-50 bg-black/60 hover:bg-black/90 text-white p-2 rounded-full transition-colors cursor-pointer border border-white/10 flex items-center justify-center"
+              title="Fechar"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Toggle Aspect Ratio Button */}
+            <button 
+              onClick={() => setIsModalVertical(!isModalVertical)}
+              className="absolute top-4 left-4 z-50 bg-black/60 hover:bg-black/90 text-white p-2.5 rounded-full transition-colors cursor-pointer border border-white/10 flex items-center justify-center"
+              title="Girar / Mudar Orientação do Vídeo"
+            >
+              <RotateCw size={16} />
+            </button>
+
+            {/* Iframe */}
+            <iframe
+              src={`https://www.youtube.com/embed/${activeVideo.videoId}?autoplay=1&rel=0`}
+              title={activeVideo.title}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            ></iframe>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

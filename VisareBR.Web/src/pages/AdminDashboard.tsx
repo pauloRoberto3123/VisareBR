@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/blogService';
 import type { Article, ArticleBlock, Evaluation, Ds160Submission, FaqItem } from '../api/blogService';
 import type { Plan } from './PricingSection';
-import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, XCircle, DollarSign, LogOut, BarChart3, FileText, MessageSquare, TrendingUp, Edit, Upload, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -16,6 +16,7 @@ import {
 } from '../api/carouselService';
 import type { CarouselItem } from '../api/carouselService';
 import Ds160Visualizer from '../components/Ds160Visualizer';
+import { compressImageFile, compressBase64Image } from '../utils/imageCompressor';
 
 const Delta = Quill.import('delta') as any;
 const ColorStyle = Quill.import('attributors/style/color') as any;
@@ -31,6 +32,8 @@ interface StandaloneService {
   description: string;
   features: string;
   iconName: string;
+  order?: number;
+  whatsappCustomMessage?: string;
 }
 
 export default function AdminDashboard() {
@@ -48,6 +51,179 @@ export default function AdminDashboard() {
   const [standaloneSectionOpen, setStandaloneSectionOpen] = useState(true);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
+  const [vistosSubTab, setVistosSubTab] = useState<'american' | 'others'>('american');
+
+  const [optimizingState, setOptimizingState] = useState({
+    isOptimizing: false,
+    currentTask: '',
+    progress: 0,
+    detail: '',
+    resultMessage: ''
+  });
+
+  const runDatabaseOptimization = async () => {
+    setOptimizingState({
+      isOptimizing: true,
+      currentTask: 'Iniciando varredura...',
+      progress: 5,
+      detail: 'Conectando ao banco de dados...',
+      resultMessage: ''
+    });
+
+    let optimizedCount = 0;
+    let bytesSaved = 0;
+
+    try {
+      // 1. Process Carousel Items
+      setOptimizingState(p => ({ ...p, currentTask: 'Carrossel de Slides', progress: 10, detail: 'Buscando slides do carrossel...' }));
+      const carouselRes = await getAllCarouselItems();
+      const slides = carouselRes.data;
+      
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        if (slide.imageUrl && slide.imageUrl.startsWith('data:image')) {
+          setOptimizingState(p => ({ ...p, detail: `Otimizando slide ${i + 1}/${slides.length}...` }));
+          const originalLen = slide.imageUrl.length;
+          const compressed = await compressBase64Image(slide.imageUrl, 1920, 0.75);
+          if (compressed.length < originalLen) {
+            await updateCarouselItem(slide.id, {
+              ...slide,
+              imageUrl: compressed
+            });
+            optimizedCount++;
+            bytesSaved += (originalLen - compressed.length);
+          }
+        }
+      }
+
+      // 2. Process Standalone Services Custom Icons
+      setOptimizingState(p => ({ ...p, currentTask: 'Serviços Avulsos', progress: 30, detail: 'Buscando ícones de serviços...' }));
+      const servicesRes = await api.get<StandaloneService[]>('/services/standalone');
+      const sServices = servicesRes.data;
+
+      for (let i = 0; i < sServices.length; i++) {
+        const svc = sServices[i];
+        if (svc.iconName && svc.iconName.startsWith('data:image')) {
+          setOptimizingState(p => ({ ...p, detail: `Otimizando ícone de ${svc.name}...` }));
+          const originalLen = svc.iconName.length;
+          const compressed = await compressBase64Image(svc.iconName, 400, 0.75);
+          if (compressed.length < originalLen) {
+            await api.put(`/services/standalone/${svc.id}`, {
+              ...svc,
+              iconName: compressed
+            });
+            optimizedCount++;
+            bytesSaved += (originalLen - compressed.length);
+          }
+        }
+      }
+
+      // 3. Process Articles (Capa and Content Blocks)
+      setOptimizingState(p => ({ ...p, currentTask: 'Artigos do Blog', progress: 50, detail: 'Buscando artigos do blog...' }));
+      const articlesRes = await api.get<Article[]>('/blog');
+      const articles = articlesRes.data;
+
+      for (let i = 0; i < articles.length; i++) {
+        const article = articles[i];
+        let hasChanges = false;
+        let updatedArticle = { ...article };
+
+        setOptimizingState(p => ({ ...p, detail: `Otimizando artigo "${article.title.substring(0, 20)}..."` }));
+
+        // Check featured Cover image
+        if (article.featuredImageUrl && article.featuredImageUrl.startsWith('data:image')) {
+          const originalLen = article.featuredImageUrl.length;
+          const compressed = await compressBase64Image(article.featuredImageUrl, 1200, 0.75);
+          if (compressed.length < originalLen) {
+            updatedArticle.featuredImageUrl = compressed;
+            hasChanges = true;
+            optimizedCount++;
+            bytesSaved += (originalLen - compressed.length);
+          }
+        }
+
+        // Check blocks
+        if (article.contentBlocks && article.contentBlocks.length > 0) {
+          const updatedBlocks = [...article.contentBlocks];
+          for (let bIdx = 0; bIdx < updatedBlocks.length; bIdx++) {
+            const block = updatedBlocks[bIdx];
+            if (block.type === 'image' && block.imageUrl && block.imageUrl.startsWith('data:image')) {
+              const originalLen = block.imageUrl.length;
+              const compressed = await compressBase64Image(block.imageUrl, 1000, 0.75);
+              if (compressed.length < originalLen) {
+                updatedBlocks[bIdx] = { ...block, imageUrl: compressed };
+                hasChanges = true;
+                optimizedCount++;
+                bytesSaved += (originalLen - compressed.length);
+              }
+            }
+          }
+          if (hasChanges) {
+            updatedArticle.contentBlocks = updatedBlocks;
+          }
+        }
+
+        if (hasChanges) {
+          await api.put(`/blog/${article.id}`, updatedArticle);
+        }
+      }
+
+      // 4. Process DS-160 passportPhotoBase64 Submissions
+      setOptimizingState(p => ({ ...p, currentTask: 'Formulários DS-160', progress: 80, detail: 'Buscando cópias de passaportes...' }));
+      const dsRes = await api.get<Ds160Submission[]>('/ds160/admin');
+      const dsSubmissions = dsRes.data;
+
+      for (let i = 0; i < dsSubmissions.length; i++) {
+        const sub = dsSubmissions[i];
+        if (sub.jsonData) {
+          try {
+            const parsedJson = JSON.parse(sub.jsonData);
+            const passportPhoto = parsedJson?.step3?.passportPhotoBase64;
+            
+            if (passportPhoto && passportPhoto.startsWith('data:image')) {
+              setOptimizingState(p => ({ ...p, detail: `Otimizando passaporte de ${sub.applicantName}...` }));
+              const originalLen = passportPhoto.length;
+              const compressed = await compressBase64Image(passportPhoto, 1600, 0.70);
+              
+              if (compressed.length < originalLen) {
+                parsedJson.step3.passportPhotoBase64 = compressed;
+                const updatedSubmission = {
+                  ...sub,
+                  jsonData: JSON.stringify(parsedJson)
+                };
+                
+                await api.put(`/ds160/${sub.id}`, updatedSubmission);
+                optimizedCount++;
+                bytesSaved += (originalLen - compressed.length);
+              }
+            }
+          } catch (e) {
+            console.error("Erro ao otimizar JSON do DS-160:", e);
+          }
+        }
+      }
+
+      // Done
+      const mbSaved = (bytesSaved / (1024 * 1024)).toFixed(2);
+      setOptimizingState({
+        isOptimizing: false,
+        currentTask: '',
+        progress: 100,
+        detail: '',
+        resultMessage: `Sucesso! Otimização concluída. Foram otimizadas ${optimizedCount} imagens retroativas, resultando em uma economia estimada de ${mbSaved} MB no banco de dados e mitigação imediata de tráfego!`
+      });
+      alert(`Otimização concluída com sucesso! Economia de ${mbSaved} MB no banco de dados.`);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      setOptimizingState(p => ({
+        ...p,
+        isOptimizing: false,
+        resultMessage: 'Erro durante o processo de otimização automática. Verifique logs do console.'
+      }));
+      alert("Erro ao realizar otimização do banco de dados.");
+    }
+  };
 
   // Carousel Form State
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -156,22 +332,16 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSlideImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSlideImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
-      return;
+    try {
+      const compressed = await compressImageFile(file, 1920, 0.75);
+      setNewSlide(prev => ({ ...prev, imageUrl: compressed }));
+    } catch (err) {
+      alert("Erro ao processar imagem do slide.");
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setNewSlide(prev => ({ ...prev, imageUrl: reader.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   // Blog Form State
@@ -185,7 +355,8 @@ export default function AdminDashboard() {
     tags: '',
     contentBlocks: [] as ArticleBlock[],
     authorName: '',
-    showInVisaDropdown: false
+    showInVisaDropdown: false,
+    showInOthersDropdown: false
   });
   const [editorMode, setEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
@@ -263,6 +434,7 @@ export default function AdminDashboard() {
     address: '',
     companyEmail: '',
     youtubeChannelId: '',
+    googleAnalyticsId: '',
     metric1Value: '',
     metric1Label: '',
     metric2Value: '',
@@ -475,7 +647,8 @@ export default function AdminDashboard() {
         tags: tagsArray,
         contentBlocks: newPost.contentBlocks,
         authorName: newPost.authorName,
-        showInVisaDropdown: newPost.showInVisaDropdown
+        showInVisaDropdown: newPost.showInVisaDropdown,
+        showInOthersDropdown: newPost.showInOthersDropdown
       };
 
       if (editorMode === 'edit' && editingPostId !== null) {
@@ -495,7 +668,8 @@ export default function AdminDashboard() {
         tags: '',
         contentBlocks: [],
         authorName: '',
-        showInVisaDropdown: false
+        showInVisaDropdown: false,
+        showInOthersDropdown: false
       });
       setEditingPostId(null);
       setEditorMode('list');
@@ -516,7 +690,8 @@ export default function AdminDashboard() {
       tags: Array.isArray(post.tags) ? post.tags.join(', ') : (post.tags || ''),
       contentBlocks: post.contentBlocks || [],
       authorName: post.authorName || '',
-      showInVisaDropdown: post.showInVisaDropdown || false
+      showInVisaDropdown: post.showInVisaDropdown || false,
+      showInOthersDropdown: post.showInOthersDropdown || false
     });
     setEditingPostId(post.id);
     setEditorMode('edit');
@@ -533,25 +708,20 @@ export default function AdminDashboard() {
       tags: '',
       contentBlocks: [],
       authorName: '',
-      showInVisaDropdown: false
+      showInVisaDropdown: false,
+      showInOthersDropdown: false
     });
     setEditingPostId(null);
     setEditorMode('create');
   };
 
-  const processFile = (file: File) => {
-    if (file.size > 2 * 1024 * 1024) {
-      alert("A imagem selecionada é muito grande. Escolha uma imagem de até 2MB.");
-      return;
+  const processFile = async (file: File) => {
+    try {
+      const compressed = await compressImageFile(file, 1200, 0.75);
+      setNewPost({ ...newPost, featuredImageUrl: compressed });
+    } catch (err) {
+      alert("Erro ao processar imagem de capa.");
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setNewPost({ ...newPost, featuredImageUrl: reader.result });
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -601,7 +771,8 @@ export default function AdminDashboard() {
           tags: '',
           contentBlocks: [],
           authorName: '',
-          showInVisaDropdown: false
+          showInVisaDropdown: false,
+          showInOthersDropdown: false
         });
       }
       fetchData();
@@ -690,6 +861,24 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleMoveService = async (index: number, direction: 'up' | 'down') => {
+    const items = [...standaloneServices];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+
+    const temp = items[index];
+    items[index] = items[targetIndex];
+    items[targetIndex] = temp;
+
+    try {
+      const ids = items.map(item => item.id);
+      await api.post('/services/standalone/reorder', ids);
+      setStandaloneServices(items.map((item, idx) => ({ ...item, order: idx })));
+    } catch (err) {
+      alert("Erro ao reordenar serviços.");
+    }
+  };
+
   const handleSaveFaq = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingFaq) return;
@@ -723,7 +912,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-secondary min-h-[80vh]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 print:hidden">
         <h1 className="text-3xl font-bold text-primary">Painel de Controle</h1>
         <button
           onClick={handleManualLogout}
@@ -733,7 +922,7 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2 -mx-4 px-4">
+      <div className="flex gap-4 mb-10 border-b border-light-gray overflow-x-auto whitespace-nowrap pb-2 -mx-4 px-4 print:hidden">
         <button
           onClick={() => setActiveTab('overview')}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'overview' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
@@ -782,13 +971,13 @@ export default function AdminDashboard() {
         >
           Formulários DS-160
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('pricing'); setSelectedPlan(null); setEditingStandaloneService(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'pricing' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
           Serviços e Preços
         </button>
-        <button 
+        <button
           onClick={() => { setActiveTab('faq'); setEditingFaq(null); }}
           className={`pb-4 px-4 font-bold transition-colors ${activeTab === 'faq' ? 'border-b-4 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'}`}
         >
@@ -1025,8 +1214,8 @@ export default function AdminDashboard() {
                       onDragLeave={handleBlogImageDragLeave}
                       onDrop={handleBlogImageDrop}
                       className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-dark-gray transition-all cursor-pointer ${isDraggingBlogImage
-                          ? 'border-accent-gold bg-accent-gold/5'
-                          : 'border-gray-200 bg-slate-50 hover:border-accent-gold/50'
+                        ? 'border-accent-gold bg-accent-gold/5'
+                        : 'border-gray-200 bg-slate-50 hover:border-accent-gold/50'
                         }`}
                     >
                       <Upload size={36} className={`mb-2 transition-colors ${isDraggingBlogImage ? 'text-accent-gold' : 'text-gray-400'}`} />
@@ -1209,18 +1398,50 @@ export default function AdminDashboard() {
                             </div>
                           )}
 
-                          {block.type === 'image' && (
-                            <div className="space-y-3">
+                           {block.type === 'image' && (
+                            <div className="space-y-3 text-left">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                  <label className="text-xs font-bold text-gray-500">URL da Imagem</label>
-                                  <input
-                                    type="text"
-                                    value={block.imageUrl || ''}
-                                    onChange={(e) => updateBlock(index, { ...block, imageUrl: e.target.value })}
-                                    placeholder="https://exemplo.com/imagem.jpg"
-                                    className="w-full p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary"
-                                  />
+                                  <label className="text-xs font-bold text-gray-500 block mb-1">Origem da Imagem (URL ou Arquivo Local)</label>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      value={(block.imageUrl || '').startsWith('data:image') ? 'Imagem carregada localmente (Base64)' : (block.imageUrl || '')}
+                                      onChange={(e) => updateBlock(index, { ...block, imageUrl: e.target.value })}
+                                      placeholder="https://exemplo.com/imagem.jpg"
+                                      disabled={(block.imageUrl || '').startsWith('data:image')}
+                                      className="flex-grow p-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-gold focus:outline-none text-primary disabled:bg-gray-50 disabled:text-gray-400"
+                                    />
+                                    {(block.imageUrl || '').startsWith('data:image') ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => updateBlock(index, { ...block, imageUrl: '' })}
+                                        className="bg-red-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-red-700 transition-all text-xs cursor-pointer shadow-sm shrink-0"
+                                      >
+                                        Limpar
+                                      </button>
+                                    ) : (
+                                      <label className="bg-primary text-secondary px-3 py-2 rounded-xl font-bold hover:bg-opacity-95 transition-all text-xs cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shadow-sm shrink-0">
+                                        <Upload size={14} /> Local
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              try {
+                                                const compressed = await compressImageFile(file, 1000, 0.75);
+                                                updateBlock(index, { ...block, imageUrl: compressed });
+                                              } catch (err) {
+                                                alert("Erro ao processar imagem do bloco.");
+                                              }
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="space-y-1">
                                   <label className="text-xs font-bold text-gray-500 flex items-center gap-1">
@@ -1311,8 +1532,8 @@ export default function AdminDashboard() {
                                     const isSelected = block.recommendedArticleIds?.includes(p.id) || false;
                                     return (
                                       <label key={p.id} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition ${isSelected
-                                          ? 'border-accent-gold bg-accent-gold/5 font-semibold text-primary'
-                                          : 'border-gray-200 hover:bg-slate-50 text-dark-gray'
+                                        ? 'border-accent-gold bg-accent-gold/5 font-semibold text-primary'
+                                        : 'border-gray-200 hover:bg-slate-50 text-dark-gray'
                                         }`}>
                                         <input
                                           type="checkbox"
@@ -1449,17 +1670,32 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Visibilidade no Menu Dropdown */}
-                  <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="showInVisaDropdown"
-                      className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
-                      checked={newPost.showInVisaDropdown}
-                      onChange={e => setNewPost({ ...newPost, showInVisaDropdown: e.target.checked })}
-                    />
-                    <label htmlFor="showInVisaDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
-                      Mostrar este artigo no menu "Tipos de Vistos" do cabeçalho
-                    </label>
+                  <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="showInVisaDropdown"
+                        className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
+                        checked={newPost.showInVisaDropdown}
+                        onChange={e => setNewPost({ ...newPost, showInVisaDropdown: e.target.checked })}
+                      />
+                      <label htmlFor="showInVisaDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
+                        Mostrar este artigo no menu "Tipos de Vistos Americano" do cabeçalho
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="showInOthersDropdown"
+                        className="w-5 h-5 accent-accent-gold rounded cursor-pointer"
+                        checked={newPost.showInOthersDropdown}
+                        onChange={e => setNewPost({ ...newPost, showInOthersDropdown: e.target.checked })}
+                      />
+                      <label htmlFor="showInOthersDropdown" className="text-sm font-bold text-primary cursor-pointer select-none">
+                        Mostrar este artigo no menu "Vistos de Outros Países" do cabeçalho
+                      </label>
+                    </div>
                   </div>
 
                   {/* Tags section (up to 3 tags) */}
@@ -1644,20 +1880,74 @@ export default function AdminDashboard() {
                 placeholder="Insira o ID do canal (começando com UC)"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-primary">ID do Google Analytics (Ex: G-XXXXXXXXXX)</label>
+              <input
+                className="w-full p-3 border border-dark-gray rounded-lg focus:ring-2 focus:ring-accent-gold text-primary"
+                value={settings.googleAnalyticsId || ''}
+                onChange={e => setSettings({ ...settings, googleAnalyticsId: e.target.value })}
+                placeholder="Insira o ID do Google Analytics (opcional)"
+              />
+            </div>
             <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
               Salvar Configurações
             </button>
           </form>
+
+          {/* Database Image Optimizer Box */}
+          <div className="mt-8 pt-8 border-t border-gray-200 text-left space-y-4">
+            <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+              <AlertCircle className="text-accent-gold" />
+              Otimização de Armazenamento e Banda
+            </h3>
+            <p className="text-xs text-dark-gray leading-relaxed">
+              Esta ferramenta busca no banco de dados todos os registros de artigos do blog, carrossel de slides, serviços avulsos e envios do DS-160 que possuem imagens salvas localmente em altíssima resolução. Ela redimensiona e comprime cada imagem retroativamente na sua máquina e salva as cópias otimizadas de volta, liberando espaço e reduzindo instantaneamente o uso da largura de banda do servidor.
+            </p>
+            
+            {optimizingState.isOptimizing ? (
+              <div className="bg-light-gray p-5 rounded-2xl border border-gray-200/50 space-y-3">
+                <div className="flex justify-between text-xs font-bold text-primary">
+                  <span>Processando: {optimizingState.currentTask}</span>
+                  <span>{optimizingState.progress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                  <div 
+                    className="bg-accent-gold h-2.5 rounded-full transition-all duration-300" 
+                    style={{ width: `${optimizingState.progress}%` }}
+                  ></div>
+                </div>
+                <p className="text-[10px] text-dark-gray/60 italic">{optimizingState.detail}</p>
+              </div>
+            ) : optimizingState.resultMessage ? (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex flex-col gap-2">
+                <span>{optimizingState.resultMessage}</span>
+                <button 
+                  onClick={() => setOptimizingState({ isOptimizing: false, currentTask: '', progress: 0, detail: '', resultMessage: '' })}
+                  className="text-accent-gold hover:underline text-left mt-1 cursor-pointer"
+                >
+                  Fechar relatório
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={runDatabaseOptimization}
+                className="flex items-center justify-center gap-2 bg-primary text-secondary px-6 py-3.5 rounded-xl font-bold hover:bg-dark-gray transition-colors text-xs uppercase tracking-wider cursor-pointer w-full shadow-md"
+              >
+                Otimizar Imagens do Banco de Dados
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {activeTab === 'ds160' && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold mb-6 text-primary">Formulários DS-160 Recebidos</h2>
+          <h2 className="text-xl font-bold mb-6 text-primary print:hidden">Formulários DS-160 Recebidos</h2>
 
           {selectedDs160 ? (
-            <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm">
-              <button onClick={() => setSelectedDs160(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline">
+            <div className="bg-secondary p-8 rounded-2xl border border-light-gray shadow-sm print:bg-white print:p-0 print:border-none print:shadow-none">
+              <button onClick={() => setSelectedDs160(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline print:hidden">
                 ← Voltar para a lista
               </button>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pb-8 border-b border-light-gray">
@@ -1724,7 +2014,7 @@ export default function AdminDashboard() {
       {activeTab === 'pricing' && (
         <div className="space-y-6 text-left">
           {/* Gerenciar Planos e Preços Header */}
-          <div 
+          <div
             onClick={() => setPlansSectionOpen(!plansSectionOpen)}
             className="flex justify-between items-center bg-white p-5 rounded-2xl border border-light-gray cursor-pointer hover:bg-slate-50 hover:border-gray-300 transition-all select-none shadow-sm"
           >
@@ -1829,7 +2119,7 @@ export default function AdminDashboard() {
 
           {/* Gerenciar Serviços Avulsos Section */}
           <div className="mt-8 pt-8 border-t border-light-gray space-y-4">
-            <div 
+            <div
               onClick={() => setStandaloneSectionOpen(!standaloneSectionOpen)}
               className="flex justify-between items-center bg-white p-5 rounded-2xl border border-light-gray cursor-pointer hover:bg-slate-50 hover:border-gray-300 transition-all select-none shadow-sm"
             >
@@ -1844,7 +2134,7 @@ export default function AdminDashboard() {
               <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-end">
                   <button
-                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true, description: '', features: '', iconName: 'Briefcase' })}
+                    onClick={() => setEditingStandaloneService({ id: '00000000-0000-0000-0000-000000000000', name: '', price: 0, isActive: true, description: '', features: '', iconName: 'Briefcase', order: 0, whatsappCustomMessage: '' })}
                     className="flex items-center gap-2 bg-accent-red text-secondary px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors"
                   >
                     <Plus size={20} /> Adicionar Serviço
@@ -1914,20 +2204,15 @@ export default function AdminDashboard() {
                                 <input
                                   type="file"
                                   accept="image/*"
-                                  onChange={(e) => {
+                                  onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      if (file.size > 500 * 1024) {
-                                        alert("O ícone selecionado é muito grande. Escolha uma imagem de até 500KB.");
-                                        return;
+                                      try {
+                                        const compressed = await compressImageFile(file, 400, 0.75);
+                                        setEditingStandaloneService({ ...editingStandaloneService, iconName: compressed });
+                                      } catch (err) {
+                                        alert("Erro ao processar ícone.");
                                       }
-                                      const reader = new FileReader();
-                                      reader.onloadend = () => {
-                                        if (typeof reader.result === 'string') {
-                                          setEditingStandaloneService({ ...editingStandaloneService, iconName: reader.result });
-                                        }
-                                      };
-                                      reader.readAsDataURL(file);
                                     }
                                   }}
                                   className="hidden"
@@ -1961,6 +2246,17 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
+                      <div className="text-left">
+                        <label className="block text-sm font-medium text-primary mb-1">Mensagem Customizada do WhatsApp (Opcional)</label>
+                        <textarea
+                          rows={2}
+                          value={editingStandaloneService.whatsappCustomMessage || ''}
+                          onChange={(e) => setEditingStandaloneService({ ...editingStandaloneService, whatsappCustomMessage: e.target.value })}
+                          placeholder="Ex: Olá! Gostaria de contratar o serviço avulso de Emissão de Passaporte. (Deixe em branco para usar a mensagem padrão)"
+                          className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-gold"
+                        />
+                      </div>
+
                       <div className="flex gap-4 mt-2">
                         <button type="submit" className="bg-primary text-secondary px-6 py-2 rounded-lg font-bold hover:bg-opacity-90">
                           Salvar
@@ -1983,13 +2279,31 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {standaloneServices.map(service => (
+                      {standaloneServices.map((service, index) => (
                         <tr key={service.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="p-4 font-medium text-primary">{service.name}</td>
                           <td className="p-4 text-dark-gray">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
                           </td>
-                          <td className="p-4 text-right flex gap-2 justify-end">
+                          <td className="p-4 text-right flex gap-1.5 justify-end items-center">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveService(index, 'up')}
+                              disabled={index === 0}
+                              className="p-1 px-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-xs font-bold"
+                              title="Mover para cima"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveService(index, 'down')}
+                              disabled={index === standaloneServices.length - 1}
+                              className="p-1 px-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-xs font-bold mr-2"
+                              title="Mover para baixo"
+                            >
+                              ↓
+                            </button>
                             <button
                               onClick={() => setEditingStandaloneService(JSON.parse(JSON.stringify(service)))}
                               className="p-2 text-dark-gray hover:text-accent-gold hover:bg-light-gray rounded-lg"
@@ -2127,11 +2441,10 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        faq.isActive 
-                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${faq.isActive
+                          ? 'bg-green-50 text-green-700 border border-green-200'
                           : 'bg-gray-50 text-gray-500 border border-gray-200'
-                      }`}>
+                        }`}>
                         {faq.isActive ? 'Ativa' : 'Inativa'}
                       </span>
                     </td>
@@ -2245,11 +2558,30 @@ export default function AdminDashboard() {
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-primary">Vistos no Menu do Cabeçalho</h2>
             <p className="text-dark-gray text-sm mt-1">
-              Selecione quais artigos informativos serão exibidos sob a categoria <strong>"Tipos de Vistos Americanos"</strong> no menu do cabeçalho.
+              Selecione quais artigos informativos serão exibidos sob as categorias do menu do cabeçalho.
             </p>
             <p className="text-accent-red text-xs font-semibold mt-2">
               💡 Nota: Caso nenhum artigo esteja selecionado, o site exibirá automaticamente os links padrão do sistema.
             </p>
+          </div>
+
+          <div className="flex border-b border-light-gray mb-6">
+            <button
+              onClick={() => setVistosSubTab('american')}
+              className={`pb-2 px-4 font-bold text-sm transition-colors cursor-pointer ${
+                vistosSubTab === 'american' ? 'border-b-2 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'
+              }`}
+            >
+              Tipos de Vistos Americano
+            </button>
+            <button
+              onClick={() => setVistosSubTab('others')}
+              className={`pb-2 px-4 font-bold text-sm transition-colors cursor-pointer ${
+                vistosSubTab === 'others' ? 'border-b-2 border-accent-gold text-accent-gold' : 'text-dark-gray hover:text-primary'
+              }`}
+            >
+              Vistos de Outros Países
+            </button>
           </div>
 
           <div className="space-y-4">
@@ -2257,55 +2589,70 @@ export default function AdminDashboard() {
               <p className="text-dark-gray py-4 text-center">Nenhum artigo publicado no momento. Publique artigos primeiro na aba "Gerenciar Artigos".</p>
             ) : (
               <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden bg-white">
-                {posts.map((post) => (
-                  <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                      {post.featuredImageUrl ? (
-                        <img
-                          src={post.featuredImageUrl}
-                          alt={post.title}
-                          className="w-16 h-12 object-cover rounded-lg border border-gray-100 flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] text-dark-gray font-bold">SEM FOTO</span>
+                {posts.map((post) => {
+                  const isVisible = vistosSubTab === 'american' ? post.showInVisaDropdown : post.showInOthersDropdown;
+                  return (
+                    <div key={post.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                        {post.featuredImageUrl ? (
+                          <img
+                            src={post.featuredImageUrl}
+                            alt={post.title}
+                            className="w-16 h-12 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] text-dark-gray font-bold">SEM FOTO</span>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-primary truncate">{post.title}</h3>
+                          <p className="text-xs text-dark-gray truncate mt-0.5">{post.summary || 'Sem resumo disponível'}</p>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-primary truncate">{post.title}</h3>
-                        <p className="text-xs text-dark-gray truncate mt-0.5">{post.summary || 'Sem resumo disponível'}</p>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${post.showInVisaDropdown
+                      <div className="flex items-center gap-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isVisible
                           ? 'bg-green-100 text-green-700 border border-green-200'
                           : 'bg-gray-100 text-gray-600 border border-gray-200'
-                        }`}>
-                        {post.showInVisaDropdown ? 'Visível no Menu' : 'Invisível'}
-                      </span>
+                          }`}>
+                          {isVisible ? 'Visível no Menu' : 'Invisível'}
+                        </span>
 
-                      <button
-                        onClick={async () => {
-                          try {
-                            const newStatus = !post.showInVisaDropdown;
-                            await api.put(`/blog/${post.id}/toggle-dropdown?show=${newStatus}`);
-                            // Update local list state
-                            setPosts(prev => prev.map(p => p.id === post.id ? { ...p, showInVisaDropdown: newStatus } : p));
-                          } catch (err) {
-                            alert('Erro ao alterar visibilidade do artigo no menu.');
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${post.showInVisaDropdown
+                        <button
+                          onClick={async () => {
+                            try {
+                              const newStatus = !isVisible;
+                              const endpoint = vistosSubTab === 'american' 
+                                ? `/blog/${post.id}/toggle-dropdown?show=${newStatus}`
+                                : `/blog/${post.id}/toggle-others-dropdown?show=${newStatus}`;
+                              
+                              await api.put(endpoint);
+                              
+                              // Update local list state
+                              setPosts(prev => prev.map(p => {
+                                if (p.id === post.id) {
+                                  return vistosSubTab === 'american'
+                                    ? { ...p, showInVisaDropdown: newStatus }
+                                    : { ...p, showInOthersDropdown: newStatus };
+                                }
+                                return p;
+                              }));
+                            } catch (err) {
+                              alert('Erro ao alterar visibilidade do artigo no menu.');
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm cursor-pointer select-none ${isVisible
                             ? 'bg-accent-red text-white hover:bg-opacity-95 hover:shadow'
                             : 'bg-white text-primary border-gray-200 hover:bg-gray-50'
-                          }`}
-                      >
-                        {post.showInVisaDropdown ? 'Remover' : 'Adicionar'}
-                      </button>
+                            }`}
+                        >
+                          {isVisible ? 'Remover' : 'Adicionar'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2494,8 +2841,8 @@ export default function AdminDashboard() {
 
                       {/* Status Tag */}
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${item.isActive
-                          ? 'bg-green-50 text-green-700 border border-green-200'
-                          : 'bg-gray-50 text-gray-500 border border-gray-200'
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-gray-50 text-gray-500 border border-gray-200'
                         }`}>
                         {item.isActive ? 'Ativo' : 'Inativo'}
                       </span>
@@ -2506,8 +2853,8 @@ export default function AdminDashboard() {
                           type="button"
                           onClick={() => handleToggleSlide(item.id, item.isActive)}
                           className={`p-2 rounded-xl border text-xs font-bold transition shadow-sm cursor-pointer ${item.isActive
-                              ? 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                              : 'bg-green-600 text-white hover:bg-opacity-95'
+                            ? 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                            : 'bg-green-600 text-white hover:bg-opacity-95'
                             }`}
                           title={item.isActive ? 'Desativar Slide' : 'Ativar Slide'}
                         >

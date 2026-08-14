@@ -22,7 +22,7 @@ public class ServicesController : ControllerBase
     {
         var services = await _context.StandaloneServices
             .Where(s => s.IsActive)
-            .OrderBy(s => s.Price)
+            .OrderBy(s => s.Order)
             .ToListAsync();
 
         return Ok(services);
@@ -59,6 +59,8 @@ public class ServicesController : ControllerBase
         service.Description = updatedService.Description;
         service.Features = updatedService.Features;
         service.IconName = updatedService.IconName;
+        service.Order = updatedService.Order;
+        service.WhatsappCustomMessage = updatedService.WhatsappCustomMessage;
 
         await _context.SaveChangesAsync();
         return NoContent();
@@ -77,6 +79,23 @@ public class ServicesController : ControllerBase
         _context.StandaloneServices.Remove(service);
         await _context.SaveChangesAsync();
 
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("standalone/reorder")]
+    public async Task<IActionResult> ReorderStandaloneServices([FromBody] List<Guid> ids)
+    {
+        for (int i = 0; i < ids.Count; i++)
+        {
+            var id = ids[i];
+            var service = await _context.StandaloneServices.FindAsync(id);
+            if (service != null)
+            {
+                service.Order = i;
+            }
+        }
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 }

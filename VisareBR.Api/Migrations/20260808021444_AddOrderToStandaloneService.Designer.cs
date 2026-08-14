@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VisareBR.Core.Data;
@@ -11,9 +12,11 @@ using VisareBR.Core.Data;
 namespace VisareBR.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808021444_AddOrderToStandaloneService")]
+    partial class AddOrderToStandaloneService
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -853,9 +856,6 @@ namespace VisareBR.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("GoogleAnalyticsId")
-                        .HasColumnType("text");
-
                     b.Property<string>("Metric1Label")
                         .IsRequired()
                         .HasColumnType("text");
@@ -928,9 +928,6 @@ namespace VisareBR.Api.Migrations
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("WhatsappCustomMessage")
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

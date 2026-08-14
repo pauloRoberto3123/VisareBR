@@ -32,6 +32,7 @@ public class Article
     public ApplicationUser? Author { get; set; }
     public string? AuthorName { get; set; }
     public bool ShowInVisaDropdown { get; set; } = false;
+    public bool ShowInOthersDropdown { get; set; } = false;
 }
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
@@ -98,6 +99,7 @@ public class SiteSettings
     public string Cnpj { get; set; } = string.Empty;
 
     public string YoutubeChannelId { get; set; } = string.Empty;
+    public string? GoogleAnalyticsId { get; set; }
 
     // Metrics for Home Page
     public string Metric1Value { get; set; } = "+5000";
@@ -158,6 +160,8 @@ public class StandaloneService
     public string Description { get; set; } = string.Empty;
     public string Features { get; set; } = string.Empty;
     public string IconName { get; set; } = "Briefcase";
+    public int Order { get; set; } = 0;
+    public string? WhatsappCustomMessage { get; set; }
 }
 
 public class CarouselItem

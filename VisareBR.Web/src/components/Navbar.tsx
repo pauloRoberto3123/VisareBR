@@ -6,14 +6,16 @@ import { getArticles } from '../api/blogService';
 import type { Article } from '../api/blogService';
 
 const WhatsAppIcon = ({ size = 20 }: { size?: number }) => (
-  <svg
-    className="fill-current"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.458 5.705 1.459h.008c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  <svg 
+    height={size} 
+    viewBox="0 0 24 24" 
+    width={size} 
+    xmlns="http://www.w3.org/2000/svg" 
+    style={{ display: "block" }}
+  > 
+    <path d="m20.52 3.449c-2.28-2.204-5.28-3.449-8.475-3.449-9.17 0-14.928 9.935-10.349 17.838l-1.696 6.162 6.335-1.652c2.76 1.491 5.021 1.359 5.716 1.447 10.633 0 15.926-12.864 8.454-20.307z" fill="#eceff1"></path> 
+    <path d="m12.067 21.751-.006-.001h-.016c-3.182 0-5.215-1.507-5.415-1.594l-3.75.975 1.005-3.645-.239-.375c-.99-1.576-1.516-3.391-1.516-5.26 0-8.793 10.745-13.19 16.963-6.975 6.203 6.15 1.848 16.875-7.026 16.875z" fill="#4caf50"></path> 
+    <path d="m17.507 14.307-.009.075c-.301-.15-1.767-.867-2.04-.966-.613-.227-.44-.036-1.617 1.312-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.293-.506.32-.578.878-1.634.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.576-.05-.997-.042-1.368.344-1.614 1.774-1.207 3.604.174 5.55 2.714 3.552 4.16 4.206 6.804 5.114.714.227 1.365.195 1.88.121.574-.091 1.767-.721 2.016-1.426.255-.705.255-1.29.18-1.425-.074-.135-.27-.21-.57-.345z" fill="#fafafa"></path> 
   </svg>
 );
 
@@ -25,6 +27,8 @@ export default function Navbar() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dropdownArticles, setDropdownArticles] = useState<Article[]>([]);
+  const [othersDropdownArticles, setOthersDropdownArticles] = useState<Article[]>([]);
+  const [isMobileOthersOpen, setIsMobileOthersOpen] = useState(false);
 
   const { settings, whatsappUrl } = useSettings();
   const navigate = useNavigate();
@@ -35,7 +39,9 @@ export default function Navbar() {
     getArticles()
       .then((res: any) => {
         const featured = res.data.filter((art: any) => art.showInVisaDropdown);
+        const others = res.data.filter((art: any) => art.showInOthersDropdown);
         setDropdownArticles(featured);
+        setOthersDropdownArticles(others);
       })
       .catch((err: any) => console.error("Error loading dropdown articles:", err));
   }, []);
@@ -47,10 +53,10 @@ export default function Navbar() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    if (location.pathname === '/blog') {
+    if (location.pathname === '/artigos') {
       setSearchParams({ search: searchQuery });
     } else {
-      navigate(`/blog?search=${encodeURIComponent(searchQuery)}`);
+      navigate(`/artigos?search=${encodeURIComponent(searchQuery)}`);
     }
     setIsMobileSearchOpen(false);
   };
@@ -75,17 +81,20 @@ export default function Navbar() {
               {/* Serviços */}
               <Link to="/servicos" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Serviços</Link>
 
+              {/* Quem Somos */}
+              <Link to="/quem-somos" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Quem Somos</Link>
+
               {/* Tipos de Vistos Dropdown */}
               <div className="relative group">
                 <button className="flex items-center gap-1 text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap h-20 transition-colors cursor-pointer">
-                  Tipos de Vistos <ChevronDown size={12} className="text-slate-200 group-hover:text-accent-gold transition-colors" />
+                  Tipos de Vistos Americano <ChevronDown size={12} className="text-slate-200 group-hover:text-accent-gold transition-colors" />
                 </button>
                 <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-primary border border-white/10 rounded-b-xl shadow-lg py-2 w-64 z-50">
                   {dropdownArticles.length > 0 ? (
                     dropdownArticles.map((art) => (
                       <Link
                         key={art.id}
-                        to={`/blog/${art.slug}`}
+                        to={`/artigos/${art.slug}`}
                         className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5 last:border-b-0"
                       >
                         {art.title}
@@ -102,17 +111,44 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Passo a Passo */}
-              <Link to="/como-funciona" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Passo a Passo</Link>
+              {/* Vistos de Outros Países Dropdown */}
+              <div className="relative group">
+                <button className="flex items-center gap-1 text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap h-20 transition-colors cursor-pointer">
+                  Vistos de Outros Países <ChevronDown size={12} className="text-slate-200 group-hover:text-accent-gold transition-colors" />
+                </button>
+                <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-primary border border-white/10 rounded-b-xl shadow-lg py-2 w-64 z-50">
+                  {othersDropdownArticles.length > 0 ? (
+                    othersDropdownArticles.map((art) => (
+                      <Link
+                        key={art.id}
+                        to={`/artigos/${art.slug}`}
+                        className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5 last:border-b-0"
+                      >
+                        {art.title}
+                      </Link>
+                    ))
+                  ) : (
+                    <>
+                      <Link to="/vistos#canada" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5 animate-fade-in">Visto Canadense</Link>
+                      <Link to="/vistos#europa" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5">Visto Europeu (Schengen)</Link>
+                      <Link to="/vistos#australia" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5">Visto Australiano</Link>
+                      <Link to="/vistos#japao" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider">Visto Japonês</Link>
+                    </>
+                  )}
+                </div>
+              </div>
 
               {/* Nossos Clientes */}
-              <Link to="/avaliacoes" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Nossos Clientes</Link>
+              <Link to="/nossos-clientes" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Nossos Clientes</Link>
+
+              {/* Artigos */}
+              <Link to="/artigos" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Artigos</Link>
 
               {/* Dúvidas */}
               <Link to="/duvidas" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Dúvidas</Link>
 
-              {/* Artigos */}
-              <Link to="/blog" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Artigos</Link>
+              {/* Contato */}
+              <Link to="/contato" className="text-slate-100 hover:text-accent-gold font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap transition-colors">Contato</Link>
             </div>
 
             {/* Desktop Action: WhatsApp Button (Right - Desktop only) */}
@@ -207,12 +243,13 @@ export default function Navbar() {
               <Link to="/" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Início</Link>
 
               {/* Mobile Dropdown Collapsible for Vistos */}
+              {/* Tipos de Vistos Americano Dropdown */}
               <div className="space-y-1">
                 <button
                   onClick={() => setIsMobileVistosOpen(!isMobileVistosOpen)}
                   className="w-full flex items-center justify-between px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors cursor-pointer"
                 >
-                  <span>Tipos de Vistos</span>
+                  <span>Tipos de Vistos Americano</span>
                   <ChevronDown size={16} className={`transition-transform duration-300 ${isMobileVistosOpen ? 'rotate-180 text-accent-gold' : 'text-slate-800'}`} />
                 </button>
 
@@ -222,7 +259,7 @@ export default function Navbar() {
                       dropdownArticles.map((art) => (
                         <Link
                           key={art.id}
-                          to={`/blog/${art.slug}`}
+                          to={`/artigos/${art.slug}`}
                           onClick={() => setIsOpen(false)}
                           className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors"
                         >
@@ -241,12 +278,47 @@ export default function Navbar() {
                 )}
               </div>
 
+              {/* Vistos de Outros Países Dropdown */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => setIsMobileOthersOpen(!isMobileOthersOpen)}
+                  className="w-full flex items-center justify-between px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  <span>Vistos de Outros Países</span>
+                  <ChevronDown size={16} className={`transition-transform duration-300 ${isMobileOthersOpen ? 'rotate-180 text-accent-gold' : 'text-slate-800'}`} />
+                </button>
+
+                {isMobileOthersOpen && (
+                  <div className="pl-6 space-y-1 bg-slate-50 py-2 rounded-lg">
+                    {othersDropdownArticles.length > 0 ? (
+                      othersDropdownArticles.map((art) => (
+                        <Link
+                          key={art.id}
+                          to={`/artigos/${art.slug}`}
+                          onClick={() => setIsOpen(false)}
+                          className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors"
+                        >
+                          {art.title}
+                        </Link>
+                      ))
+                    ) : (
+                      <>
+                        <Link to="/vistos#canada" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors">Visto Canadense</Link>
+                        <Link to="/vistos#europa" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors">Visto Europeu (Schengen)</Link>
+                        <Link to="/vistos#australia" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors">Visto Australiano</Link>
+                        <Link to="/vistos#japao" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors">Visto Japonês</Link>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <Link to="/servicos" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Serviços</Link>
-              <Link to="/como-funciona" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Passo a Passo</Link>
-              <Link to="/avaliacoes" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Nossos Clientes</Link>
+              <Link to="/quem-somos" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Quem Somos</Link>
+              <Link to="/nossos-clientes" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Nossos Clientes</Link>
               <Link to="/duvidas" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Dúvidas</Link>
-              <Link to="/blog" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Artigos</Link>
-              <a href={whatsappUrl} onClick={() => setIsOpen(false)} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-accent-gold hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Contato</a>
+              <Link to="/artigos" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Artigos</Link>
+              <Link to="/contato" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-accent-gold hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Contato</Link>
             </div>
           </div>
         )}

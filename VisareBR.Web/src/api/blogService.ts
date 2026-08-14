@@ -43,6 +43,7 @@ export interface Article {
   };
   authorName?: string;
   showInVisaDropdown?: boolean;
+  showInOthersDropdown?: boolean;
 }
 
 export interface Evaluation {

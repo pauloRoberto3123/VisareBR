@@ -28,10 +28,12 @@ export default function ServicesList() {
     return <IconComponent className="w-10 h-10 text-accent-gold" />;
   };
 
-  const getWhatsAppLinkForService = (serviceName: string) => {
+  const getWhatsAppLinkForService = (service: StandaloneService) => {
     if (!settings?.whatsappNumber) return whatsappUrl;
-    const defaultMsg = `Olá! Gostaria de contratar o serviço avulso: ${serviceName}`;
-    return `https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(defaultMsg)}`;
+    const msg = service.whatsappCustomMessage && service.whatsappCustomMessage.trim() !== ''
+      ? service.whatsappCustomMessage.trim()
+      : `Olá! Gostaria de contratar o serviço avulso: ${service.name}`;
+    return `https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
   };
 
   return (
@@ -40,14 +42,19 @@ export default function ServicesList() {
       <section className="bg-primary py-24 text-secondary text-center relative overflow-hidden">
         {/* Subtle decorative background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-accent-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-white">
-            Nossos Serviços Avulsos
+            Nossos Serviços
           </h1>
-          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
-            Soluções ágeis e pontuais para cada etapa da sua solicitação de visto. Contrate apenas o que você precisa, com a segurança e expertise da VisareBR.
+          <p className="text-lg md:text-xl text-gray-300 mb-6 max-w-3xl mx-auto leading-relaxed font-light">
+            VisareBR Assessoria completa para o seu visto americano.
           </p>
+          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
+            Sabemos que solicitar um visto pode parecer um processo cheio de etapas, formulários e detalhes que assustam. A nossa missão é simples: tirar esse peso de você e fazer o processo acontecer do jeito certo, do início ao fim.
+          </p>
+
+
         </div>
       </section>
 
@@ -74,9 +81,9 @@ export default function ServicesList() {
                   : [];
 
                 return (
-                  <a 
-                    key={service.id} 
-                    href={getWhatsAppLinkForService(service.name)}
+                  <a
+                    key={service.id}
+                    href={getWhatsAppLinkForService(service)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-white rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 flex flex-col justify-between text-center group cursor-pointer"
@@ -91,7 +98,7 @@ export default function ServicesList() {
                       <h2 className="text-xl font-bold text-primary mb-3 text-center group-hover:text-accent-gold transition-colors line-clamp-2">
                         {service.name}
                       </h2>
-                      
+
                       {service.description && (
                         <p className="text-dark-gray text-sm mb-6 text-center leading-relaxed line-clamp-3">
                           {service.description}
@@ -121,13 +128,13 @@ export default function ServicesList() {
       {/* Call to Action Banner */}
       <section className="bg-light-gray py-20 border-t border-gray-100">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-extrabold mb-6 text-primary tracking-tight">Precisa de assessoria personalizada?</h2>
+          <h2 className="text-3xl font-extrabold mb-6 text-primary tracking-tight">Precisa de ajuda para escolher o tipo de visto?</h2>
           <p className="text-dark-gray text-lg mb-8 leading-relaxed">
             Fale conosco diretamente via WhatsApp. Nós respondemos suas dúvidas e ajudamos você a escolher a melhor opção para a conquista do seu visto.
           </p>
-          <a 
-            href={whatsappUrl} 
-            target="_blank" 
+          <a
+            href={whatsappUrl}
+            target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md shadow-[#25D366]/20"
           >
