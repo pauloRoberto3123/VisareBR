@@ -82,8 +82,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      const isLoginRequest = error.config && error.config.url && error.config.url.includes('/identity/login');
+      const isLoginPage = window.location.pathname === '/login';
+
+      if (!isLoginRequest && !isLoginPage) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
