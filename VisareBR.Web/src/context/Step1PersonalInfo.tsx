@@ -70,11 +70,88 @@ export default function Step1PersonalInfo() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <label htmlFor="birthCity" className="block text-sm font-medium text-primary mb-1">Cidade de Nascimento *</label>
+          <input id="birthCity" name="birthCity" required type="text" value={step1.birthCity} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" placeholder="Ex: São Paulo" />
+        </div>
+        <div>
+          <label htmlFor="birthState" className="block text-sm font-medium text-primary mb-1">Estado de Nascimento / UF *</label>
+          <input id="birthState" name="birthState" required type="text" value={step1.birthState} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" placeholder="Ex: SP" />
+        </div>
+        <div>
+          <label htmlFor="birthCountry" className="block text-sm font-medium text-primary mb-1">País de Nascimento *</label>
+          <input id="birthCountry" name="birthCountry" required type="text" value={step1.birthCountry} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" placeholder="Ex: Brasil" />
+        </div>
+      </div>
+
       {/* CONDITIONAL RENDER: Marital Status Explanation */}
       {step1.maritalStatus === 'Other' && (
         <div className="animate-fade-in">
           <label htmlFor="maritalStatusExplain" className="block text-sm font-medium text-primary mb-1">Explique o Estado Civil *</label>
           <input id="maritalStatusExplain" name="maritalStatusExplain" required type="text" value={step1.maritalStatusExplain} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
+        </div>
+      )}
+
+      {/* CONDITIONAL RENDER: Spouse Details for Married status */}
+      {step1.maritalStatus === 'Married' && (
+        <div className="animate-fade-in bg-light-gray p-5 rounded-2xl space-y-4 border border-gray-200">
+          <h3 className="text-md font-bold text-primary border-b border-gray-300 pb-2">Dados do Cônjuge (Marido / Esposa)</h3>
+          
+          <div>
+            <label htmlFor="spouseFullName" className="block text-sm font-medium text-primary mb-1">Nome Completo do Cônjuge *</label>
+            <input
+              id="spouseFullName"
+              name="spouseFullName"
+              required
+              type="text"
+              value={step1.spouseFullName}
+              onChange={handleChange}
+              className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red bg-white"
+              placeholder="Nome completo como no documento"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label htmlFor="spouseBirthDate" className="block text-sm font-medium text-primary mb-1">Data de Nascimento *</label>
+              <input
+                id="spouseBirthDate"
+                name="spouseBirthDate"
+                required
+                type="date"
+                value={step1.spouseBirthDate}
+                onChange={handleChange}
+                className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red bg-white"
+              />
+            </div>
+            <div>
+              <label htmlFor="spouseBirthCity" className="block text-sm font-medium text-primary mb-1">Cidade de Nascimento *</label>
+              <input
+                id="spouseBirthCity"
+                name="spouseBirthCity"
+                required
+                type="text"
+                value={step1.spouseBirthCity}
+                onChange={handleChange}
+                className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red bg-white"
+                placeholder="Ex: São Paulo"
+              />
+            </div>
+            <div>
+              <label htmlFor="spouseBirthCountry" className="block text-sm font-medium text-primary mb-1">País de Nascimento *</label>
+              <input
+                id="spouseBirthCountry"
+                name="spouseBirthCountry"
+                required
+                type="text"
+                value={step1.spouseBirthCountry}
+                onChange={handleChange}
+                className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red bg-white"
+                placeholder="Ex: Brasil"
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -98,8 +175,8 @@ export default function Step1PersonalInfo() {
                 <input id="otherNationalityCountry" name="otherNationalityCountry" required type="text" value={step1.otherNationalityCountry} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
              </div>
              <div>
-                <label htmlFor="otherPassportNumber" className="block text-sm font-medium text-primary mb-1">Número do Passaporte do outro país</label>
-                <input id="otherPassportNumber" name="otherPassportNumber" type="text" value={step1.otherPassportNumber} onChange={handleChange} placeholder="Se aplicável" className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
+                <label htmlFor="otherPassportNumber" className="block text-sm font-medium text-primary mb-1">Número do Passaporte do outro país *</label>
+                <input id="otherPassportNumber" name="otherPassportNumber" required type="text" value={step1.otherPassportNumber} onChange={handleChange} placeholder="Número do passaporte do outro país" className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
              </div>
           </div>
         )}

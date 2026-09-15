@@ -61,15 +61,23 @@ export default function Step4Travel() {
           </div>
         </div>
         
-        {step4.hasSpecificTravelPlans === 'No' && (
+        {step4.hasSpecificTravelPlans !== '' && (
           <div className="animate-fade-in mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2 text-sm text-dark-gray italic">Como não há planos específicos, por favor, insira uma data e período pretendidos/ideais:</div>
+            <div className="md:col-span-2 text-sm text-dark-gray italic">
+              {step4.hasSpecificTravelPlans === 'Yes' 
+                ? 'Insira a data de chegada e a duração da estadia planejadas:' 
+                : 'Como não há planos específicos, por favor, insira uma data e período pretendidos/ideais:'}
+            </div>
              <div>
-               <label htmlFor="intendedArrivalDate" className="block text-sm font-medium text-primary mb-1">Data Pretendida de Chegada *</label>
+               <label htmlFor="intendedArrivalDate" className="block text-sm font-medium text-primary mb-1">
+                 {step4.hasSpecificTravelPlans === 'Yes' ? 'Data de Chegada *' : 'Data Pretendida de Chegada *'}
+               </label>
                <input id="intendedArrivalDate" name="intendedArrivalDate" required type="date" value={step4.intendedArrivalDate} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
              </div>
              <div>
-               <label htmlFor="intendedStayLength" className="block text-sm font-medium text-primary mb-1">Tempo Pretendido de Estadia (em dias) *</label>
+               <label htmlFor="intendedStayLength" className="block text-sm font-medium text-primary mb-1">
+                 {step4.hasSpecificTravelPlans === 'Yes' ? 'Tempo de Estadia (em dias) *' : 'Tempo Pretendido de Estadia (em dias) *'}
+               </label>
                <input id="intendedStayLength" name="intendedStayLength" required type="number" value={step4.intendedStayLength} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
              </div>
           </div>
@@ -93,8 +101,8 @@ export default function Step4Travel() {
                <input id="usAddressState" name="usAddressState" required type="text" value={step4.usAddressState} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
              </div>
              <div>
-               <label htmlFor="usAddressZip" className="block text-sm font-medium text-primary mb-1">ZIP Code</label>
-               <input id="usAddressZip" name="usAddressZip" type="text" value={step4.usAddressZip} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
+               <label htmlFor="usAddressZip" className="block text-sm font-medium text-primary mb-1">ZIP Code *</label>
+               <input id="usAddressZip" name="usAddressZip" required type="text" value={step4.usAddressZip} onChange={handleChange} className="w-full p-3 border border-dark-gray rounded-xl focus:ring-2 focus:ring-accent-red" />
              </div>
           </div>
         </div>
