@@ -8,6 +8,7 @@ interface SiteSettings {
   address: string;
   cnpj: string;
   youtubeChannelId?: string;
+  customYoutubeVideos?: string;
   metric1Value?: string;
   metric1Label?: string;
   metric2Value?: string;
