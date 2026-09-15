@@ -150,7 +150,7 @@ export default function Step7WorkEducation() {
       <div className="space-y-4">
         <h3 className="text-lg font-bold text-primary">Idiomas</h3>
         <div className="bg-light-gray p-5 rounded-2xl">
-          <span className="block text-sm font-medium text-primary mb-2">Quais idiomas você fala? (Liste os idiomas)</span>
+          <span className="block text-sm font-medium text-primary mb-2">Quais idiomas você fala? (Liste os idiomas) *</span>
           <div className="animate-fade-in space-y-3">
             {step7.languagesSpoken.map((lang, index) => (
               <div key={index} className="flex gap-3">

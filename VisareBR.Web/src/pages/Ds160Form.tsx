@@ -27,16 +27,17 @@ const isStepValid = (data: Ds160Data, stepIndex: number): boolean => {
   switch (stepIndex) {
     case 0: {
       const s1 = data.step1;
-      if (!s1.fullName || !s1.nativeName || !s1.usedOtherNames || !s1.gender || !s1.maritalStatus || !s1.birthDate || !s1.otherNationality || !s1.cpf || !s1.rg) return false;
+      if (!s1.fullName || !s1.nativeName || !s1.usedOtherNames || !s1.gender || !s1.maritalStatus || !s1.birthDate || !s1.birthCity || !s1.birthState || !s1.birthCountry || !s1.otherNationality || !s1.cpf || !s1.rg) return false;
       if (s1.usedOtherNames === 'Yes' && !s1.otherNames) return false;
       if (s1.maritalStatus === 'Other' && !s1.maritalStatusExplain) return false;
-      if (s1.otherNationality === 'Yes' && !s1.otherNationalityCountry) return false;
+      if (s1.maritalStatus === 'Married' && (!s1.spouseFullName || !s1.spouseBirthDate || !s1.spouseBirthCity || !s1.spouseBirthCountry)) return false;
+      if (s1.otherNationality === 'Yes' && (!s1.otherNationalityCountry || !s1.otherPassportNumber)) return false;
       return true;
     }
     case 1: {
       const s2 = data.step2;
-      if (!s2.homeAddress || !s2.sameMailingAddress || !s2.primaryPhone || !s2.primaryEmail || !s2.hasSocialMedia) return false;
-      if (s2.sameMailingAddress === 'No' && !s2.mailingAddress) return false;
+      if ((!s2.homeStreet && !s2.homeAddress) || !s2.homeNumber || (!s2.homeNeighborhood && !s2.homeAddress) || !s2.homeComplement || !s2.homeCity || !s2.homeState || !s2.homeZip || !s2.homeCountry || !s2.sameMailingAddress || !s2.primaryPhone || !s2.primaryEmail || !s2.hasSocialMedia) return false;
+      if (s2.sameMailingAddress === 'No' && ((!s2.mailingStreet && !s2.mailingAddress) || !s2.mailingNumber || (!s2.mailingNeighborhood && !s2.mailingAddress) || !s2.mailingComplement || !s2.mailingCity || !s2.mailingState || !s2.mailingZip || !s2.mailingCountry)) return false;
       if (s2.hasSocialMedia === 'Yes' && (!s2.socialMediaProfiles.length || s2.socialMediaProfiles.some(p => !p.platform || !p.identifier))) return false;
       return true;
     }
@@ -49,8 +50,7 @@ const isStepValid = (data: Ds160Data, stepIndex: number): boolean => {
     }
     case 3: {
       const s4 = data.step4;
-      if (!s4.consularPost || !s4.tripPurpose || !s4.hasSpecificTravelPlans || !s4.usAddressStreet || !s4.usAddressCity || !s4.usAddressState || !s4.payingParty || !s4.hasTravelCompanions) return false;
-      if (s4.hasSpecificTravelPlans === 'No' && (!s4.intendedArrivalDate || !s4.intendedStayLength)) return false;
+      if (!s4.consularPost || !s4.tripPurpose || !s4.hasSpecificTravelPlans || !s4.intendedArrivalDate || !s4.intendedStayLength || !s4.usAddressStreet || !s4.usAddressCity || !s4.usAddressState || !s4.usAddressZip || !s4.payingParty || !s4.hasTravelCompanions) return false;
       if ((s4.payingParty === 'Other' || s4.payingParty === 'Company') && (!s4.payingPartyName || !s4.payingPartyPhone || !s4.payingPartyEmail || !s4.payingPartyRelationship)) return false;
       if (s4.hasTravelCompanions === 'Yes' && (!s4.travelCompanions.length || s4.travelCompanions.some(c => !c.fullName || !c.relationship))) return false;
       return true;
@@ -62,7 +62,7 @@ const isStepValid = (data: Ds160Data, stepIndex: number): boolean => {
       if (s5.hasUSVisa === 'Yes' && (!s5.usVisaNumber || !s5.usVisaIssueDate || !s5.usVisaExpiryDate)) return false;
       if (s5.hasRefusedUSVisa === 'Yes' && !s5.refusedUSVisaExplanation) return false;
       if (s5.hasImmigrationPetition === 'Yes' && !s5.immigrationPetitionExplanation) return false;
-      if (s5.hasTraveledInternationally === 'Yes' && (!s5.countriesVisited.length || s5.countriesVisited.some(c => !c))) return false;
+      if (s5.hasTraveledInternationally === 'Yes' && (!s5.countriesVisited.length || s5.countriesVisited.some(c => !c || !c.trim()))) return false;
       if (s5.hasUSContact === 'Yes' && (!s5.usContactName || !s5.usContactAddress || !s5.usContactPhone || !s5.usContactEmail || !s5.usContactRelationship)) return false;
       return true;
     }
@@ -81,6 +81,7 @@ const isStepValid = (data: Ds160Data, stepIndex: number): boolean => {
       if (['Employed', 'Self-employed'].includes(s7.primaryOccupation) && !s7.currentMonthlySalary) return false;
       if (s7.hasPreviousEmployment === 'Yes' && (!s7.previousEmployers.length || s7.previousEmployers.some(e => !e.employerName || !e.employerAddress || !e.supervisorName || !e.jobTitle || !e.startDate || !e.endDate || !e.duties))) return false;
       if (s7.hasHigherEducation === 'Yes' && (!s7.educationHistory.length || s7.educationHistory.some(e => !e.schoolName || !e.schoolAddress || !e.courseOfStudy || !e.startDate || !e.endDate))) return false;
+      if (!s7.languagesSpoken.length || s7.languagesSpoken.some(l => !l || !l.trim())) return false;
       return true;
     }
     case 7: {

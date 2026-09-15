@@ -168,6 +168,13 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
               {formData.step1?.maritalStatusExplain && (
                 <DetailField label="Explicação do Estado Civil" value={formData.step1?.maritalStatusExplain} fullWidth />
               )}
+              {formData.step1?.maritalStatus === 'Married' && (
+                <>
+                  <DetailField label="Nome do Cônjuge" value={formData.step1?.spouseFullName} />
+                  <DetailField label="Data Nac. Cônjuge" value={formData.step1?.spouseBirthDate} />
+                  <DetailField label="Local Nac. Cônjuge" value={`${formData.step1?.spouseBirthCity || ''} (${formData.step1?.spouseBirthCountry || 'Brasil'})`} />
+                </>
+              )}
             </div>
 
             <SectionHeader title="Outros Nomes Utilizados" icon={FileText} />
@@ -208,7 +215,10 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
           <div className="space-y-6 animate-fade-in text-left">
             <SectionHeader title="Endereço Residencial" icon={MapPin} />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <DetailField label="Endereço" value={formData.step2?.homeAddress} fullWidth />
+              <DetailField label="Rua / Logradouro" value={formData.step2?.homeStreet || formData.step2?.homeAddress} />
+              <DetailField label="Número" value={formData.step2?.homeNumber} />
+              <DetailField label="Bairro" value={formData.step2?.homeNeighborhood} />
+              <DetailField label="Complemento" value={formData.step2?.homeComplement} />
               <DetailField label="Cidade" value={formData.step2?.homeCity} />
               <DetailField label="Estado" value={formData.step2?.homeState} />
               <DetailField label="CEP" value={formData.step2?.homeZip} />
@@ -217,9 +227,18 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
 
             <SectionHeader title="Endereço de Correspondência" icon={Mail} />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <DetailField label="Correspondência igual ao Residencial?" value={renderBooleanBadge(formData.step2?.sameMailingAddress)} />
+              <DetailField label="Correspondência igual ao Residencial?" value={renderBooleanBadge(formData.step2?.sameMailingAddress)} fullWidth />
               {formData.step2?.sameMailingAddress === 'No' && (
-                <DetailField label="Endereço de Correspondência" value={formData.step2?.mailingAddress} fullWidth />
+                <>
+                  <DetailField label="Rua / Logradouro de Correspondência" value={formData.step2?.mailingStreet || formData.step2?.mailingAddress} />
+                  <DetailField label="Número" value={formData.step2?.mailingNumber} />
+                  <DetailField label="Bairro" value={formData.step2?.mailingNeighborhood} />
+                  <DetailField label="Complemento" value={formData.step2?.mailingComplement} />
+                  <DetailField label="Cidade" value={formData.step2?.mailingCity} />
+                  <DetailField label="Estado" value={formData.step2?.mailingState} />
+                  <DetailField label="CEP" value={formData.step2?.mailingZip} />
+                  <DetailField label="País" value={formData.step2?.mailingCountry} />
+                </>
               )}
             </div>
 
@@ -899,6 +918,13 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
             <DetailField label="Gênero" value={formData.step1?.gender} />
             <DetailField label="Estado Civil" value={formData.step1?.maritalStatus} />
             {formData.step1?.maritalStatusExplain && <DetailField label="Explicação Estado Civil" value={formData.step1?.maritalStatusExplain} />}
+            {formData.step1?.maritalStatus === 'Married' && (
+              <>
+                <DetailField label="Nome Completo do Cônjuge" value={formData.step1?.spouseFullName} />
+                <DetailField label="Data Nac. Cônjuge" value={formData.step1?.spouseBirthDate} />
+                <DetailField label="Local Nac. Cônjuge" value={`${formData.step1?.spouseBirthCity || ''} (${formData.step1?.spouseBirthCountry || 'Brasil'})`} />
+              </>
+            )}
             <DetailField label="Data de Nascimento" value={formData.step1?.birthDate} />
             <DetailField label="Cidade de Nascimento" value={formData.step1?.birthCity} />
             <DetailField label="Estado de Nascimento" value={formData.step1?.birthState} />
@@ -913,12 +939,21 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
         <div className="space-y-3 break-inside-avoid">
           <SectionHeader title="2. Endereço e Contato" icon={MapPin} />
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Endereço Residencial" value={formData.step2?.homeAddress} />
-            <DetailField label="Cidade/Estado/CEP" value={`${formData.step2?.homeCity || ''}, ${formData.step2?.homeState || ''} - CEP: ${formData.step2?.homeZip || ''}`} />
+            <DetailField label="Rua / Logradouro" value={formData.step2?.homeStreet || formData.step2?.homeAddress} />
+            <DetailField label="Número / Complemento" value={`${formData.step2?.homeNumber || ''} ${formData.step2?.homeComplement ? `(${formData.step2.homeComplement})` : ''}`} />
+            <DetailField label="Bairro" value={formData.step2?.homeNeighborhood} />
+            <DetailField label="Cidade/Estado/CEP/País" value={`${formData.step2?.homeCity || ''}, ${formData.step2?.homeState || ''} - CEP: ${formData.step2?.homeZip || ''} (${formData.step2?.homeCountry || 'Brasil'})`} />
             <DetailField label="Telefone Principal" value={formData.step2?.primaryPhone} />
             <DetailField label="E-mail Principal" value={formData.step2?.primaryEmail} />
+            {formData.step2?.sameMailingAddress === 'No' && (
+              <DetailField 
+                label="Endereço de Correspondência" 
+                value={`${formData.step2?.mailingStreet || formData.step2?.mailingAddress || ''}, Nº ${formData.step2?.mailingNumber || ''} (${formData.step2?.mailingComplement || ''}) - Bairro: ${formData.step2?.mailingNeighborhood || ''}, ${formData.step2?.mailingCity || ''}/${formData.step2?.mailingState || ''} - CEP: ${formData.step2?.mailingZip || ''}`} 
+                fullWidth
+              />
+            )}
             {formData.step2?.hasSocialMedia === 'Yes' && formData.step2?.socialMediaProfiles && formData.step2.socialMediaProfiles.length > 0 && (
-              <DetailField label="Redes Sociais" value={formData.step2.socialMediaProfiles.map((p: any) => `${p.platform}: ${p.identifier}`).join(', ')} />
+              <DetailField label="Redes Sociais" value={formData.step2.socialMediaProfiles.map((p: any) => `${p.platform}: ${p.identifier}`).join(', ')} fullWidth />
             )}
           </div>
         </div>

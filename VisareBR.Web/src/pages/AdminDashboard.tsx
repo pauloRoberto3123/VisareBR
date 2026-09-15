@@ -18,6 +18,23 @@ import type { CarouselItem } from '../api/carouselService';
 import Ds160Visualizer from '../components/Ds160Visualizer';
 import { compressImageFile, compressBase64Image } from '../utils/imageCompressor';
 
+const YoutubeIcon = ({ size = 20, className = '' }: { size?: number; className?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25a29 29 0 0 0-.46-5.33z" />
+    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" />
+  </svg>
+);
+
 const Delta = Quill.import('delta') as any;
 const ColorStyle = Quill.import('attributors/style/color') as any;
 const BackgroundStyle = Quill.import('attributors/style/background') as any;
@@ -435,6 +452,7 @@ export default function AdminDashboard() {
     companyEmail: '',
     youtubeChannelId: '',
     googleAnalyticsId: '',
+    customYoutubeVideos: '[]',
     metric1Value: '',
     metric1Label: '',
     metric2Value: '',
@@ -442,6 +460,25 @@ export default function AdminDashboard() {
     metric3Value: '',
     metric3Label: ''
   });
+
+  const [customVideos, setCustomVideos] = useState<{ id: string; title: string; videoUrl: string }[]>([]);
+
+  useEffect(() => {
+    if (settings.customYoutubeVideos) {
+      try {
+        setCustomVideos(JSON.parse(settings.customYoutubeVideos));
+      } catch (e) {
+        setCustomVideos([]);
+      }
+    } else {
+      setCustomVideos([]);
+    }
+  }, [settings.customYoutubeVideos]);
+
+  const updateCustomVideosState = (newVideos: typeof customVideos) => {
+    setCustomVideos(newVideos);
+    setSettings(prev => ({ ...prev, customYoutubeVideos: JSON.stringify(newVideos) }));
+  };
 
   const quillModules = {
     history: {
@@ -1889,6 +1926,136 @@ export default function AdminDashboard() {
                 placeholder="Insira o ID do Google Analytics (opcional)"
               />
             </div>
+
+            {/* Custom Videos Configuration */}
+            <div className="border-t border-gray-200 pt-6 mt-6 space-y-4">
+              <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                <YoutubeIcon className="text-red-500" size={22} /> Vídeos Personalizados da Página Inicial
+              </h3>
+              <p className="text-xs text-dark-gray/70 leading-relaxed">
+                Adicione vídeos que serão exibidos na página inicial (por exemplo, depoimentos, tutoriais ou apresentações). Insira o título do vídeo e a URL do YouTube. O sistema carregará a capa e a reprodução automaticamente.
+              </p>
+              
+              <div className="space-y-3">
+                {customVideos.map((video, index) => {
+                  const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\\s]{11})/i;
+                  const match = video.videoUrl.match(ytRegex);
+                  const videoId = match ? match[1] : null;
+                  
+                  return (
+                    <div key={video.id} className="flex flex-col md:flex-row gap-3 items-start md:items-center bg-light-gray p-4 rounded-xl border border-gray-200">
+                      {/* Thumbnail Preview */}
+                      <div className="w-24 h-14 bg-black rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-gray-300">
+                        {videoId ? (
+                          <img 
+                            src={`https://img.youtube.com/vi/${videoId}/default.jpg`} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-[10px] text-gray-400">Sem vídeo</span>
+                        )}
+                      </div>
+                      
+                      {/* Inputs */}
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                        <input
+                          type="text"
+                          placeholder="Título do Vídeo"
+                          className="p-2 border border-dark-gray rounded-md text-sm text-primary w-full"
+                          value={video.title}
+                          onChange={e => {
+                            const updated = [...customVideos];
+                            updated[index].title = e.target.value;
+                            updateCustomVideosState(updated);
+                          }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="URL do Vídeo (ex: https://www.youtube.com/watch?v=...)"
+                          className="p-2 border border-dark-gray rounded-md text-sm text-primary w-full"
+                          value={video.videoUrl}
+                          onChange={e => {
+                            const updated = [...customVideos];
+                            updated[index].videoUrl = e.target.value;
+                            updateCustomVideosState(updated);
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex gap-2 self-end md:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (index === 0) return;
+                            const updated = [...customVideos];
+                            const temp = updated[index];
+                            updated[index] = updated[index - 1];
+                            updated[index - 1] = temp;
+                            updateCustomVideosState(updated);
+                          }}
+                          disabled={index === 0}
+                          className={`p-1.5 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent ${index === 0 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                          title="Mover para Cima"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (index === customVideos.length - 1) return;
+                            const updated = [...customVideos];
+                            const temp = updated[index];
+                            updated[index] = updated[index + 1];
+                            updated[index + 1] = temp;
+                            updateCustomVideosState(updated);
+                          }}
+                          disabled={index === customVideos.length - 1}
+                          className={`p-1.5 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent ${index === customVideos.length - 1 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                          title="Mover para Baixo"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = customVideos.filter((_, i) => i !== index);
+                            updateCustomVideosState(updated);
+                          }}
+                          className="p-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 cursor-pointer flex items-center justify-center"
+                          title="Excluir"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {customVideos.length === 0 && (
+                  <div className="text-center py-6 bg-light-gray rounded-xl border border-dashed border-gray-300">
+                    <p className="text-sm text-gray-400">Nenhum vídeo personalizado adicionado ainda.</p>
+                  </div>
+                )}
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newVideo = {
+                      id: Math.random().toString(36).substring(2, 9),
+                      title: '',
+                      videoUrl: ''
+                    };
+                    updateCustomVideosState([...customVideos, newVideo]);
+                  }}
+                  className="w-full border-2 border-dashed border-accent-gold/40 text-accent-gold hover:bg-accent-gold/5 py-2.5 rounded-xl font-medium transition-colors text-sm cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} /> Adicionar Vídeo
+                </button>
+              </div>
+            </div>
+
             <button className="w-full bg-accent-red text-secondary py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors">
               Salvar Configurações
             </button>

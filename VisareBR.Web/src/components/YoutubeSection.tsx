@@ -65,10 +65,78 @@ export default function YoutubeSection() {
     );
   }
 
-  // If no videos are returned (i.e. channel ID is not configured or error occurred), hide the section
-  if (videos.length === 0) {
+  // Parse custom videos from settings
+  const customVideosList: YoutubeVideo[] = [];
+  if (settings?.customYoutubeVideos) {
+    try {
+      const parsed = JSON.parse(settings.customYoutubeVideos) as { id: string; title: string; videoUrl: string }[];
+      parsed.forEach(video => {
+        const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\\s]{11})/i;
+        const match = video.videoUrl.match(ytRegex);
+        const videoId = match ? match[1] : null;
+        if (videoId) {
+          customVideosList.push({
+            videoId: videoId,
+            title: video.title || 'Vídeo Recomendado',
+            published: new Date().toISOString(), // Fallback
+            videoUrl: video.videoUrl,
+            thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+          });
+        }
+      });
+    } catch (e) {
+      console.error("Error parsing custom videos:", e);
+    }
+  }
+
+  // If no videos are returned and no custom videos are defined, hide the section
+  if (videos.length === 0 && customVideosList.length === 0) {
     return null;
   }
+
+  const renderVideoCard = (video: YoutubeVideo) => {
+    const isShort = video.title.toLowerCase().includes('#shorts') || 
+                    video.title.toLowerCase().includes('#short') || 
+                    video.videoUrl.includes('/shorts/');
+    return (
+      <button
+        key={video.videoId}
+        onClick={() => setActiveVideo(video)}
+        className="group text-left bg-[#1e293b]/40 backdrop-blur-sm rounded-2xl border border-[#334155]/30 overflow-hidden hover:border-red-500/30 transition-all duration-300 flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-1 w-full cursor-pointer"
+      >
+        {/* Dynamic Aspect Ratio Thumbnail Container */}
+        <div className={`relative w-full overflow-hidden bg-black ${isShort ? 'aspect-[9/16]' : 'aspect-[16/9]'}`}>
+          <img
+            src={video.thumbnailUrl}
+            alt={video.title}
+            className={`w-full h-full object-cover transition-transform duration-500 ${isShort ? 'scale-[1.35] group-hover:scale-[1.42]' : 'scale-100 group-hover:scale-105'}`}
+            loading="lazy"
+          />
+          
+          {/* Play Button Overlay */}
+          <div className="absolute inset-0 bg-black/45 flex items-center justify-center opacity-90 group-hover:bg-black/25 transition-colors">
+            <div className="w-12 h-12 bg-red-600 group-hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
+              <Play size={20} className="fill-current translate-x-0.5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Video Info */}
+        <div className="p-4 flex flex-col flex-1 bg-slate-900/50 w-full">
+          <h3 className="font-bold text-sm text-white line-clamp-2 leading-snug group-hover:text-red-400 transition-colors flex-1 mb-2">
+            {video.title}
+          </h3>
+          <span className="text-[10px] text-slate-400 font-medium">
+            {new Date(video.published).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </span>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <section className="py-24 bg-gradient-to-b from-primary to-primary-dark text-secondary relative overflow-hidden">
@@ -89,53 +157,34 @@ export default function YoutubeSection() {
           </p>
         </div>
 
-        {/* Video Grid optimized for YouTube Shorts */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
-          {videos.map((video) => {
-            const isShort = video.title.toLowerCase().includes('#shorts') || video.title.toLowerCase().includes('#short') || video.videoUrl.includes('/shorts/');
-            return (
-              <button
-                key={video.videoId}
-                onClick={() => setActiveVideo(video)}
-                className="group text-left bg-[#1e293b]/40 backdrop-blur-sm rounded-2xl border border-[#334155]/30 overflow-hidden hover:border-red-500/30 transition-all duration-300 flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-1 w-full cursor-pointer"
-              >
-                {/* Dynamic Aspect Ratio Thumbnail Container */}
-                <div className={`relative w-full overflow-hidden bg-black ${isShort ? 'aspect-[9/16]' : 'aspect-[16/9]'}`}>
-                  <img
-                    src={video.thumbnailUrl}
-                    alt={video.title}
-                    className={`w-full h-full object-cover transition-transform duration-500 ${isShort ? 'scale-[1.35] group-hover:scale-[1.42]' : 'scale-100 group-hover:scale-105'}`}
-                    loading="lazy"
-                  />
-                  
-                  {/* Play Button Overlay */}
-                  <div className="absolute inset-0 bg-black/45 flex items-center justify-center opacity-90 group-hover:bg-black/25 transition-colors">
-                    <div className="w-12 h-12 bg-red-600 group-hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
-                      <Play size={20} className="fill-current translate-x-0.5" />
-                    </div>
-                  </div>
-                </div>
+        {/* Channel Videos Section */}
+        {videos.length > 0 && (
+          <div className={customVideosList.length > 0 ? "mb-16" : ""}>
+            {customVideosList.length > 0 && (
+              <h3 className="text-xl font-bold text-white mb-6 border-l-4 border-red-500 pl-3">
+                Últimos Vídeos do Canal
+              </h3>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
+              {videos.map(video => renderVideoCard(video))}
+            </div>
+          </div>
+        )}
 
-                {/* Video Info */}
-                <div className="p-4 flex flex-col flex-1 bg-slate-900/50 w-full">
-                  <h3 className="font-bold text-sm text-white line-clamp-2 leading-snug group-hover:text-red-400 transition-colors flex-1 mb-2">
-                    {video.title}
-                  </h3>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    {new Date(video.published).toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {/* Custom Videos Section */}
+        {customVideosList.length > 0 && (
+          <div className="mt-16">
+            <h3 className="text-xl font-bold text-white mb-6 border-l-4 border-accent-gold pl-3">
+              Vídeos Recomendados
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
+              {customVideosList.map(video => renderVideoCard(video))}
+            </div>
+          </div>
+        )}
 
         {/* Footer Link to Channel */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-16">
           <a
             href={
               settings?.youtubeChannelId 

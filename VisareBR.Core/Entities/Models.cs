@@ -100,6 +100,7 @@ public class SiteSettings
 
     public string YoutubeChannelId { get; set; } = string.Empty;
     public string? GoogleAnalyticsId { get; set; }
+    public string CustomYoutubeVideos { get; set; } = "[]";
 
     // Metrics for Home Page
     public string Metric1Value { get; set; } = "+5000";
