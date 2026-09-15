@@ -41,6 +41,10 @@ export interface Ds160Data {
     gender: string;
     maritalStatus: string;
     maritalStatusExplain: string;
+    spouseFullName: string;
+    spouseBirthDate: string;
+    spouseBirthCity: string;
+    spouseBirthCountry: string;
     birthDate: string;
     birthCity: string;
     birthState: string;
@@ -53,13 +57,25 @@ export interface Ds160Data {
     rgIssuer: string;
   };
   step2: {
-    homeAddress: string;
+    homeStreet: string;
+    homeNumber: string;
+    homeNeighborhood: string;
+    homeComplement: string;
     homeCity: string;
     homeState: string;
     homeZip: string;
     homeCountry: string;
     sameMailingAddress: string; // 'Yes' | 'No' | ''
-    mailingAddress: string;
+    mailingStreet: string;
+    mailingNumber: string;
+    mailingNeighborhood: string;
+    mailingComplement: string;
+    mailingCity: string;
+    mailingState: string;
+    mailingZip: string;
+    mailingCountry: string;
+    homeAddress?: string;
+    mailingAddress?: string;
     primaryPhone: string;
     workPhone: string;
     hasAdditionalPhone: string;
@@ -160,13 +176,15 @@ export interface Ds160Data {
 const initialState: Ds160Data = {
   step1: {
     fullName: '', nativeName: '', usedOtherNames: '', otherNames: '', telecodeName: '',
-    gender: '', maritalStatus: '', maritalStatusExplain: '', birthDate: '', birthCity: '',
-    birthState: '', birthCountry: '', otherNationality: '', otherNationalityCountry: '',
+    gender: '', maritalStatus: '', maritalStatusExplain: '', spouseFullName: '', spouseBirthDate: '', spouseBirthCity: '', spouseBirthCountry: 'Brasil', birthDate: '', birthCity: '',
+    birthState: '', birthCountry: 'Brasil', otherNationality: '', otherNationalityCountry: '',
     otherPassportNumber: '', cpf: '', rg: '', rgIssuer: ''
   },
   step2: {
-    homeAddress: '', homeCity: '', homeState: '', homeZip: '', homeCountry: '',
-    sameMailingAddress: '', mailingAddress: '', primaryPhone: '', workPhone: '',
+    homeStreet: '', homeNumber: '', homeNeighborhood: '', homeComplement: '', homeCity: '', homeState: '', homeZip: '', homeCountry: 'Brasil',
+    sameMailingAddress: '', mailingStreet: '', mailingNumber: '', mailingNeighborhood: '', mailingComplement: '', mailingCity: '', mailingState: '', mailingZip: '', mailingCountry: 'Brasil',
+    homeAddress: '', mailingAddress: '',
+    primaryPhone: '', workPhone: '',
     hasAdditionalPhone: '', additionalPhones: '', primaryEmail: '', hasSocialMedia: '',
     socialMediaProfiles: []
   },
@@ -190,7 +208,7 @@ const initialState: Ds160Data = {
     fatherFullName: '', fatherBirthDate: '', isFatherInUS: '', fatherUSStatus: '', motherFullName: '', motherBirthDate: '', isMotherInUS: '', motherUSStatus: '', hasImmediateRelativesInUS: '', immediateRelatives: [], hasOtherRelativesInUS: ''
   },
   step7: {
-    primaryOccupation: '', currentEmployerSchoolName: '', currentEmployerSchoolAddress: '', currentEmployerSchoolPhone: '', currentStartDate: '', currentMonthlySalary: '', currentDuties: '', hasPreviousEmployment: '', previousEmployers: [], hasHigherEducation: '', educationHistory: [], languagesSpoken: [], professionalOrganizations: '', hasSpecialSkills: '', specialSkillsExplanation: '', hasMilitaryService: '', militaryCountry: '', militaryBranch: '', militaryRank: '', militarySpecialty: '', militaryStartDate: '', militaryEndDate: ''
+    primaryOccupation: '', currentEmployerSchoolName: '', currentEmployerSchoolAddress: '', currentEmployerSchoolPhone: '', currentStartDate: '', currentMonthlySalary: '', currentDuties: '', hasPreviousEmployment: '', previousEmployers: [], hasHigherEducation: '', educationHistory: [], languagesSpoken: [''], professionalOrganizations: '', hasSpecialSkills: '', specialSkillsExplanation: '', hasMilitaryService: '', militaryCountry: '', militaryBranch: '', militaryRank: '', militarySpecialty: '', militaryStartDate: '', militaryEndDate: ''
   },
   step8: {
     disease: '', diseaseExplain: '', criminal: '', criminalExplain: '', terrorism: '', terrorismExplain: '', fraud: '', fraudExplain: '', deported: '', deportedExplain: '', declarationAccepted: false, signature: ''
