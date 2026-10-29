@@ -90,6 +90,48 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
     </h3>
   );
 
+  // Helper for safe salary formatting
+  const formatSalarySafe = (val: string | number | undefined | null) => {
+    if (val === undefined || val === null || val === '') return 'Não informado';
+    const str = String(val).trim();
+    if (!str) return 'Não informado';
+
+    let cleaned = str.replace(/R\$\s*/gi, '').replace(/\s+/g, '').trim();
+
+    if (cleaned.includes(',')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else if (/^\d+\.\d{3}$/.test(cleaned)) {
+      cleaned = cleaned.replace('.', '');
+    }
+
+    const num = Number(cleaned);
+    if (!isNaN(num) && isFinite(num) && num > 0) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+    }
+
+    return str;
+  };
+
+  // Helper for print field items
+  const PrintField = ({ label, value, fullWidth = false, highlight = false }: { label: string; value: React.ReactNode; fullWidth?: boolean; highlight?: boolean }) => (
+    <div className={`p-2 bg-gray-50/70 border border-gray-200 rounded-lg text-xs break-inside-avoid ${
+      fullWidth ? 'col-span-2 sm:col-span-3' : 'col-span-1'
+    } ${highlight ? 'border-primary/40 bg-slate-100/70 font-bold' : ''}`}>
+      <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">{label}</span>
+      <div className="font-semibold text-gray-900 break-words">
+        {value === null || value === undefined || value === '' ? <span className="text-gray-400 italic font-normal">Não informado</span> : value}
+      </div>
+    </div>
+  );
+
+  // Helper for print section headers
+  const PrintSectionHeader = ({ title, icon: Icon }: { title: string; icon: any }) => (
+    <div className="flex items-center gap-2 border-b-2 border-primary/80 pb-1.5 mb-2.5 mt-5 first:mt-0 break-inside-avoid">
+      <Icon size={15} className="text-primary" />
+      <h3 className="text-xs font-black text-primary uppercase tracking-wider">{title}</h3>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* Botão de Exportação para PDF (Visível apenas na tela) */}
@@ -620,11 +662,7 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
               <DetailField label="Nome da Empresa / Instituição" value={formData.step7?.currentEmployerSchoolName} />
               <DetailField label="Telefone de Contato" value={formData.step7?.currentEmployerSchoolPhone} />
               <DetailField label="Data de Início" value={formData.step7?.currentStartDate} />
-              <DetailField label="Salário Mensal (R$)" value={
-                formData.step7?.currentMonthlySalary 
-                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(formData.step7.currentMonthlySalary)) 
-                  : '-'
-              } />
+              <DetailField label="Salário Mensal (R$)" value={formatSalarySafe(formData.step7?.currentMonthlySalary)} />
               <div className="hidden lg:block"></div> {/* Spacer */}
               <DetailField label="Endereço da Ocupação" value={formData.step7?.currentEmployerSchoolAddress} fullWidth />
               <DetailField label="Funções / Deveres Principais" value={formData.step7?.currentDuties} fullWidth />
@@ -903,126 +941,419 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
     </div>
 
       {/* Versão Completa para Impressão (Visível apenas no print/PDF) */}
-      <div className="hidden print:block space-y-8 text-black font-sans bg-white p-4">
-        <div className="border-b-2 border-primary pb-4 mb-6">
-          <h1 className="text-xl font-black text-primary">Formulário de Solicitação DS-160 Completo</h1>
-          <p className="text-xs text-gray-500 mt-1">Requerente: <strong>{submission.applicantName}</strong> | Passaporte: <strong>{submission.passportNumber}</strong> | Data de Envio: <strong>{new Date(submission.createdAt).toLocaleString('pt-BR')}</strong></p>
+      <div className="hidden print:block space-y-6 text-black font-sans bg-white p-2">
+        {/* Cabeçalho Oficial do Dossier Consular */}
+        <div className="border-b-2 border-primary pb-3 mb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-lg font-black text-primary uppercase tracking-wide">Formulário de Solicitação DS-160 Completo</h1>
+              <p className="text-[11px] text-gray-500 font-medium">VisareBR Assessoria Consular • Relatório Consular de Dados</p>
+            </div>
+            <div className="text-right text-[11px]">
+              <span className="inline-block px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-primary border border-slate-200">
+                {submission.isReviewed ? 'Revisado / Validado' : 'Aguardando Revisão'}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+            <div>
+              <span className="block text-[10px] font-bold text-gray-500 uppercase">Requerente</span>
+              <strong className="text-primary">{submission.applicantName}</strong>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-gray-500 uppercase">Passaporte</span>
+              <strong className="text-primary font-mono">{submission.passportNumber}</strong>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-gray-500 uppercase">E-mail</span>
+              <span className="text-primary truncate block">{submission.email}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-gray-500 uppercase">Data de Envio</span>
+              <span className="text-primary">{new Date(submission.createdAt).toLocaleString('pt-BR')}</span>
+            </div>
+          </div>
         </div>
 
-        {/* 1. Dados Pessoais */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="1. Dados Pessoais e Nascimento" icon={User} />
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Nome Completo" value={formData.step1?.fullName} />
-            <DetailField label="Nome em Alfabeto Nativo" value={formData.step1?.nativeName} />
-            <DetailField label="Gênero" value={formData.step1?.gender} />
-            <DetailField label="Estado Civil" value={formData.step1?.maritalStatus} />
-            {formData.step1?.maritalStatusExplain && <DetailField label="Explicação Estado Civil" value={formData.step1?.maritalStatusExplain} />}
+        {/* 1. Dados Pessoais e Identificação */}
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="1. Dados Pessoais e Identificação" icon={User} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <PrintField label="Nome Completo" value={formData.step1?.fullName} fullWidth highlight />
+            <PrintField label="Nome em Alfabeto Nativo" value={formData.step1?.nativeName} />
+            <PrintField label="Gênero" value={formData.step1?.gender === 'Male' ? 'Masculino' : formData.step1?.gender === 'Female' ? 'Feminino' : formData.step1?.gender} />
+            <PrintField label="Estado Civil" value={formData.step1?.maritalStatus} />
+            {formData.step1?.maritalStatusExplain && <PrintField label="Explicação Estado Civil" value={formData.step1?.maritalStatusExplain} fullWidth />}
             {formData.step1?.maritalStatus === 'Married' && (
               <>
-                <DetailField label="Nome Completo do Cônjuge" value={formData.step1?.spouseFullName} />
-                <DetailField label="Data Nac. Cônjuge" value={formData.step1?.spouseBirthDate} />
-                <DetailField label="Local Nac. Cônjuge" value={`${formData.step1?.spouseBirthCity || ''} (${formData.step1?.spouseBirthCountry || 'Brasil'})`} />
+                <PrintField label="Nome Completo do Cônjuge" value={formData.step1?.spouseFullName} />
+                <PrintField label="Data Nac. Cônjuge" value={formData.step1?.spouseBirthDate} />
+                <PrintField label="Local Nac. Cônjuge" value={`${formData.step1?.spouseBirthCity || ''} (${formData.step1?.spouseBirthCountry || 'Brasil'})`} />
               </>
             )}
-            <DetailField label="Data de Nascimento" value={formData.step1?.birthDate} />
-            <DetailField label="Cidade de Nascimento" value={formData.step1?.birthCity} />
-            <DetailField label="Estado de Nascimento" value={formData.step1?.birthState} />
-            <DetailField label="País de Nascimento" value={formData.step1?.birthCountry} />
-            <DetailField label="CPF" value={formData.step1?.cpf} />
-            <DetailField label="RG" value={formData.step1?.rg} />
-            <DetailField label="Emissor do RG" value={formData.step1?.rgIssuer} />
+            <PrintField label="Data de Nascimento" value={formData.step1?.birthDate} />
+            <PrintField label="Cidade de Nascimento" value={formData.step1?.birthCity} />
+            <PrintField label="Estado de Nascimento" value={formData.step1?.birthState} />
+            <PrintField label="País de Nascimento" value={formData.step1?.birthCountry} />
+            <PrintField label="Usou outros nomes?" value={renderBooleanBadge(formData.step1?.usedOtherNames)} />
+            {formData.step1?.usedOtherNames === 'Yes' && <PrintField label="Nomes Alternativos" value={formData.step1?.otherNames} />}
+            <PrintField label="Nome em Telecódigo?" value={renderBooleanBadge(formData.step1?.telecodeName)} />
+            <PrintField label="Outra Nacionalidade?" value={renderBooleanBadge(formData.step1?.otherNationality)} />
+            {formData.step1?.otherNationality === 'Yes' && (
+              <>
+                <PrintField label="País da Outra Nacionalidade" value={formData.step1?.otherNationalityCountry} />
+                <PrintField label="Número do Outro Passaporte" value={formData.step1?.otherPassportNumber} />
+              </>
+            )}
+            <PrintField label="CPF" value={formData.step1?.cpf} highlight />
+            <PrintField label="RG" value={formData.step1?.rg} />
+            <PrintField label="Órgão Emissor do RG" value={formData.step1?.rgIssuer} />
           </div>
         </div>
 
         {/* 2. Endereço e Contato */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="2. Endereço e Contato" icon={MapPin} />
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Rua / Logradouro" value={formData.step2?.homeStreet || formData.step2?.homeAddress} />
-            <DetailField label="Número / Complemento" value={`${formData.step2?.homeNumber || ''} ${formData.step2?.homeComplement ? `(${formData.step2.homeComplement})` : ''}`} />
-            <DetailField label="Bairro" value={formData.step2?.homeNeighborhood} />
-            <DetailField label="Cidade/Estado/CEP/País" value={`${formData.step2?.homeCity || ''}, ${formData.step2?.homeState || ''} - CEP: ${formData.step2?.homeZip || ''} (${formData.step2?.homeCountry || 'Brasil'})`} />
-            <DetailField label="Telefone Principal" value={formData.step2?.primaryPhone} />
-            <DetailField label="E-mail Principal" value={formData.step2?.primaryEmail} />
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="2. Endereço e Contato" icon={MapPin} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <PrintField label="Rua / Logradouro" value={formData.step2?.homeStreet || formData.step2?.homeAddress} fullWidth />
+            <PrintField label="Número / Complemento" value={`${formData.step2?.homeNumber || ''} ${formData.step2?.homeComplement ? `(${formData.step2.homeComplement})` : ''}`} />
+            <PrintField label="Bairro" value={formData.step2?.homeNeighborhood} />
+            <PrintField label="Cidade / Estado" value={`${formData.step2?.homeCity || ''} - ${formData.step2?.homeState || ''}`} />
+            <PrintField label="CEP" value={formData.step2?.homeZip} />
+            <PrintField label="País" value={formData.step2?.homeCountry || 'Brasil'} />
+            <PrintField label="Telefone Principal" value={formData.step2?.primaryPhone} highlight />
+            <PrintField label="Telefone de Trabalho" value={formData.step2?.workPhone} />
+            <PrintField label="E-mail Principal" value={formData.step2?.primaryEmail} highlight />
+            <PrintField label="Possui Telefone Adicional?" value={renderBooleanBadge(formData.step2?.hasAdditionalPhone)} />
+            {formData.step2?.hasAdditionalPhone === 'Yes' && (
+              <PrintField label="Telefones Adicionais" value={formData.step2?.additionalPhones} fullWidth />
+            )}
+            <PrintField label="Correspondência igual ao Residencial?" value={renderBooleanBadge(formData.step2?.sameMailingAddress)} fullWidth />
             {formData.step2?.sameMailingAddress === 'No' && (
-              <DetailField 
+              <PrintField 
                 label="Endereço de Correspondência" 
-                value={`${formData.step2?.mailingStreet || formData.step2?.mailingAddress || ''}, Nº ${formData.step2?.mailingNumber || ''} (${formData.step2?.mailingComplement || ''}) - Bairro: ${formData.step2?.mailingNeighborhood || ''}, ${formData.step2?.mailingCity || ''}/${formData.step2?.mailingState || ''} - CEP: ${formData.step2?.mailingZip || ''}`} 
+                value={`${formData.step2?.mailingStreet || formData.step2?.mailingAddress || ''}, Nº ${formData.step2?.mailingNumber || ''} (${formData.step2?.mailingComplement || ''}) - Bairro: ${formData.step2?.mailingNeighborhood || ''}, ${formData.step2?.mailingCity || ''}/${formData.step2?.mailingState || ''} - CEP: ${formData.step2?.mailingZip || ''} (${formData.step2?.mailingCountry || 'Brasil'})`} 
                 fullWidth
               />
             )}
+            <PrintField label="Possui redes sociais (5 anos)?" value={renderBooleanBadge(formData.step2?.hasSocialMedia)} />
             {formData.step2?.hasSocialMedia === 'Yes' && formData.step2?.socialMediaProfiles && formData.step2.socialMediaProfiles.length > 0 && (
-              <DetailField label="Redes Sociais" value={formData.step2.socialMediaProfiles.map((p: any) => `${p.platform}: ${p.identifier}`).join(', ')} fullWidth />
+              <div className="col-span-2 sm:col-span-3 p-2 bg-gray-50/70 border border-gray-200 rounded-lg text-xs">
+                <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Perfis de Redes Sociais</span>
+                <div className="flex flex-wrap gap-2">
+                  {formData.step2.socialMediaProfiles.map((p: any, idx: number) => (
+                    <span key={idx} className="px-2 py-0.5 bg-white border border-gray-300 rounded font-mono text-[11px]">
+                      <strong>{p.platform}:</strong> {p.identifier}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
 
         {/* 3. Documento de Viagem */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="3. Passaporte e Viagem" icon={CreditCard} />
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Número do Passaporte" value={formData.step3?.passportNumber} />
-            <DetailField label="País Emissor" value={formData.step3?.passportIssuerCountry} />
-            <DetailField label="Cidade/Estado de Emissão" value={`${formData.step3?.passportIssuerCity || ''} / ${formData.step3?.passportIssuerState || ''}`} />
-            <DetailField label="Data de Emissão" value={formData.step3?.passportIssueDate} />
-            <DetailField label="Data de Expiração" value={formData.step3?.passportExpiryDate} />
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="3. Passaporte e Documento de Viagem" icon={CreditCard} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <PrintField label="Tipo do Documento" value={formData.step3?.passportType || 'Regular'} />
+            <PrintField label="Número do Passaporte" value={formData.step3?.passportNumber} highlight />
+            <PrintField label="País Emissor" value={formData.step3?.passportIssuerCountry} />
+            <PrintField label="Cidade / Estado de Emissão" value={`${formData.step3?.passportIssuerCity || ''} / ${formData.step3?.passportIssuerState || ''}`} />
+            <PrintField label="Data de Emissão" value={formData.step3?.passportIssueDate} />
+            <PrintField label="Data de Expiração" value={formData.step3?.passportExpiryDate} highlight />
+            <PrintField label="Possui passaporte anterior?" value={renderBooleanBadge(formData.step3?.hasPreviousPassport)} />
+            {formData.step3?.hasPreviousPassport === 'Yes' && (
+              <>
+                <PrintField label="Nº Passaporte Anterior" value={formData.step3?.previousPassportNumber} />
+                <PrintField label="País Emissor Anterior" value={formData.step3?.previousPassportIssuerCountry} />
+                <PrintField label="Emissão / Expiração Anterior" value={`${formData.step3?.previousPassportIssueDate || '-'} a ${formData.step3?.previousPassportExpiryDate || '-'}`} />
+              </>
+            )}
+            <PrintField label="Já perdeu ou teve passaporte roubado?" value={renderBooleanBadge(formData.step3?.hasLostPassport)} />
+            {formData.step3?.hasLostPassport === 'Yes' && (
+              <PrintField label="Explicação do Extravio" value={formData.step3?.lostPassportExplanation} fullWidth />
+            )}
+            <PrintField label="Cópia / Foto do Passaporte" value={formData.step3?.passportPhotoBase64 ? 'Documento anexado no sistema' : 'Não anexado'} />
           </div>
         </div>
 
-        {/* 4. Detalhes da Viagem */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="4. Detalhes da Viagem e Estadia nos EUA" icon={Plane} />
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Posto Consular" value={formData.step4?.consularPost} />
-            <DetailField label="Propósito da Viagem" value={formData.step4?.tripPurpose} />
-            <DetailField label="Data Prevista de Chegada" value={formData.step4?.intendedArrivalDate} />
-            <DetailField label="Duração da Estadia" value={formData.step4?.intendedStayLength} />
-            <DetailField label="Endereço nos EUA" value={`${formData.step4?.usAddressStreet || ''}, ${formData.step4?.usAddressCity || ''}, ${formData.step4?.usAddressState || ''} - CEP: ${formData.step4?.usAddressZip || ''}`} />
-            <DetailField label="Quem pagará pela viagem?" value={formData.step4?.payingParty} />
+        {/* 4. Detalhes da Viagem e Estadia */}
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="4. Detalhes da Viagem e Estadia nos EUA" icon={Plane} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <PrintField label="Posto Consular" value={formData.step4?.consularPost} />
+            <PrintField label="Propósito da Viagem" value={formData.step4?.tripPurpose} />
+            <PrintField label="Possui planos específicos?" value={renderBooleanBadge(formData.step4?.hasSpecificTravelPlans)} />
+            <PrintField label="Data Prevista de Chegada" value={formData.step4?.intendedArrivalDate} />
+            <PrintField label="Duração da Estadia Pretendida" value={formData.step4?.intendedStayLength ? `${formData.step4.intendedStayLength} dias` : 'Não informado'} />
+            <PrintField label="Endereço de Estadia nos EUA" value={`${formData.step4?.usAddressStreet || ''}, ${formData.step4?.usAddressCity || ''}, ${formData.step4?.usAddressState || ''} - CEP: ${formData.step4?.usAddressZip || ''}`} fullWidth />
+            <PrintField label="Quem pagará pela viagem?" value={
+              formData.step4?.payingParty === 'Self' ? 'O próprio solicitante' : 
+              formData.step4?.payingParty === 'Other' ? 'Outra pessoa' : 
+              formData.step4?.payingParty === 'Company' ? 'Empresa / Organização' : 
+              formData.step4?.payingParty
+            } highlight />
+            {formData.step4?.payingParty !== 'Self' && (
+              <>
+                <PrintField label="Nome do Responsável Financeiro" value={formData.step4?.payingPartyName} />
+                <PrintField label="Parentesco / Vínculo" value={formData.step4?.payingPartyRelationship} />
+                <PrintField label="Telefone do Pagador" value={formData.step4?.payingPartyPhone} />
+                <PrintField label="E-mail do Pagador" value={formData.step4?.payingPartyEmail} />
+                <PrintField label="Mesmo endereço residencial?" value={renderBooleanBadge(formData.step4?.payingPartySameAddress)} />
+              </>
+            )}
+            <PrintField label="Viajará acompanhado?" value={renderBooleanBadge(formData.step4?.hasTravelCompanions)} />
+            {formData.step4?.hasTravelCompanions === 'Yes' && formData.step4?.travelCompanionsGroup && (
+              <PrintField label="Grupo / Organização" value={formData.step4?.travelCompanionsGroup} />
+            )}
           </div>
+          {formData.step4?.hasTravelCompanions === 'Yes' && formData.step4?.travelCompanions && formData.step4.travelCompanions.length > 0 && (
+            <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-gray-200">
+                    <th className="p-2 font-bold text-primary">Acompanhante - Nome Completo</th>
+                    <th className="p-2 font-bold text-primary">Grau de Parentesco / Relação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {formData.step4.travelCompanions.map((comp: TravelCompanion, idx: number) => (
+                    <tr key={idx}>
+                      <td className="p-2 font-semibold text-primary">{comp.fullName}</td>
+                      <td className="p-2 text-gray-700">{comp.relationship}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        {/* 5. Histórico de Viagens */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="5. Histórico de Viagens e Vistos Anteriores" icon={History} />
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Já esteve nos EUA?" value={formData.step5?.hasBeenToUS === 'Yes' ? 'Sim' : 'Não'} />
-            <DetailField label="Já teve visto americano?" value={formData.step5?.hasUSVisa === 'Yes' ? 'Sim' : 'Não'} />
-            <DetailField label="Visto recusado?" value={formData.step5?.hasRefusedUSVisa === 'Yes' ? 'Sim' : 'Não'} />
-            {formData.step5?.refusedUSVisaExplanation && <DetailField label="Explicação de Recusa" value={formData.step5?.refusedUSVisaExplanation} />}
+        {/* 5. Histórico de Viagens e Vistos Anteriores */}
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="5. Histórico de Viagens e Vistos Anteriores" icon={History} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <PrintField label="Já esteve nos EUA?" value={renderBooleanBadge(formData.step5?.hasBeenToUS)} />
+            {formData.step5?.hasBeenToUS === 'Yes' && (
+              <>
+                <PrintField label="Data da Última Visita" value={formData.step5?.lastUSVisitDate} />
+                <PrintField label="Tempo de Permanência" value={formData.step5?.lastUSVisitLength} />
+              </>
+            )}
+            <PrintField label="Já teve visto americano?" value={renderBooleanBadge(formData.step5?.hasUSVisa)} />
+            {formData.step5?.hasUSVisa === 'Yes' && (
+              <>
+                <PrintField label="Número do Visto" value={formData.step5?.usVisaNumber} highlight />
+                <PrintField label="Data de Emissão" value={formData.step5?.usVisaIssueDate} />
+                <PrintField label="Data de Expiração" value={formData.step5?.usVisaExpiryDate} />
+              </>
+            )}
+            <PrintField label="Visto já recusado?" value={renderBooleanBadge(formData.step5?.hasRefusedUSVisa)} />
+            {formData.step5?.hasRefusedUSVisa === 'Yes' && (
+              <PrintField label="Explicação de Recusa" value={formData.step5?.refusedUSVisaExplanation} fullWidth />
+            )}
+            <PrintField label="Existe petição de imigração?" value={renderBooleanBadge(formData.step5?.hasImmigrationPetition)} />
+            {formData.step5?.hasImmigrationPetition === 'Yes' && (
+              <PrintField label="Explicação da Petição" value={formData.step5?.immigrationPetitionExplanation} fullWidth />
+            )}
+            <PrintField label="Viagens Internacionais (5 anos)?" value={renderBooleanBadge(formData.step5?.hasTraveledInternationally)} />
+            {formData.step5?.hasTraveledInternationally === 'Yes' && formData.step5?.countriesVisited && formData.step5.countriesVisited.length > 0 && (
+              <PrintField label="Países Visitados" value={formData.step5.countriesVisited.join(', ')} fullWidth />
+            )}
+            <PrintField label="Possui contato nos EUA?" value={renderBooleanBadge(formData.step5?.hasUSContact)} />
+            {formData.step5?.hasUSContact === 'Yes' && (
+              <>
+                <PrintField label="Nome do Contato" value={formData.step5?.usContactName} />
+                <PrintField label="Relação / Vínculo" value={formData.step5?.usContactRelationship} />
+                <PrintField label="Telefone do Contato" value={formData.step5?.usContactPhone} />
+                <PrintField label="E-mail do Contato" value={formData.step5?.usContactEmail} />
+                <PrintField label="Endereço nos EUA" value={formData.step5?.usContactAddress} fullWidth />
+              </>
+            )}
           </div>
         </div>
 
         {/* 6. Informações Familiares */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="6. Informações Familiares" icon={Users} />
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Nome do Pai" value={formData.step6?.fatherFullName} />
-            <DetailField label="Nome da Mãe" value={formData.step6?.motherFullName} />
-            <DetailField label="Parentes nos EUA?" value={formData.step6?.hasImmediateRelativesInUS === 'Yes' ? 'Sim' : 'Não'} />
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="6. Informações Familiares" icon={Users} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <PrintField label="Nome Completo do Pai" value={formData.step6?.fatherFullName} fullWidth />
+            <PrintField label="Data Nac. do Pai" value={formData.step6?.fatherBirthDate} />
+            <PrintField label="Pai está nos EUA?" value={renderBooleanBadge(formData.step6?.isFatherInUS)} />
+            {formData.step6?.isFatherInUS === 'Yes' && (
+              <PrintField label="Status do Pai nos EUA" value={formData.step6?.fatherUSStatus} />
+            )}
+            <PrintField label="Nome Completo da Mãe" value={formData.step6?.motherFullName} fullWidth />
+            <PrintField label="Data Nac. da Mãe" value={formData.step6?.motherBirthDate} />
+            <PrintField label="Mãe está nos EUA?" value={renderBooleanBadge(formData.step6?.isMotherInUS)} />
+            {formData.step6?.isMotherInUS === 'Yes' && (
+              <PrintField label="Status da Mãe nos EUA" value={formData.step6?.motherUSStatus} />
+            )}
+            <PrintField label="Parentes imediatos nos EUA?" value={renderBooleanBadge(formData.step6?.hasImmediateRelativesInUS)} />
+            <PrintField label="Outros parentes nos EUA?" value={renderBooleanBadge(formData.step6?.hasOtherRelativesInUS)} />
           </div>
+          {formData.step6?.hasImmediateRelativesInUS === 'Yes' && formData.step6?.immediateRelatives && formData.step6.immediateRelatives.length > 0 && (
+            <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-gray-200">
+                    <th className="p-2 font-bold text-primary">Nome do Parente</th>
+                    <th className="p-2 font-bold text-primary">Grau de Parentesco</th>
+                    <th className="p-2 font-bold text-primary">Status Legal nos EUA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {formData.step6.immediateRelatives.map((rel: USRelative, idx: number) => (
+                    <tr key={idx}>
+                      <td className="p-2 font-semibold text-primary">{rel.fullName}</td>
+                      <td className="p-2 text-gray-700">{rel.relationship}</td>
+                      <td className="p-2 text-gray-700">{rel.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* 7. Trabalho e Educação */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="7. Trabalho e Educação" icon={Briefcase} />
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <DetailField label="Ocupação Principal" value={formData.step7?.primaryOccupation} />
-            <DetailField label="Empresa / Escola" value={formData.step7?.currentEmployerSchoolName} />
-            <DetailField label="Salário Mensal" value={formData.step7?.currentMonthlySalary} />
-            <DetailField label="Endereço do Trabalho" value={formData.step7?.currentEmployerSchoolAddress} />
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="7. Trabalho e Educação" icon={Briefcase} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <PrintField label="Ocupação Principal" value={formData.step7?.primaryOccupation} highlight />
+            <PrintField label="Empresa / Escola" value={formData.step7?.currentEmployerSchoolName} />
+            <PrintField label="Telefone de Contato" value={formData.step7?.currentEmployerSchoolPhone} />
+            <PrintField label="Data de Início" value={formData.step7?.currentStartDate} />
+            <PrintField label="Salário Mensal" value={formatSalarySafe(formData.step7?.currentMonthlySalary)} highlight />
+            <PrintField label="Endereço da Ocupação" value={formData.step7?.currentEmployerSchoolAddress} fullWidth />
+            <PrintField label="Funções / Deveres Principais" value={formData.step7?.currentDuties} fullWidth />
+            <PrintField label="Possui empregos anteriores (5 anos)?" value={renderBooleanBadge(formData.step7?.hasPreviousEmployment)} />
+            <PrintField label="Possui ensino superior / técnico?" value={renderBooleanBadge(formData.step7?.hasHigherEducation)} />
+            <PrintField label="Idiomas Falados" value={formData.step7?.languagesSpoken && formData.step7.languagesSpoken.length > 0 ? formData.step7.languagesSpoken.join(', ') : 'Não informado'} />
+            <PrintField label="Organizações Profissionais / Sociais" value={formData.step7?.professionalOrganizations} />
+            <PrintField label="Possui Habilidades Especiais?" value={renderBooleanBadge(formData.step7?.hasSpecialSkills)} />
+            {formData.step7?.hasSpecialSkills === 'Yes' && (
+              <PrintField label="Explicação de Habilidades" value={formData.step7?.specialSkillsExplanation} fullWidth />
+            )}
+            <PrintField label="Prestou Serviço Militar?" value={renderBooleanBadge(formData.step7?.hasMilitaryService)} />
+            {formData.step7?.hasMilitaryService === 'Yes' && (
+              <>
+                <PrintField label="País do Serviço Militar" value={formData.step7?.militaryCountry} />
+                <PrintField label="Ramo / Força" value={formData.step7?.militaryBranch} />
+                <PrintField label="Patente / Rank" value={formData.step7?.militaryRank} />
+                <PrintField label="Especialidade" value={formData.step7?.militarySpecialty} />
+                <PrintField label="Período do Serviço" value={`${formData.step7?.militaryStartDate || '-'} a ${formData.step7?.militaryEndDate || '-'}`} />
+              </>
+            )}
           </div>
+
+          {/* Lista de Empregadores Anteriores */}
+          {formData.step7?.hasPreviousEmployment === 'Yes' && formData.step7?.previousEmployers && formData.step7.previousEmployers.length > 0 && (
+            <div className="mt-2 space-y-2">
+              <h4 className="text-[11px] font-bold text-primary uppercase">Empregadores Anteriores Cadastrados</h4>
+              <div className="space-y-1.5">
+                {formData.step7.previousEmployers.map((emp: PreviousEmployer, idx: number) => (
+                  <div key={idx} className="p-2 border border-gray-200 rounded-lg text-xs bg-slate-50/50">
+                    <div className="flex justify-between font-bold text-primary mb-1">
+                      <span>{emp.employerName} — Cargo: {emp.jobTitle}</span>
+                      <span className="font-normal text-gray-500">{emp.startDate} a {emp.endDate}</span>
+                    </div>
+                    <p className="text-gray-600"><strong>Endereço:</strong> {emp.employerAddress || '-'} | <strong>Supervisor:</strong> {emp.supervisorName || '-'}</p>
+                    {emp.duties && <p className="text-gray-600 mt-0.5"><strong>Funções:</strong> {emp.duties}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lista de Histórico Educacional */}
+          {formData.step7?.hasHigherEducation === 'Yes' && formData.step7?.educationHistory && formData.step7.educationHistory.length > 0 && (
+            <div className="mt-2 space-y-2">
+              <h4 className="text-[11px] font-bold text-primary uppercase">Instituições de Ensino Cadastradas</h4>
+              <div className="space-y-1.5">
+                {formData.step7.educationHistory.map((edu: Education, idx: number) => (
+                  <div key={idx} className="p-2 border border-gray-200 rounded-lg text-xs bg-slate-50/50">
+                    <div className="flex justify-between font-bold text-primary mb-1">
+                      <span>{edu.schoolName} — Curso: {edu.courseOfStudy}</span>
+                      <span className="font-normal text-gray-500">{edu.startDate} a {edu.endDate}</span>
+                    </div>
+                    <p className="text-gray-600"><strong>Endereço da Instituição:</strong> {edu.schoolAddress || '-'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 8. Segurança e Assinatura */}
-        <div className="space-y-3 break-inside-avoid">
-          <SectionHeader title="8. Segurança, Histórico e Assinatura" icon={ShieldCheck} />
-          <div className="space-y-2 text-xs border border-gray-150 p-4 rounded-xl">
-            <p><strong>Doenças transmissíveis:</strong> {formData.step8?.disease === 'Yes' ? 'Sim' : 'Não'}</p>
-            <p><strong>Histórico Criminal:</strong> {formData.step8?.criminal === 'Yes' ? 'Sim' : 'Não'}</p>
-            <p><strong>Segurança & Terrorismo:</strong> {formData.step8?.terrorism === 'Yes' ? 'Sim' : 'Não'}</p>
-            <p><strong>Assinatura Digital (Nome Completo):</strong> {formData.step8?.signature}</p>
+        {/* 8. Segurança e Assinatura Digital */}
+        <div className="space-y-2 break-inside-avoid">
+          <PrintSectionHeader title="8. Segurança, Histórico e Assinatura Digital" icon={ShieldCheck} />
+          <div className="space-y-1.5 text-xs">
+            <div className="p-2 border border-gray-200 rounded-lg flex justify-between items-start">
+              <div>
+                <strong>1. Saúde:</strong> Possui alguma doença transmissível de relevância pública?
+                {formData.step8?.disease === 'Yes' && formData.step8?.diseaseExplain && (
+                  <p className="text-red-700 font-medium mt-1">Explicação: {formData.step8.diseaseExplain}</p>
+                )}
+              </div>
+              <span className="ml-2 font-bold">{formData.step8?.disease === 'Yes' ? 'Sim' : 'Não'}</span>
+            </div>
+
+            <div className="p-2 border border-gray-200 rounded-lg flex justify-between items-start">
+              <div>
+                <strong>2. Histórico Criminal:</strong> Já foi preso ou condenado por algum crime ou delito?
+                {formData.step8?.criminal === 'Yes' && formData.step8?.criminalExplain && (
+                  <p className="text-red-700 font-medium mt-1">Explicação: {formData.step8.criminalExplain}</p>
+                )}
+              </div>
+              <span className="ml-2 font-bold">{formData.step8?.criminal === 'Yes' ? 'Sim' : 'Não'}</span>
+            </div>
+
+            <div className="p-2 border border-gray-200 rounded-lg flex justify-between items-start">
+              <div>
+                <strong>3. Segurança & Terrorismo:</strong> Busca ou já se envolveu com espionagem, sabotagem ou terrorismo?
+                {formData.step8?.terrorism === 'Yes' && formData.step8?.terrorismExplain && (
+                  <p className="text-red-700 font-medium mt-1">Explicação: {formData.step8.terrorismExplain}</p>
+                )}
+              </div>
+              <span className="ml-2 font-bold">{formData.step8?.terrorism === 'Yes' ? 'Sim' : 'Não'}</span>
+            </div>
+
+            <div className="p-2 border border-gray-200 rounded-lg flex justify-between items-start">
+              <div>
+                <strong>4. Fraude de Visto:</strong> Já ajudou ou tentou obter vistos por meios fraudulentos ou falsas declarações?
+                {formData.step8?.fraud === 'Yes' && formData.step8?.fraudExplain && (
+                  <p className="text-red-700 font-medium mt-1">Explicação: {formData.step8.fraudExplain}</p>
+                )}
+              </div>
+              <span className="ml-2 font-bold">{formData.step8?.fraud === 'Yes' ? 'Sim' : 'Não'}</span>
+            </div>
+
+            <div className="p-2 border border-gray-200 rounded-lg flex justify-between items-start">
+              <div>
+                <strong>5. Deportações & Violações:</strong> Já foi deportado, expulso dos EUA ou violou os termos de visto?
+                {formData.step8?.deported === 'Yes' && formData.step8?.deportedExplain && (
+                  <p className="text-red-700 font-medium mt-1">Explicação: {formData.step8.deportedExplain}</p>
+                )}
+              </div>
+              <span className="ml-2 font-bold">{formData.step8?.deported === 'Yes' ? 'Sim' : 'Não'}</span>
+            </div>
+          </div>
+
+          <div className="mt-3 p-3 border-2 border-primary/20 bg-slate-50 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div>
+              <span className="block text-[10px] font-bold text-gray-500 uppercase">Termo de Declaração</span>
+              <strong className="text-primary">
+                {formData.step8?.declarationAccepted
+                  ? 'Termo aceito pelo requerente'
+                  : 'Termo não confirmado'}
+              </strong>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-gray-500 uppercase">Assinatura Digital (Nome Completo)</span>
+              <strong className="text-primary font-mono text-sm">{formData.step8?.signature || submission.applicantName}</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -1032,10 +1363,15 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
           body {
             background-color: white !important;
             color: black !important;
+            font-size: 11px !important;
+          }
+          @page {
+            margin: 10mm 8mm;
+            size: A4 portrait;
           }
           .break-inside-avoid {
-            page-break-inside: avoid;
-            break-inside: avoid;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>
