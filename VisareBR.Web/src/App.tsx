@@ -14,6 +14,8 @@ import PricingSection from './pages/PricingSection';
 import ServicesList from './pages/ServicesList';
 import FaqList from './pages/FaqList';
 import Contact from './pages/Contact';
+import ProfileEvaluation from './pages/ProfileEvaluation';
+import VisaMatcher from './pages/VisaMatcher';
 import './App.css';
 import api from './api/blogService';
 
@@ -140,6 +142,10 @@ function App() {
            <Route path="servicos" element={<ServicesList />} />
           <Route path="duvidas" element={<FaqList />} />
           <Route path="contato" element={<Contact />} />
+          <Route path="avaliacao-de-perfil" element={<ProfileEvaluation />} />
+          <Route path="avaliacao-de-perfil.html" element={<ProfileEvaluation />} />
+          <Route path="qual-visto-combina" element={<VisaMatcher />} />
+          <Route path="qual-visto-combina.html" element={<VisaMatcher />} />
 
         </Route>
       </Routes>

@@ -1074,8 +1074,22 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
             {formData.step3?.hasLostPassport === 'Yes' && (
               <PrintField label="Explicação do Extravio" value={formData.step3?.lostPassportExplanation} fullWidth />
             )}
-            <PrintField label="Cópia / Foto do Passaporte" value={formData.step3?.passportPhotoBase64 ? 'Documento anexado no sistema' : 'Não anexado'} />
+            <PrintField label="Cópia / Foto do Passaporte" value={formData.step3?.passportPhotoBase64 ? 'Documento anexado abaixo' : 'Não anexado'} />
           </div>
+          {formData.step3?.passportPhotoBase64 && (
+            <div className="mt-3 p-3 bg-gray-50/70 border border-gray-200 rounded-lg break-inside-avoid">
+              <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Anexo: Cópia / Foto do Passaporte
+              </span>
+              <div className="flex justify-center bg-white p-2 rounded border border-gray-200">
+                <img
+                  src={formData.step3.passportPhotoBase64}
+                  alt="Passaporte do Requerente"
+                  className="max-h-[380px] w-auto max-w-full object-contain rounded"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 4. Detalhes da Viagem e Estadia */}
