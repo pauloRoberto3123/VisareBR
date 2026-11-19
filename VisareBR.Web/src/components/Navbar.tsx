@@ -29,6 +29,7 @@ export default function Navbar() {
   const [dropdownArticles, setDropdownArticles] = useState<Article[]>([]);
   const [othersDropdownArticles, setOthersDropdownArticles] = useState<Article[]>([]);
   const [isMobileOthersOpen, setIsMobileOthersOpen] = useState(false);
+  const [isMobileEvalOpen, setIsMobileEvalOpen] = useState(false);
 
   const { settings, whatsappUrl } = useSettings();
   const navigate = useNavigate();
@@ -135,6 +136,27 @@ export default function Navbar() {
                       <Link to="/vistos#japao" className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider">Visto Japonês</Link>
                     </>
                   )}
+                </div>
+              </div>
+
+              {/* Avaliações Gratuitas Dropdown */}
+              <div className="relative group">
+                <button className="flex items-center gap-1 text-accent-gold hover:text-white font-bold uppercase tracking-wider lg:text-[11px] xl:text-xs whitespace-nowrap h-20 transition-colors cursor-pointer">
+                  Avaliação de Perfil <ChevronDown size={12} className="text-accent-gold group-hover:text-white transition-colors" />
+                </button>
+                <div className="absolute left-1/2 -translate-x-1/2 top-[80%] hidden group-hover:block bg-primary border border-white/10 rounded-b-xl shadow-lg py-2 w-64 z-50">
+                  <Link
+                    to="/avaliacao-de-perfil"
+                    className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider border-b border-white/5"
+                  >
+                    Avaliação de Perfil
+                  </Link>
+                  <Link
+                    to="/qual-visto-combina"
+                    className="block px-4 py-2.5 text-slate-100 hover:bg-white/5 hover:text-accent-gold transition-colors text-xs font-semibold uppercase tracking-wider"
+                  >
+                    Qual visto combina com você?
+                  </Link>
                 </div>
               </div>
 
@@ -314,6 +336,35 @@ export default function Navbar() {
               </div>
 
               <Link to="/servicos" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Serviços</Link>
+
+              {/* Avaliações Gratuitas Mobile Dropdown */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => setIsMobileEvalOpen(!isMobileEvalOpen)}
+                  className="w-full flex items-center justify-between px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  <span>Avaliação de Perfil</span>
+                  <ChevronDown size={16} className={`transition-transform duration-300 ${isMobileEvalOpen ? 'rotate-180 text-accent-gold' : 'text-slate-800'}`} />
+                </button>
+                {isMobileEvalOpen && (
+                  <div className="pl-6 space-y-1 bg-slate-50 py-2 rounded-lg">
+                    <Link
+                      to="/avaliacao-de-perfil"
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors"
+                    >
+                      Avaliação de Perfil
+                    </Link>
+                    <Link
+                      to="/qual-visto-combina"
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-2 text-slate-700 hover:text-accent-gold text-xs font-semibold uppercase tracking-wider transition-colors"
+                    >
+                      Qual visto combina com você?
+                    </Link>
+                  </div>
+                )}
+              </div>
               <Link to="/quem-somos" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Quem Somos</Link>
               <Link to="/nossos-clientes" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Nossos Clientes</Link>
               <Link to="/duvidas" onClick={() => setIsOpen(false)} className="block px-4 py-2 text-slate-800 hover:bg-slate-50 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors">Dúvidas</Link>
