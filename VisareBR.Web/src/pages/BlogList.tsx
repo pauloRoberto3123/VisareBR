@@ -11,19 +11,33 @@ export default function BlogList() {
   const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
+    document.title = 'Artigos e Guias sobre Visto Americano | VisareBR';
+    let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', 'https://www.visarebr.com.br/artigos');
+
     getArticles()
-      .then((res: any) => setPosts(res.data))
-      .catch((err: any) => console.error("Error fetching posts:", err))
+      .then((res: any) => setPosts(Array.isArray(res?.data) ? res.data : []))
+      .catch((err: any) => {
+        console.error("Error fetching posts:", err);
+        setPosts([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const removeAccents = (str: string) => 
     str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  const filteredPosts = posts.filter(post => {
+  const safePosts = Array.isArray(posts) ? posts : [];
+  const filteredPosts = safePosts.filter(post => {
+    if (!post) return false;
     const normQuery = removeAccents(searchQuery.toLowerCase());
-    const normTitle = removeAccents(post.title.toLowerCase());
-    const normSummary = removeAccents(post.summary.toLowerCase());
+    const normTitle = removeAccents((post.title || '').toLowerCase());
+    const normSummary = removeAccents((post.summary || '').toLowerCase());
     return normTitle.includes(normQuery) || normSummary.includes(normQuery);
   });
 
@@ -75,7 +89,19 @@ export default function BlogList() {
               >
                 <div className="h-48 bg-light-gray flex items-center justify-center text-dark-gray overflow-hidden">
                   {post.featuredImageUrl ? (
-                    <img src={post.featuredImageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img
+                      src={
+                        post.featuredImageUrl.startsWith('data:image/')
+                          ? `/imagens/artigos/${post.slug}.webp`
+                          : post.featuredImageUrl
+                      }
+                      alt={post.title}
+                      width={400}
+                      height={225}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
                   ) : (
                     <span className="text-lg">Sem imagem</span>
                   )}

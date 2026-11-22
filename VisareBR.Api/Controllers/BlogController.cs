@@ -48,15 +48,17 @@ public class BlogController : ControllerBase
         if (!_cache.TryGetValue(cacheKey, out List<Article>? articles))
         {
             articles = await _context.Articles
+                .AsNoTracking()
                 .Include(a => a.Author)
                 .Include(a => a.ContentBlocks)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
 
-            // Order the content blocks manually
+            // Order the content blocks manually and project Base64 images to clean .webp URLs
             foreach (var article in articles)
             {
                 article.ContentBlocks = article.ContentBlocks.OrderBy(b => b.Order).ToList();
+                ProjectArticleImageUrls(article);
             }
 
             var cacheOptions = new MemoryCacheEntryOptions()
@@ -76,6 +78,7 @@ public class BlogController : ControllerBase
         if (!_cache.TryGetValue(cacheKey, out Article? article))
         {
             article = await _context.Articles
+                .AsNoTracking()
                 .Include(a => a.Author)
                 .Include(a => a.ContentBlocks)
                 .FirstOrDefaultAsync(a => a.Slug == slug);
@@ -83,6 +86,7 @@ public class BlogController : ControllerBase
             if (article == null) return NotFound();
 
             article.ContentBlocks = article.ContentBlocks.OrderBy(b => b.Order).ToList();
+            ProjectArticleImageUrls(article);
 
             var cacheOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromHours(1))
@@ -151,15 +155,38 @@ public class BlogController : ControllerBase
 
         if (article == null) return NotFound();
 
+        var existingImageBlocksByOrder = article.ContentBlocks
+            .OfType<ImageBlock>()
+            .ToDictionary(b => b.Order, b => b.ImageUrl);
+        var existingFeaturedImage = article.FeaturedImageUrl;
+
         // Remove old blocks first to support replacement
         _context.ArticleBlocks.RemoveRange(article.ContentBlocks);
 
-        // Process video blocks
-        foreach (var block in dto.ContentBlocks)
+        // Process video blocks and preserve existing Base64 images when URL points to /imagens/artigos/
+        for (int idx = 0; idx < dto.ContentBlocks.Count; idx++)
         {
+            var block = dto.ContentBlocks[idx];
             if (block is VideoBlock videoBlock)
             {
                 videoBlock.EmbedData = VideoParser.ParseEmbedUrl(videoBlock.SourceUrl);
+            }
+            else if (block is ImageBlock imageBlock &&
+                     !string.IsNullOrEmpty(imageBlock.ImageUrl) &&
+                     imageBlock.ImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase))
+            {
+                var match = Regex.Match(imageBlock.ImageUrl, @"-bloco-(\d+)\.webp$", RegexOptions.IgnoreCase);
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int oldOrder) &&
+                    existingImageBlocksByOrder.TryGetValue(oldOrder, out var oldBase64) &&
+                    !string.IsNullOrEmpty(oldBase64))
+                {
+                    imageBlock.ImageUrl = oldBase64;
+                }
+                else if (existingImageBlocksByOrder.TryGetValue(idx, out var sameIdxBase64) &&
+                         !string.IsNullOrEmpty(sameIdxBase64))
+                {
+                    imageBlock.ImageUrl = sameIdxBase64;
+                }
             }
         }
 
@@ -172,7 +199,16 @@ public class BlogController : ControllerBase
         article.Title = dto.Title;
         article.Summary = dto.Summary;
         article.ReadTimeMinutes = dto.ReadTimeMinutes;
-        article.FeaturedImageUrl = dto.FeaturedImageUrl;
+        if (!string.IsNullOrEmpty(dto.FeaturedImageUrl) &&
+            dto.FeaturedImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrEmpty(existingFeaturedImage))
+        {
+            article.FeaturedImageUrl = existingFeaturedImage;
+        }
+        else
+        {
+            article.FeaturedImageUrl = dto.FeaturedImageUrl;
+        }
         article.MetaTitle = dto.MetaTitle;
         article.MetaDescription = dto.MetaDescription;
         article.Tags = dto.Tags;
@@ -263,6 +299,27 @@ public class BlogController : ControllerBase
         }
 
         return slug;
+    }
+
+    private static void ProjectArticleImageUrls(Article article)
+    {
+        if (!string.IsNullOrEmpty(article.FeaturedImageUrl) &&
+            article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            article.FeaturedImageUrl = $"/imagens/artigos/{article.Slug}.webp";
+        }
+
+        if (article.ContentBlocks == null) return;
+
+        foreach (var block in article.ContentBlocks)
+        {
+            if (block is ImageBlock imgBlock &&
+                !string.IsNullOrEmpty(imgBlock.ImageUrl) &&
+                imgBlock.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            {
+                imgBlock.ImageUrl = $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp";
+            }
+        }
     }
 }
 

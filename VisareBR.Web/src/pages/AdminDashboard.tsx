@@ -614,31 +614,31 @@ export default function AdminDashboard() {
           api.get('/evaluations/admin'),
           api.get('/ds160/admin')
         ]);
-        setPosts(postsRes.data);
-        setEvals(evalsRes.data);
-        setDs160Forms(ds160Res.data);
-      } else if (activeTab === 'blog') {
+        setPosts(Array.isArray(postsRes?.data) ? postsRes.data : []);
+        setEvals(Array.isArray(evalsRes?.data) ? evalsRes.data : []);
+        setDs160Forms(Array.isArray(ds160Res?.data) ? ds160Res.data : []);
+      } else if (activeTab === 'blog' || activeTab === 'menu-vistos') {
         const res = await api.get('/blog');
-        setPosts(res.data);
+        setPosts(Array.isArray(res?.data) ? res.data : []);
       } else if (activeTab === 'evaluations') {
         const res = await api.get('/evaluations/admin');
-        setEvals(res.data);
+        setEvals(Array.isArray(res?.data) ? res.data : []);
       } else if (activeTab === 'ds160') {
         const res = await api.get('/ds160/admin');
-        setDs160Forms(res.data);
+        setDs160Forms(Array.isArray(res?.data) ? res.data : []);
       } else if (activeTab === 'pricing') {
         const [plansRes, servicesRes] = await Promise.all([
           api.get('/pricing'),
           api.get('/services/standalone')
         ]);
-        setPlans(plansRes.data);
-        setStandaloneServices(servicesRes.data);
+        setPlans(Array.isArray(plansRes?.data) ? plansRes.data : []);
+        setStandaloneServices(Array.isArray(servicesRes?.data) ? servicesRes.data : []);
       } else if (activeTab === 'carousel') {
         const res = await getAllCarouselItems();
-        setCarouselItems(res.data);
+        setCarouselItems(Array.isArray(res?.data) ? res.data : []);
       } else if (activeTab === 'faq') {
         const res = await api.get('/faqs/admin-all');
-        setFaqs(res.data);
+        setFaqs(Array.isArray(res?.data) ? res.data : []);
       }
     } catch (err) {
       console.error("Fetch error:", err);

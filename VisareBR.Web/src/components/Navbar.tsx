@@ -39,8 +39,9 @@ export default function Navbar() {
   useEffect(() => {
     getArticles()
       .then((res: any) => {
-        const featured = res.data.filter((art: any) => art.showInVisaDropdown);
-        const others = res.data.filter((art: any) => art.showInOthersDropdown);
+        const list = Array.isArray(res?.data) ? res.data : [];
+        const featured = list.filter((art: any) => art && art.showInVisaDropdown);
+        const others = list.filter((art: any) => art && art.showInOthersDropdown);
         setDropdownArticles(featured);
         setOthersDropdownArticles(others);
       })
