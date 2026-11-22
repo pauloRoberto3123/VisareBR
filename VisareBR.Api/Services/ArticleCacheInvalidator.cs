@@ -22,9 +22,12 @@ public class ArticleCacheInvalidator : IArticleEventListener
         
         // Remove individual cached article by slug
         _memoryCache.Remove($"article_slug_{@event.Article.Slug}");
+        _memoryCache.Remove($"article_prerender_{@event.Article.Slug}");
+        _memoryCache.Remove($"article_img_{@event.Article.Slug}");
         
-        // Remove the cached list of all articles
+        // Remove the cached list of all articles and sitemap
         _memoryCache.Remove("articles_list_all");
+        _memoryCache.Remove("sitemap_xml");
         
         return Task.CompletedTask;
     }

@@ -3,6 +3,7 @@ import { Outlet, Link } from 'react-router-dom';
 import api from '../api/blogService';
 import Navbar from '../components/Navbar';
 import WhatsAppButton from '../components/WhatsAppButton';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { useSettings } from '../context/SettingsContext';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
@@ -13,7 +14,8 @@ export default function MainLayout() {
   useEffect(() => {
     api.get('/services/standalone')
       .then((res) => {
-        const active = res.data.filter((s: any) => s.isActive);
+        const list = Array.isArray(res?.data) ? res.data : [];
+        const active = list.filter((s: any) => s && s.isActive);
         setServices(active);
       })
       .catch((err) => console.error('Erro ao buscar serviços no rodapé:', err));
@@ -25,7 +27,9 @@ export default function MainLayout() {
         <Navbar />
       </div>
       <main className="flex-grow">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <div className="print:hidden">
         <WhatsAppButton />

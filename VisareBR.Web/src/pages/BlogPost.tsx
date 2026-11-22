@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getArticleBySlug, getArticles } from '../api/blogService';
 import type { Article, ArticleBlock } from '../api/blogService';
-import { ArrowLeft, Calendar, User, Clock, AlignLeft } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, AlignLeft, ChevronRight, Award } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { useSettings } from '../context/SettingsContext';
+
+const SITE_BASE_URL = 'https://www.visarebr.com.br';
 
 interface ParsedHeading {
   id: string;
@@ -12,22 +15,43 @@ interface ParsedHeading {
   level: number;
 }
 
-function processBlocks(blocks: ArticleBlock[]): {
+function processBlocks(blocks: ArticleBlock[], articleTitle: string): {
   processedBlocks: ArticleBlock[];
   headings: ParsedHeading[];
 } {
-  if (!blocks) return { processedBlocks: [], headings: [] };
+  if (!Array.isArray(blocks)) return { processedBlocks: [], headings: [] };
 
   const headings: ParsedHeading[] = [];
   let headingCounter = 0;
 
   const processedBlocks = blocks.map((block) => {
-    if (block.type !== 'text' || !block.content) return block;
+    if (!block || block.type !== 'text' || !block.content) return block;
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(block.content, 'text/html');
-    const headingElements = doc.querySelectorAll('h2, h3');
 
+    // Enforce single H1 per page: demote any editor <h1> inside content blocks to <h2>
+    doc.querySelectorAll('h1').forEach((h1El) => {
+      const h2El = doc.createElement('h2');
+      h2El.innerHTML = h1El.innerHTML;
+      Array.from(h1El.attributes).forEach((attr) => h2El.setAttribute(attr.name, attr.value));
+      h1El.replaceWith(h2El);
+    });
+
+    // Ensure any inline <img> inside rich text has alt, loading="lazy", and decoding="async"
+    doc.querySelectorAll('img').forEach((imgEl) => {
+      if (!imgEl.getAttribute('alt')) {
+        imgEl.setAttribute('alt', articleTitle || 'Imagem do artigo');
+      }
+      if (!imgEl.getAttribute('loading')) {
+        imgEl.setAttribute('loading', 'lazy');
+      }
+      if (!imgEl.getAttribute('decoding')) {
+        imgEl.setAttribute('decoding', 'async');
+      }
+    });
+
+    const headingElements = doc.querySelectorAll('h2, h3');
     headingElements.forEach((el) => {
       const id = el.id || `heading-${headingCounter++}`;
       el.id = id;
@@ -47,6 +71,19 @@ function processBlocks(blocks: ArticleBlock[]): {
   return { processedBlocks, headings };
 }
 
+function resolveCanonicalImageUrl(featuredImageUrl: string | undefined, slug: string): string {
+  if (!featuredImageUrl) {
+    return `${SITE_BASE_URL}/logo%20fundo%20transparente.png`;
+  }
+  if (featuredImageUrl.startsWith('data:image/') || featuredImageUrl.startsWith('/imagens/artigos/')) {
+    return `${SITE_BASE_URL}/imagens/artigos/${slug}.webp`;
+  }
+  if (featuredImageUrl.startsWith('http://') || featuredImageUrl.startsWith('https://')) {
+    return featuredImageUrl;
+  }
+  return `${SITE_BASE_URL}/${featuredImageUrl.replace(/^\/+/, '')}`;
+}
+
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<Article | null>(null);
@@ -63,10 +100,17 @@ export default function BlogPost() {
       setLoading(true);
       getArticleBySlug(slug)
         .then((res: any) => {
-          const article = res.data;
+          const article = res?.data;
+          if (!article || typeof article !== 'object') {
+            setPost(null);
+            return;
+          }
           setPost(article);
-          if (article && article.contentBlocks) {
-            const { processedBlocks: newBlocks, headings: newHeadings } = processBlocks(article.contentBlocks);
+          if (Array.isArray(article.contentBlocks)) {
+            const { processedBlocks: newBlocks, headings: newHeadings } = processBlocks(
+              article.contentBlocks,
+              article.title || ''
+            );
             setProcessedBlocks(newBlocks);
             setHeadings(newHeadings);
           } else {
@@ -76,21 +120,31 @@ export default function BlogPost() {
 
           getArticles()
             .then((allRes: any) => {
-              const allPosts: Article[] = allRes.data;
+              const allPosts: Article[] = Array.isArray(allRes?.data) ? allRes.data : [];
               setAllArticlesList(allPosts);
-              if (article && article.tags && article.tags.length > 0) {
-                const related = allPosts.filter(p => 
-                  p.id !== article.id && 
-                  p.tags && p.tags.some(tag => article.tags.includes(tag))
+              const articleTags = Array.isArray(article.tags) ? article.tags : [];
+              if (articleTags.length > 0) {
+                const related = allPosts.filter(
+                  (p) =>
+                    p &&
+                    p.id !== article.id &&
+                    Array.isArray(p.tags) &&
+                    p.tags.some((tag) => articleTags.includes(tag))
                 );
                 setRelatedPosts(related.slice(0, 3));
               } else {
-                setRelatedPosts([]);
+                setRelatedPosts(allPosts.filter((p) => p && p.id !== article.id).slice(0, 3));
               }
             })
-            .catch((err: any) => console.error("Error loading related articles:", err));
+            .catch((err: any) => {
+              console.error('Error loading related articles:', err);
+              setRelatedPosts([]);
+            });
         })
-        .catch((err: any) => console.error(err))
+        .catch((err: any) => {
+          console.error('Error loading article:', err);
+          setPost(null);
+        })
         .finally(() => setLoading(false));
     }
   }, [slug]);
@@ -98,9 +152,15 @@ export default function BlogPost() {
   useEffect(() => {
     if (!post) return;
 
+    const metaTitle = post.metaTitle || post.title;
+    const fullTitle = `${metaTitle} | VisareBR`;
+    const metaDesc = post.metaDescription || post.summary;
+    const canonicalUrl = `${SITE_BASE_URL}/artigos/${post.slug}`;
+    const canonicalImage = resolveCanonicalImageUrl(post.featuredImageUrl, post.slug);
+    const authorDisplayName = post.authorName || post.author?.fullName || 'Gilceli Braga';
+
     // Update Page Title
-    const originalTitle = document.title;
-    document.title = `${post.metaTitle || post.title} | VisareBR`;
+    document.title = fullTitle;
 
     // Helper to update or create a meta tag
     const updateMetaTag = (attributeName: string, attributeValue: string, contentValue: string) => {
@@ -113,99 +173,126 @@ export default function BlogPost() {
       element.setAttribute('content', contentValue);
     };
 
-    // Standard SEO Meta Tags
-    updateMetaTag('name', 'description', post.metaDescription || post.summary);
-
-    // Open Graph Meta Tags (Facebook / WhatsApp / etc.)
-    updateMetaTag('property', 'og:title', post.metaTitle || post.title);
-    updateMetaTag('property', 'og:description', post.metaDescription || post.summary);
-    updateMetaTag('property', 'og:type', 'article');
-    if (post.featuredImageUrl) {
-      updateMetaTag('property', 'og:image', post.featuredImageUrl);
+    // Helper to update or create <link rel="canonical">
+    let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
     }
-    updateMetaTag('property', 'og:url', window.location.href);
+    canonicalLink.setAttribute('href', canonicalUrl);
+
+    // Standard SEO Meta Tags
+    updateMetaTag('name', 'title', fullTitle);
+    updateMetaTag('name', 'description', metaDesc);
+
+    // Open Graph Meta Tags (Facebook / WhatsApp / LinkedIn)
+    updateMetaTag('property', 'og:title', metaTitle);
+    updateMetaTag('property', 'og:description', metaDesc);
+    updateMetaTag('property', 'og:type', 'article');
+    updateMetaTag('property', 'og:image', canonicalImage);
+    updateMetaTag('property', 'og:image:secure_url', canonicalImage);
+    updateMetaTag('property', 'og:url', canonicalUrl);
 
     // Twitter Card Meta Tags
     updateMetaTag('name', 'twitter:card', 'summary_large_image');
-    updateMetaTag('name', 'twitter:title', post.metaTitle || post.title);
-    updateMetaTag('name', 'twitter:description', post.metaDescription || post.summary);
-    if (post.featuredImageUrl) {
-      updateMetaTag('name', 'twitter:image', post.featuredImageUrl);
-    }
+    updateMetaTag('name', 'twitter:title', metaTitle);
+    updateMetaTag('name', 'twitter:description', metaDesc);
+    updateMetaTag('name', 'twitter:image', canonicalImage);
+    updateMetaTag('name', 'twitter:url', canonicalUrl);
 
-    // JSON-LD Structured Data (Google Rich Snippets)
-    const jsonLdData = {
-      "@context": "https://schema.org",
-      "@type": "BlogPosting",
-      "mainEntityOfPage": {
-        "@type": "WebPage",
-        "@id": window.location.href
+    // JSON-LD Structured Data: BlogPosting
+    const blogPostingLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': canonicalUrl
       },
-      "headline": post.metaTitle || post.title,
-      "description": post.metaDescription || post.summary,
-      "image": post.featuredImageUrl || "",
-      "datePublished": post.createdAt,
-      "author": {
-        "@type": "Person",
-        "name": post.author?.fullName || post.authorName || "VisareBR"
+      headline: metaTitle,
+      description: metaDesc,
+      image: [canonicalImage],
+      datePublished: post.createdAt,
+      dateModified: post.updatedAt || post.createdAt,
+      author: {
+        '@type': 'Person',
+        name: authorDisplayName,
+        url: `${SITE_BASE_URL}/quem-somos`
       },
-      "publisher": {
-        "@type": "Organization",
-        "name": "VisareBR",
-        "logo": {
-          "@type": "ImageObject",
-          "url": `${window.location.origin}/logo.png`
+      publisher: {
+        '@type': 'Organization',
+        name: 'VisareBR',
+        logo: {
+          '@type': 'ImageObject',
+          url: `${SITE_BASE_URL}/logo.png`
         }
       }
     };
 
-    let scriptElement = document.getElementById('jsonld-structured-data') as HTMLScriptElement;
-    if (!scriptElement) {
-      scriptElement = document.createElement('script');
-      scriptElement.id = 'jsonld-structured-data';
-      scriptElement.type = 'application/ld+json';
-      document.body.appendChild(scriptElement);
-    }
-    scriptElement.text = JSON.stringify(jsonLdData);
-
-    // Cleanup function when component unmounts or post changes
-    return () => {
-      document.title = originalTitle;
-
-      const metaSelectors = [
-        'meta[name="description"]',
-        'meta[property="og:title"]',
-        'meta[property="og:description"]',
-        'meta[property="og:type"]',
-        'meta[property="og:image"]',
-        'meta[property="og:url"]',
-        'meta[name="twitter:card"]',
-        'meta[name="twitter:title"]',
-        'meta[name="twitter:description"]',
-        'meta[name="twitter:image"]'
-      ];
-      metaSelectors.forEach(selector => {
-        const el = document.querySelector(selector);
-        if (el && el.parentNode) {
-          el.parentNode.removeChild(el);
+    // JSON-LD Structured Data: BreadcrumbList
+    const breadcrumbLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Início',
+          item: `${SITE_BASE_URL}/`
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Artigos',
+          item: `${SITE_BASE_URL}/artigos`
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: post.title,
+          item: canonicalUrl
         }
-      });
+      ]
+    };
 
-      const ldJsonScript = document.getElementById('jsonld-structured-data');
-      if (ldJsonScript && ldJsonScript.parentNode) {
-        ldJsonScript.parentNode.removeChild(ldJsonScript);
+    const upsertJsonLd = (id: string, data: object) => {
+      let scriptEl = document.getElementById(id) as HTMLScriptElement | null;
+      if (!scriptEl) {
+        scriptEl = document.createElement('script');
+        scriptEl.id = id;
+        scriptEl.type = 'application/ld+json';
+        document.head.appendChild(scriptEl);
       }
+      scriptEl.text = JSON.stringify(data);
+    };
+
+    upsertJsonLd('jsonld-structured-data', blogPostingLd);
+    upsertJsonLd('jsonld-breadcrumb-data', breadcrumbLd);
+
+    return () => {
+      document.title = 'VisareBR | Assessoria de Visto Americano';
+      const defaultDesc =
+        'Assessoria completa e especializada para o seu Visto Americano. Análise de perfil, preenchimento do formulário DS-160, agendamento consular e preparação para a entrevista.';
+      updateMetaTag('name', 'title', 'VisareBR | Assessoria de Visto Americano');
+      updateMetaTag('name', 'description', defaultDesc);
+      updateMetaTag('property', 'og:type', 'website');
+      updateMetaTag('property', 'og:title', 'VisareBR | Assessoria de Visto Americano');
+      updateMetaTag('property', 'og:description', defaultDesc);
+      updateMetaTag('property', 'og:url', `${SITE_BASE_URL}/`);
+
+      ['jsonld-structured-data', 'jsonld-breadcrumb-data'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      });
     };
   }, [post]);
-
-
 
   // Track scroll and highlight heading
   useEffect(() => {
     if (headings.length === 0) return;
 
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 130; // Navbar height + buffer
+      const scrollPosition = window.scrollY + 130;
 
       let currentActiveId = '';
       for (const heading of headings) {
@@ -220,7 +307,6 @@ export default function BlogPost() {
         }
       }
 
-      // Default to first heading if scrolled above all of them
       if (!currentActiveId && headings.length > 0) {
         currentActiveId = headings[0].id;
       }
@@ -231,7 +317,6 @@ export default function BlogPost() {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    // Trigger on mount/update to set initial heading
     handleScroll();
 
     return () => window.removeEventListener('scroll', handleScroll);
@@ -240,14 +325,37 @@ export default function BlogPost() {
   if (loading) return <div className="py-20 text-center text-primary font-medium">Carregando artigo...</div>;
   if (!post) return <div className="py-20 text-center text-primary font-medium">Artigo não encontrado.</div>;
 
+  const authorDisplayName = post.authorName || post.author?.fullName || 'Gilceli Braga';
+  const coverSrc =
+    post.featuredImageUrl && post.featuredImageUrl.startsWith('data:image/')
+      ? `/imagens/artigos/${post.slug}.webp`
+      : post.featuredImageUrl;
+
   return (
     <article className="bg-secondary py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Breadcrumb / Go Back */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <Link to="/artigos" className="inline-flex items-center gap-2 text-accent-gold font-bold hover:underline hover:text-primary transition-all duration-200">
-            <ArrowLeft size={18} /> Voltar para os artigos
+        {/* Breadcrumb Navigation */}
+        <div className="max-w-7xl mx-auto mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <nav aria-label="Breadcrumb" className="flex items-center flex-wrap gap-1.5 text-xs sm:text-sm text-dark-gray/70">
+            <Link to="/" className="hover:text-primary font-semibold transition-colors">
+              Início
+            </Link>
+            <ChevronRight size={14} className="text-gray-400 shrink-0" />
+            <Link to="/artigos" className="hover:text-primary font-semibold transition-colors">
+              Artigos
+            </Link>
+            <ChevronRight size={14} className="text-gray-400 shrink-0" />
+            <span className="text-primary font-bold truncate max-w-[260px] sm:max-w-md" aria-current="page">
+              {post.title}
+            </span>
+          </nav>
+
+          <Link
+            to="/artigos"
+            className="inline-flex items-center gap-2 text-accent-gold font-bold text-sm hover:underline hover:text-primary transition-all duration-200"
+          >
+            <ArrowLeft size={16} /> Voltar para os artigos
           </Link>
         </div>
 
@@ -255,10 +363,10 @@ export default function BlogPost() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start max-w-7xl mx-auto">
 
           {/* Main Article Content */}
-          <div className="lg:col-span-8 bg-white border border-light-gray rounded-3xl p-6 md:p-10 shadow-sm">
+          <div className="lg:col-span-8 bg-white border border-light-gray rounded-3xl p-6 md:p-10 shadow-sm text-left">
 
             {/* SEO Tags Badge */}
-            {post.tags && post.tags.length > 0 && (
+            {Array.isArray(post.tags) && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {post.tags.map((tag, idx) => (
                   <span
@@ -271,7 +379,7 @@ export default function BlogPost() {
               </div>
             )}
 
-            {/* Article Title */}
+            {/* Single H1: Article Title */}
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-primary mb-6 leading-tight">
               {post.title}
             </h1>
@@ -280,14 +388,14 @@ export default function BlogPost() {
             <div className="flex flex-wrap items-center gap-6 text-sm text-dark-gray/80 mb-8 border-b border-light-gray pb-6">
               <div className="flex items-center gap-2">
                 <Calendar size={16} className="text-accent-gold" />
-                {new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                <time dateTime={post.createdAt}>
+                  {new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                </time>
               </div>
-              {(post.authorName || post.author) && (
-                <div className="flex items-center gap-2">
-                  <User size={16} className="text-accent-gold" />
-                  {post.authorName || post.author?.fullName}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <User size={16} className="text-accent-gold" />
+                <span>{authorDisplayName}</span>
+              </div>
               {post.readTimeMinutes > 0 && (
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-accent-gold" />
@@ -296,15 +404,68 @@ export default function BlogPost() {
               )}
             </div>
 
-            {/* Featured Image */}
-            {post.featuredImageUrl && (
+            {/* Featured Cover Image (No lazy loading on LCP cover image) */}
+            {coverSrc && (
               <div className="w-full overflow-hidden rounded-3xl mb-10 shadow-md">
-                <img src={post.featuredImageUrl} alt={post.title} className="w-full h-auto" />
+                <img
+                  src={coverSrc}
+                  alt={post.title}
+                  width={1200}
+                  height={630}
+                  fetchPriority="high"
+                  decoding="async"
+                  className="w-full h-auto object-cover"
+                />
               </div>
             )}
 
-            {/* Rendered Content Blocks */}
-            <BlockRenderer blocks={processedBlocks} allArticles={allArticlesList} />
+            {/* Rendered Content Blocks wrapped in ErrorBoundary */}
+            <ErrorBoundary>
+              <BlockRenderer
+                blocks={processedBlocks}
+                allArticles={allArticlesList}
+                articleTitle={post.title}
+              />
+            </ErrorBoundary>
+
+            {/* Author Box (E-E-A-T Trust Signal for Google) */}
+            <aside
+              aria-label="Sobre a autora"
+              className="mt-12 pt-8 border-t border-light-gray"
+            >
+              <div className="bg-slate-50 border border-gray-200/80 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                <div className="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center font-black text-xl shrink-0 border-2 border-accent-gold shadow-sm">
+                  {authorDisplayName
+                    .split(' ')
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((n) => n[0])
+                    .join('')
+                    .toUpperCase()}
+                </div>
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-accent-gold flex items-center gap-1">
+                      <Award size={14} /> Especialista Consular
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-extrabold text-primary">
+                    Escrito por {authorDisplayName}
+                  </h2>
+                  <p className="text-sm text-dark-gray leading-relaxed">
+                    Especialista em Assessoria de Vistos Consulares na <strong>VisareBR</strong>, com mais de 5 anos de experiência e avaliação 5 estrelas no Google, auxiliando solicitantes brasileiros na aprovação do visto americano com análise estratégica de perfil, preenchimento técnico do DS-160 e preparo para entrevista.
+                  </p>
+                  <div className="pt-1">
+                    <Link
+                      to="/quem-somos"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-accent-gold transition-colors uppercase tracking-wider"
+                    >
+                      Conheça nossa história e como trabalhamos <ChevronRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </aside>
           </div>
 
           {/* Sidebar: Table of Contents */}
@@ -325,16 +486,18 @@ export default function BlogPost() {
                         setActiveId(heading.id);
                         const element = document.getElementById(heading.id);
                         if (element) {
-                          const yOffset = -95; // Offset to clear sticky navbar perfectly
+                          const yOffset = -95;
                           const y = element.getBoundingClientRect().top + window.scrollY + yOffset;
                           window.scrollTo({ top: y, behavior: 'smooth' });
                         }
                       }}
-                      className={`block py-2 text-sm leading-relaxed pl-3 border-l-2 transition-all duration-200 hover:text-accent-gold hover:pl-4 whitespace-normal break-words ${heading.level === 3 ? 'ml-3 text-xs' : 'font-semibold'
-                        } ${activeId === heading.id
+                      className={`block py-2 text-sm leading-relaxed pl-3 border-l-2 transition-all duration-200 hover:text-accent-gold hover:pl-4 whitespace-normal break-words ${
+                        heading.level === 3 ? 'ml-3 text-xs' : 'font-semibold'
+                      } ${
+                        activeId === heading.id
                           ? 'border-accent-gold text-accent-gold font-bold bg-accent-gold/5 pl-4'
                           : 'border-transparent text-dark-gray/70'
-                        }`}
+                      }`}
                     >
                       {heading.text}
                     </a>
@@ -362,39 +525,56 @@ export default function BlogPost() {
 
         </div>
 
-        {/* Related Articles Section */}
-        {relatedPosts.length > 0 && (
-          <div className="mt-16 border-t border-light-gray pt-12 text-left">
-            <h3 className="text-2xl font-black text-primary mb-8">Artigos Relacionados</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {relatedPosts.map((rPost) => (
-                <Link 
-                  key={rPost.id}
-                  to={`/artigos/${rPost.slug}`}
-                  className="flex flex-col bg-white border border-light-gray rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-accent-gold/45 hover:translate-y-[-2px] transition-all duration-300 group"
-                >
-                  <div className="h-44 bg-light-gray overflow-hidden">
-                    {rPost.featuredImageUrl ? (
-                      <img src={rPost.featuredImageUrl} alt={rPost.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
-                    )}
-                  </div>
-                  <div className="p-6 flex flex-col flex-grow">
-                    <span className="text-[10px] font-bold text-dark-gray/60 uppercase tracking-widest mb-2.5 block">
-                      {new Date(rPost.createdAt).toLocaleDateString('pt-BR')}
-                    </span>
-                    <h4 className="text-lg font-bold text-primary mb-3 line-clamp-2 group-hover:text-accent-gold transition-colors duration-200">
-                      {rPost.title}
-                    </h4>
-                    <p className="text-sm text-dark-gray/80 line-clamp-2 mb-6">{rPost.summary}</p>
-                    <span className="text-sm font-bold text-accent-gold mt-auto group-hover:underline">Ler artigo →</span>
-                  </div>
-                </Link>
-              ))}
+        {/* Related Articles Section wrapped in ErrorBoundary */}
+        <ErrorBoundary>
+          {Array.isArray(relatedPosts) && relatedPosts.length > 0 && (
+            <div className="mt-16 border-t border-light-gray pt-12 text-left">
+              <h2 className="text-2xl font-black text-primary mb-8">Artigos Relacionados</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {relatedPosts.map((rPost) => {
+                  const rImgSrc =
+                    rPost.featuredImageUrl && rPost.featuredImageUrl.startsWith('data:image/')
+                      ? `/imagens/artigos/${rPost.slug}.webp`
+                      : rPost.featuredImageUrl;
+
+                  return (
+                    <Link
+                      key={rPost.id}
+                      to={`/artigos/${rPost.slug}`}
+                      className="flex flex-col bg-white border border-light-gray rounded-3xl overflow-hidden shadow-xs hover:shadow-lg hover:border-accent-gold/45 hover:translate-y-[-2px] transition-all duration-300 group"
+                    >
+                      <div className="h-44 bg-light-gray overflow-hidden">
+                        {rImgSrc ? (
+                          <img
+                            src={rImgSrc}
+                            alt={rPost.title}
+                            width={400}
+                            height={225}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
+                        )}
+                      </div>
+                      <div className="p-6 flex flex-col flex-grow">
+                        <span className="text-[10px] font-bold text-dark-gray/60 uppercase tracking-widest mb-2.5 block">
+                          {new Date(rPost.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                        <h3 className="text-lg font-bold text-primary mb-3 line-clamp-2 group-hover:text-accent-gold transition-colors duration-200">
+                          {rPost.title}
+                        </h3>
+                        <p className="text-sm text-dark-gray/80 line-clamp-2 mb-6">{rPost.summary}</p>
+                        <span className="text-sm font-bold text-accent-gold mt-auto group-hover:underline">Ler artigo →</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </ErrorBoundary>
       </div>
 
       {/* Dynamic Styling Overrides for Rich Text Headers Inside Article Body */}
