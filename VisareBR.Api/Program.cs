@@ -44,6 +44,7 @@ builder.Services.AddControllers(); // Add this line
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IArticleEventDispatcher, ArticleEventDispatcher>();
 builder.Services.AddScoped<IArticleEventListener, ArticleCacheInvalidator>();
+builder.Services.AddScoped<SpaPrerenderService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -89,7 +90,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseCors("AllowReactApp");
@@ -102,6 +102,11 @@ app.MapControllers(); // Add this line
 
 app.MapGroup("/api/identity").MapIdentityApi<ApplicationUser>();
 
-app.MapFallbackToFile("index.html");
+app.MapFallback(async (HttpContext httpContext, SpaPrerenderService prerenderService) =>
+{
+    var html = await prerenderService.RenderPageHtmlAsync(httpContext.Request.Path.Value ?? "/");
+    httpContext.Response.ContentType = "text/html; charset=utf-8";
+    await httpContext.Response.WriteAsync(html);
+});
 
 app.Run();

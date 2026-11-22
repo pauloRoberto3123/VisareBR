@@ -17,16 +17,60 @@ export default function Home() {
   useEffect(() => {
     getCarouselItems()
       .then(res => {
-        setSlides(res.data);
+        setSlides(Array.isArray(res?.data) ? res.data : []);
       })
       .catch(err => console.error("Error fetching slides:", err));
 
     getEvaluations()
       .then((res: any) => {
-        setEvaluations(res.data);
+        setEvaluations(Array.isArray(res?.data) ? res.data : []);
       })
       .catch(err => console.error("Error fetching evaluations:", err));
   }, []);
+
+  useEffect(() => {
+    document.title = 'VisareBR | Assessoria de Visto Americano';
+    let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', 'https://www.visarebr.com.br/');
+
+    const phone = settings?.whatsappNumber
+      ? `+${settings.whatsappNumber.replace(/\D/g, '')}`
+      : '+5519998448417';
+
+    const orgJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'VisareBR',
+      legalName: 'VisareBR Assessoria de Vistos',
+      url: 'https://www.visarebr.com.br/',
+      logo: 'https://www.visarebr.com.br/logo.png',
+      telephone: phone,
+      email: settings?.companyEmail || 'contato@visarebr.com.br',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: settings?.address || 'Campinas / SP',
+        addressCountry: 'BR'
+      },
+      sameAs: [
+        'https://www.instagram.com/visarebr',
+        'https://www.youtube.com/@visarebr'
+      ]
+    };
+
+    let scriptEl = document.getElementById('jsonld-organization-data') as HTMLScriptElement | null;
+    if (!scriptEl) {
+      scriptEl = document.createElement('script');
+      scriptEl.id = 'jsonld-organization-data';
+      scriptEl.type = 'application/ld+json';
+      document.head.appendChild(scriptEl);
+    }
+    scriptEl.text = JSON.stringify(orgJsonLd);
+  }, [settings]);
 
   useEffect(() => {
     if (slides.length <= 1) return;

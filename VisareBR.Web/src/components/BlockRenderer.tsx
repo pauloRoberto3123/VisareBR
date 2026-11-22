@@ -6,43 +6,50 @@ import 'react-quill-new/dist/quill.snow.css';
 interface BlockRendererProps {
   blocks: ArticleBlock[];
   allArticles?: Article[];
+  articleTitle?: string;
 }
 
-export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendererProps) {
-  if (!blocks || blocks.length === 0) return null;
+export default function BlockRenderer({ blocks, allArticles = [], articleTitle }: BlockRendererProps) {
+  if (!Array.isArray(blocks) || blocks.length === 0) return null;
+  const safeAllArticles = Array.isArray(allArticles) ? allArticles : [];
 
   return (
     <div className="space-y-8 blog-content">
-      {blocks.map((block) => {
+      {blocks.map((block, index) => {
+        if (!block) return null;
+        const key = block.id ?? block.order ?? index;
+
         switch (block.type) {
-          case 'text':
+          case 'text': {
             if (!block.content) return null;
             // Clean up non-breaking spaces to ensure text wraps correctly at word boundaries
             const cleanedContent = block.content.replace(/\u00a0/g, ' ').replace(/&nbsp;/g, ' ');
             return (
-              <div
-                key={block.id || block.order}
-                className="ql-snow"
-              >
+              <div key={key} className="ql-snow">
                 <div
                   className="ql-editor prose prose-lg max-w-none text-dark-gray leading-relaxed"
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(cleanedContent, {
                       ADD_TAGS: ['iframe'],
-                      ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'target', 'rel', 'id']
+                      ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'target', 'rel', 'id', 'loading', 'decoding', 'width', 'height']
                     })
                   }}
                 />
               </div>
             );
+          }
 
-          case 'image':
+          case 'image': {
             if (!block.imageUrl) return null;
             return (
-              <div key={block.id || block.order} className="my-6">
+              <div key={key} className="my-6">
                 <img
                   src={block.imageUrl}
-                  alt={block.altText || 'Imagem do artigo'}
+                  alt={block.altText || articleTitle || 'Imagem do artigo'}
+                  width={800}
+                  height={450}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-auto rounded-3xl shadow-md hover:shadow-lg transition-shadow duration-300"
                 />
                 {block.altText && (
@@ -52,18 +59,20 @@ export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendere
                 )}
               </div>
             );
+          }
 
-          case 'video':
+          case 'video': {
             if (!block.sourceUrl && !block.embedData) return null;
             const rawUrl = block.embedData || block.sourceUrl;
             const embedUrl = parseVideoEmbedUrl(rawUrl || '');
             return (
-              <div key={block.id || block.order} className="my-8">
+              <div key={key} className="my-8">
                 <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-lg border border-light-gray">
                   <iframe
                     src={embedUrl}
-                    title="Vídeo do artigo"
+                    title={articleTitle ? `Vídeo: ${articleTitle}` : 'Vídeo do artigo'}
                     frameBorder="0"
+                    loading="lazy"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                     className="absolute top-0 left-0 w-full h-full"
@@ -71,8 +80,9 @@ export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendere
                 </div>
               </div>
             );
+          }
 
-          case 'button':
+          case 'button': {
             if (!block.label || !block.targetUrl) return null;
             const isLocal = block.targetUrl.startsWith('/') && !block.targetUrl.startsWith('//');
             const buttonStyle = {
@@ -80,7 +90,7 @@ export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendere
             };
 
             return (
-              <div key={block.id || block.order} className="flex justify-center my-8">
+              <div key={key} className="flex justify-center my-8">
                 {isLocal ? (
                   <Link
                     to={block.targetUrl}
@@ -102,14 +112,16 @@ export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendere
                 )}
               </div>
             );
+          }
 
-          case 'recommendation':
-            if (!block.recommendedArticleIds || block.recommendedArticleIds.length === 0) return null;
-            const recommended = allArticles.filter(a => block.recommendedArticleIds!.includes(a.id));
+          case 'recommendation': {
+            const recIds = Array.isArray(block.recommendedArticleIds) ? block.recommendedArticleIds : [];
+            if (recIds.length === 0) return null;
+            const recommended = safeAllArticles.filter(a => a && recIds.includes(a.id));
             if (recommended.length === 0) return null;
 
             return (
-              <div key={block.id || block.order} className="my-10 border-y border-light-gray py-8 text-left bg-light-gray/20 px-6 rounded-3xl">
+              <div key={key} className="my-10 border-y border-light-gray py-8 text-left bg-light-gray/20 px-6 rounded-3xl">
                 <h4 className="text-xl font-bold text-primary mb-6 flex items-center gap-2">
                   <span className="w-1.5 h-6 bg-accent-gold rounded-full block"></span>
                   Leituras Recomendadas
@@ -118,12 +130,20 @@ export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendere
                   {recommended.map((rPost) => (
                     <Link
                       key={rPost.id}
-                      to={`/blog/${rPost.slug}`}
+                      to={`/artigos/${rPost.slug}`}
                       className="flex gap-4 bg-white border border-light-gray p-4 rounded-2xl hover:shadow-md hover:border-accent-gold/40 transition group"
                     >
                       {rPost.featuredImageUrl && (
                         <div className="w-24 h-20 rounded-xl overflow-hidden shrink-0">
-                          <img src={rPost.featuredImageUrl} alt={rPost.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                          <img
+                            src={rPost.featuredImageUrl}
+                            alt={rPost.title}
+                            width={192}
+                            height={160}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                          />
                         </div>
                       )}
                       <div className="flex flex-col justify-center min-w-0">
@@ -137,6 +157,7 @@ export default function BlockRenderer({ blocks, allArticles = [] }: BlockRendere
                 </div>
               </div>
             );
+          }
 
           default:
             return null;
