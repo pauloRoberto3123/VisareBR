@@ -2,7 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /login
-Disallow: /api/
+Disallow: /api/identity/
+Disallow: /api/ds160/admin
+Disallow: /api/evaluations/admin
 
 Sitemap: https://www.visarebr.com.br/sitemap.xml
-

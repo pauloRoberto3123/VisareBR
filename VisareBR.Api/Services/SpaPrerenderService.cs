@@ -168,9 +168,103 @@ public class SpaPrerenderService
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
+        var initialArticleState = new
+        {
+            id = article.Id,
+            title = article.Title,
+            slug = article.Slug,
+            summary = article.Summary,
+            readTimeMinutes = article.ReadTimeMinutes,
+            featuredImageUrl = !string.IsNullOrWhiteSpace(article.FeaturedImageUrl) &&
+                               article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
+                ? $"/imagens/artigos/{article.Slug}.webp"
+                : article.FeaturedImageUrl,
+            metaTitle = article.MetaTitle,
+            metaDescription = article.MetaDescription,
+            tags = article.Tags ?? new List<string>(),
+            createdAt = article.CreatedAt,
+            updatedAt = article.UpdatedAt,
+            authorName,
+            contentBlocks = article.ContentBlocks.Select(b =>
+            {
+                if (b is TextBlock tb)
+                {
+                    return (object)new
+                    {
+                        id = tb.Id,
+                        articleId = tb.ArticleId,
+                        order = tb.Order,
+                        type = "text",
+                        content = ArticleHtmlHelper.ProjectInlineBase64ImagesToWebpUrls(
+                            tb.Content,
+                            article.Slug,
+                            tb.Order,
+                            article.Title
+                        )
+                    };
+                }
+                if (b is ImageBlock ib)
+                {
+                    return new
+                    {
+                        id = ib.Id,
+                        articleId = ib.ArticleId,
+                        order = ib.Order,
+                        type = "image",
+                        imageUrl = !string.IsNullOrWhiteSpace(ib.ImageUrl) &&
+                                   ib.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
+                            ? $"/imagens/artigos/{article.Slug}-bloco-{ib.Order}.webp"
+                            : ib.ImageUrl,
+                        altText = ib.AltText
+                    };
+                }
+                if (b is VideoBlock vb)
+                {
+                    return new
+                    {
+                        id = vb.Id,
+                        articleId = vb.ArticleId,
+                        order = vb.Order,
+                        type = "video",
+                        sourceUrl = vb.SourceUrl,
+                        embedData = vb.EmbedData
+                    };
+                }
+                if (b is ButtonBlock bb)
+                {
+                    return new
+                    {
+                        id = bb.Id,
+                        articleId = bb.ArticleId,
+                        order = bb.Order,
+                        type = "button",
+                        label = bb.Label,
+                        targetUrl = bb.TargetUrl,
+                        hexColorCode = bb.HexColorCode
+                    };
+                }
+                if (b is RecommendationBlock rb)
+                {
+                    return new
+                    {
+                        id = rb.Id,
+                        articleId = rb.ArticleId,
+                        order = rb.Order,
+                        type = "recommendation",
+                        recommendedArticleIds = rb.RecommendedArticleIds
+                    };
+                }
+                return new { id = b.Id, order = b.Order, type = "text" };
+            }).ToList()
+        };
+
+        string initialArticleJson = JsonSerializer.Serialize(initialArticleState, jsonOpts)
+            .Replace("</script>", "<\\/script>", StringComparison.OrdinalIgnoreCase);
+
         string jsonLdScripts =
             $"<script id=\"jsonld-structured-data\" type=\"application/ld+json\">{JsonSerializer.Serialize(blogPostingLd, jsonOpts)}</script>\n" +
-            $"  <script id=\"jsonld-breadcrumb-data\" type=\"application/ld+json\">{JsonSerializer.Serialize(breadcrumbLd, jsonOpts)}</script>";
+            $"  <script id=\"jsonld-breadcrumb-data\" type=\"application/ld+json\">{JsonSerializer.Serialize(breadcrumbLd, jsonOpts)}</script>\n" +
+            $"  <script id=\"initial-article-state\">window.__INITIAL_ARTICLE__ = {initialArticleJson};</script>";
 
         // Build semantic pre-rendered HTML body for the article
         var bodySb = new StringBuilder();
@@ -442,8 +536,13 @@ public class SpaPrerenderService
         string safeCanonical = WebUtility.HtmlEncode(canonicalUrl);
         string safeImage = WebUtility.HtmlEncode(ogImageUrl);
 
-        // Replace <title>...</title>
-        html = Regex.Replace(html, @"<title>.*?</title>", $"<title>{safeTitle}</title>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        // Replace <title>...</title> using MatchEvaluator to avoid $& substitution issues
+        html = Regex.Replace(
+            html,
+            @"<title>.*?</title>",
+            _ => $"<title>{safeTitle}</title>",
+            RegexOptions.Singleline | RegexOptions.IgnoreCase
+        );
 
         // Replace meta tags in index.html
         html = ReplaceMetaContent(html, "name", "title", safeTitle);
@@ -454,6 +553,7 @@ public class SpaPrerenderService
         html = ReplaceMetaContent(html, "property", "og:description", safeDesc);
         html = ReplaceMetaContent(html, "property", "og:image", safeImage);
         html = ReplaceMetaContent(html, "property", "og:image:secure_url", safeImage);
+        html = ReplaceMetaContent(html, "property", "og:image:type", "image/webp");
         html = ReplaceMetaContent(html, "name", "twitter:url", safeCanonical);
         html = ReplaceMetaContent(html, "name", "twitter:title", safeTitle);
         html = ReplaceMetaContent(html, "name", "twitter:description", safeDesc);
@@ -461,13 +561,13 @@ public class SpaPrerenderService
 
         // Inject <link rel="canonical"> and JSON-LD before </head>
         string headInjection = $"  <link rel=\"canonical\" href=\"{safeCanonical}\" />\n  {jsonLdScripts}\n</head>";
-        html = Regex.Replace(html, @"</head>", headInjection, RegexOptions.IgnoreCase);
+        html = Regex.Replace(html, @"</head>", _ => headInjection, RegexOptions.IgnoreCase);
 
-        // Inject pre-rendered content inside <div id="root"></div>
+        // Inject pre-rendered content inside <div id="root"></div> using MatchEvaluator so R$&nbsp; is never altered
         html = Regex.Replace(
             html,
             @"<div\s+id=""root""\s*>\s*</div>",
-            $"<div id=\"root\">{prerenderedRootContent}</div>",
+            _ => $"<div id=\"root\">{prerenderedRootContent}</div>",
             RegexOptions.IgnoreCase
         );
 
@@ -480,7 +580,7 @@ public class SpaPrerenderService
         string replacement = $"<meta {attrName}=\"{attrVal}\" content=\"{newContent}\" />";
         if (Regex.IsMatch(html, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline))
         {
-            return Regex.Replace(html, pattern, replacement, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            return Regex.Replace(html, pattern, _ => replacement, RegexOptions.IgnoreCase | RegexOptions.Singleline);
         }
         return html;
     }

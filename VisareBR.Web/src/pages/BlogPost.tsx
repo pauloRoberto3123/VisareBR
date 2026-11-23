@@ -9,6 +9,21 @@ import { useSettings } from '../context/SettingsContext';
 
 const SITE_BASE_URL = 'https://www.visarebr.com.br';
 
+declare global {
+  interface Window {
+    __INITIAL_ARTICLE__?: Article;
+  }
+}
+
+function getPreloadedArticle(slug?: string): Article | null {
+  if (!slug || typeof window === 'undefined') return null;
+  const initial = window.__INITIAL_ARTICLE__;
+  if (initial && initial.slug === slug) {
+    return initial;
+  }
+  return null;
+}
+
 function normalizeAuthorName(rawName?: string, fallbackName?: string): string {
   const candidate = (rawName || fallbackName || '').trim();
   if (
@@ -105,10 +120,15 @@ function resolveCanonicalImageUrl(featuredImageUrl: string | undefined, slug: st
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
-  const [post, setPost] = useState<Article | null>(null);
-  const [processedBlocks, setProcessedBlocks] = useState<ArticleBlock[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [headings, setHeadings] = useState<ParsedHeading[]>([]);
+  const initialPreloaded = getPreloadedArticle(slug);
+  const initialProcessed = initialPreloaded && Array.isArray(initialPreloaded.contentBlocks)
+    ? processBlocks(initialPreloaded.contentBlocks, initialPreloaded.title || '')
+    : { processedBlocks: [], headings: [] };
+
+  const [post, setPost] = useState<Article | null>(initialPreloaded);
+  const [processedBlocks, setProcessedBlocks] = useState<ArticleBlock[]>(initialProcessed.processedBlocks);
+  const [loading, setLoading] = useState(!initialPreloaded);
+  const [headings, setHeadings] = useState<ParsedHeading[]>(initialProcessed.headings);
   const [activeId, setActiveId] = useState<string>('');
   const [relatedPosts, setRelatedPosts] = useState<Article[]>([]);
   const [allArticlesList, setAllArticlesList] = useState<Article[]>([]);
@@ -116,12 +136,27 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (slug) {
-      setLoading(true);
+      const preloaded = getPreloadedArticle(slug);
+      if (preloaded) {
+        setPost(preloaded);
+        if (Array.isArray(preloaded.contentBlocks)) {
+          const { processedBlocks: newBlocks, headings: newHeadings } = processBlocks(
+            preloaded.contentBlocks,
+            preloaded.title || ''
+          );
+          setProcessedBlocks(newBlocks);
+          setHeadings(newHeadings);
+        }
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       getArticleBySlug(slug)
         .then((res: any) => {
           const article = res?.data;
           if (!article || typeof article !== 'object') {
-            setPost(null);
+            if (!preloaded) setPost(null);
             return;
           }
           setPost(article);
@@ -162,7 +197,10 @@ export default function BlogPost() {
         })
         .catch((err: any) => {
           console.error('Error loading article:', err);
-          setPost(null);
+          // Only clear post if we did NOT already receive pre-rendered article data from the server
+          if (!preloaded) {
+            setPost(null);
+          }
         })
         .finally(() => setLoading(false));
     }
