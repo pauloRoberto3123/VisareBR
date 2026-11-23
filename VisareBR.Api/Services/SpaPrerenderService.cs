@@ -168,9 +168,103 @@ public class SpaPrerenderService
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
+        var initialArticleState = new
+        {
+            id = article.Id,
+            title = article.Title,
+            slug = article.Slug,
+            summary = article.Summary,
+            readTimeMinutes = article.ReadTimeMinutes,
+            featuredImageUrl = !string.IsNullOrWhiteSpace(article.FeaturedImageUrl) &&
+                               article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
+                ? $"/imagens/artigos/{article.Slug}.webp"
+                : article.FeaturedImageUrl,
+            metaTitle = article.MetaTitle,
+            metaDescription = article.MetaDescription,
+            tags = article.Tags ?? new List<string>(),
+            createdAt = article.CreatedAt,
+            updatedAt = article.UpdatedAt,
+            authorName,
+            contentBlocks = article.ContentBlocks.Select(b =>
+            {
+                if (b is TextBlock tb)
+                {
+                    return (object)new
+                    {
+                        id = tb.Id,
+                        articleId = tb.ArticleId,
+                        order = tb.Order,
+                        type = "text",
+                        content = ArticleHtmlHelper.ProjectInlineBase64ImagesToWebpUrls(
+                            tb.Content,
+                            article.Slug,
+                            tb.Order,
+                            article.Title
+                        )
+                    };
+                }
+                if (b is ImageBlock ib)
+                {
+                    return new
+                    {
+                        id = ib.Id,
+                        articleId = ib.ArticleId,
+                        order = ib.Order,
+                        type = "image",
+                        imageUrl = !string.IsNullOrWhiteSpace(ib.ImageUrl) &&
+                                   ib.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
+                            ? $"/imagens/artigos/{article.Slug}-bloco-{ib.Order}.webp"
+                            : ib.ImageUrl,
+                        altText = ib.AltText
+                    };
+                }
+                if (b is VideoBlock vb)
+                {
+                    return new
+                    {
+                        id = vb.Id,
+                        articleId = vb.ArticleId,
+                        order = vb.Order,
+                        type = "video",
+                        sourceUrl = vb.SourceUrl,
+                        embedData = vb.EmbedData
+                    };
+                }
+                if (b is ButtonBlock bb)
+                {
+                    return new
+                    {
+                        id = bb.Id,
+                        articleId = bb.ArticleId,
+                        order = bb.Order,
+                        type = "button",
+                        label = bb.Label,
+                        targetUrl = bb.TargetUrl,
+                        hexColorCode = bb.HexColorCode
+                    };
+                }
+                if (b is RecommendationBlock rb)
+                {
+                    return new
+                    {
+                        id = rb.Id,
+                        articleId = rb.ArticleId,
+                        order = rb.Order,
+                        type = "recommendation",
+                        recommendedArticleIds = rb.RecommendedArticleIds
+                    };
+                }
+                return new { id = b.Id, order = b.Order, type = "text" };
+            }).ToList()
+        };
+
+        string initialArticleJson = JsonSerializer.Serialize(initialArticleState, jsonOpts)
+            .Replace("</script>", "<\\/script>", StringComparison.OrdinalIgnoreCase);
+
         string jsonLdScripts =
             $"<script id=\"jsonld-structured-data\" type=\"application/ld+json\">{JsonSerializer.Serialize(blogPostingLd, jsonOpts)}</script>\n" +
-            $"  <script id=\"jsonld-breadcrumb-data\" type=\"application/ld+json\">{JsonSerializer.Serialize(breadcrumbLd, jsonOpts)}</script>";
+            $"  <script id=\"jsonld-breadcrumb-data\" type=\"application/ld+json\">{JsonSerializer.Serialize(breadcrumbLd, jsonOpts)}</script>\n" +
+            $"  <script id=\"initial-article-state\">window.__INITIAL_ARTICLE__ = {initialArticleJson};</script>";
 
         // Build semantic pre-rendered HTML body for the article
         var bodySb = new StringBuilder();

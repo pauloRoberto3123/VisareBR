@@ -33,7 +33,9 @@ public class SeoController : ControllerBase
         sb.AppendLine("Allow: /");
         sb.AppendLine("Disallow: /admin");
         sb.AppendLine("Disallow: /login");
-        sb.AppendLine("Disallow: /api/");
+        sb.AppendLine("Disallow: /api/identity/");
+        sb.AppendLine("Disallow: /api/ds160/admin");
+        sb.AppendLine("Disallow: /api/evaluations/admin");
         sb.AppendLine();
         sb.AppendLine($"Sitemap: {BaseSiteUrl}/sitemap.xml");
 
