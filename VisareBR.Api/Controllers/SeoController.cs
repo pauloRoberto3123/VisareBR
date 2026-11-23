@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using VisareBR.Api.Services;
 using VisareBR.Core.Data;
@@ -32,7 +33,9 @@ public class SeoController : ControllerBase
         sb.AppendLine("Allow: /");
         sb.AppendLine("Disallow: /admin");
         sb.AppendLine("Disallow: /login");
-        sb.AppendLine("Disallow: /api/");
+        sb.AppendLine("Disallow: /api/identity/");
+        sb.AppendLine("Disallow: /api/ds160/admin");
+        sb.AppendLine("Disallow: /api/evaluations/admin");
         sb.AppendLine();
         sb.AppendLine($"Sitemap: {BaseSiteUrl}/sitemap.xml");
 
@@ -116,8 +119,32 @@ public class SeoController : ControllerBase
         return Content(xmlContent, "application/xml", Encoding.UTF8);
     }
 
-    [HttpGet("/imagens/artigos/{slug}-texto-{order:int}-{index:int}.webp")]
-    public async Task<IActionResult> GetArticleInlineTextImage(string slug, int order, int index)
+    [HttpGet("/imagens/artigos/{fileName}.webp")]
+    public async Task<IActionResult> GetArticleImage(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return NotFound();
+
+        // 1. Check if it is an inline text image: {slug}-texto-{order}-{index}
+        var textMatch = Regex.Match(fileName, @"^(.+)-texto-(\d+)-(\d+)$", RegexOptions.IgnoreCase);
+        if (textMatch.Success &&
+            int.TryParse(textMatch.Groups[2].Value, out int txtOrder) &&
+            int.TryParse(textMatch.Groups[3].Value, out int txtIndex))
+        {
+            return await GetArticleInlineTextImageInternalAsync(textMatch.Groups[1].Value, txtOrder, txtIndex);
+        }
+
+        // 2. Check if it is an ImageBlock image: {slug}-bloco-{order}
+        var blockMatch = Regex.Match(fileName, @"^(.+)-bloco-(\d+)$", RegexOptions.IgnoreCase);
+        if (blockMatch.Success && int.TryParse(blockMatch.Groups[2].Value, out int blkOrder))
+        {
+            return await GetArticleBlockImageInternalAsync(blockMatch.Groups[1].Value, blkOrder);
+        }
+
+        // 3. Default: Featured cover image for {slug}
+        return await GetArticleFeaturedImageInternalAsync(fileName);
+    }
+
+    private async Task<IActionResult> GetArticleInlineTextImageInternalAsync(string slug, int order, int index)
     {
         string cacheKey = $"article_img_{slug}_txt_{order}_{index}";
         if (_cache.TryGetValue(cacheKey, out byte[]? cachedWebpBytes) && cachedWebpBytes != null)
@@ -147,8 +174,7 @@ public class SeoController : ControllerBase
         return ServeImageAsWebp(inlineImages[index], cacheKey);
     }
 
-    [HttpGet("/imagens/artigos/{slug}-bloco-{order:int}.webp")]
-    public async Task<IActionResult> GetArticleBlockImage(string slug, int order)
+    private async Task<IActionResult> GetArticleBlockImageInternalAsync(string slug, int order)
     {
         string cacheKey = $"article_img_{slug}_blk_{order}";
         if (_cache.TryGetValue(cacheKey, out byte[]? cachedWebpBytes) && cachedWebpBytes != null)
@@ -174,8 +200,7 @@ public class SeoController : ControllerBase
         return ServeImageAsWebp(imgBlock.ImageUrl, cacheKey);
     }
 
-    [HttpGet("/imagens/artigos/{slug}.webp")]
-    public async Task<IActionResult> GetArticleFeaturedImage(string slug)
+    private async Task<IActionResult> GetArticleFeaturedImageInternalAsync(string slug)
     {
         string cacheKey = $"article_img_{slug}";
         if (_cache.TryGetValue(cacheKey, out byte[]? cachedWebpBytes) && cachedWebpBytes != null)
