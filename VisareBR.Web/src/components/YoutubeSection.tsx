@@ -46,10 +46,11 @@ export default function YoutubeSection() {
   useEffect(() => {
     api.get<YoutubeVideo[]>('/youtube/videos')
       .then((res) => {
-        setVideos(res.data);
+        setVideos(Array.isArray(res?.data) ? res.data : []);
       })
       .catch((err) => {
         console.error('Error fetching YouTube videos:', err);
+        setVideos([]);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -109,6 +110,9 @@ export default function YoutubeSection() {
           <img
             src={video.thumbnailUrl}
             alt={video.title}
+            width={480}
+            height={360}
+            decoding="async"
             className={`w-full h-full object-cover transition-transform duration-500 ${isShort ? 'scale-[1.35] group-hover:scale-[1.42]' : 'scale-100 group-hover:scale-105'}`}
             loading="lazy"
           />

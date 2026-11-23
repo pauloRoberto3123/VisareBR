@@ -1,8 +1,46 @@
 import { useState, useEffect } from 'react';
-import * as Icons from 'lucide-react';
+import {
+  Briefcase,
+  Plane,
+  RefreshCw,
+  GraduationCap,
+  FileText,
+  ShieldCheck,
+  Calendar,
+  HelpCircle,
+  Globe,
+  CreditCard,
+  UserCheck,
+  Users,
+  Award,
+  Compass,
+  CheckCircle2,
+  Loader2,
+  Inbox,
+  MessageCircle
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import api from '../api/blogService';
 import { useSettings } from '../context/SettingsContext';
 import type { StandaloneService } from '../components/StandaloneServices';
+
+const SERVICE_ICONS: Record<string, LucideIcon> = {
+  Briefcase,
+  Plane,
+  RefreshCw,
+  GraduationCap,
+  FileText,
+  ShieldCheck,
+  Calendar,
+  HelpCircle,
+  Globe,
+  CreditCard,
+  UserCheck,
+  Users,
+  Award,
+  Compass,
+  CheckCircle2,
+};
 
 export default function ServicesList() {
   const { settings, whatsappUrl } = useSettings();
@@ -12,8 +50,8 @@ export default function ServicesList() {
   useEffect(() => {
     api.get('/services/standalone')
       .then((res) => {
-        // Filtrar apenas serviços ativos
-        const activeServices = res.data.filter((s: StandaloneService) => s.isActive);
+        const list = Array.isArray(res?.data) ? res.data : [];
+        const activeServices = list.filter((s: StandaloneService) => s && s.isActive);
         setServices(activeServices);
       })
       .catch((err) => console.error('Erro ao buscar serviços:', err))
@@ -22,9 +60,9 @@ export default function ServicesList() {
 
   const getIcon = (iconName?: string) => {
     if (iconName && (iconName.startsWith('data:') || iconName.startsWith('http'))) {
-      return <img src={iconName} alt="Service Icon" className="w-10 h-10 object-contain mx-auto" />;
+      return <img src={iconName} alt="Ícone do serviço" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 object-contain mx-auto" />;
     }
-    const IconComponent = (Icons as any)[iconName || 'Briefcase'] || Icons.Briefcase;
+    const IconComponent = SERVICE_ICONS[iconName || 'Briefcase'] || Briefcase;
     return <IconComponent className="w-10 h-10 text-accent-gold" />;
   };
 
@@ -63,12 +101,12 @@ export default function ServicesList() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <Icons.Loader2 className="w-10 h-10 text-accent-gold animate-spin mb-4" />
+              <Loader2 className="w-10 h-10 text-accent-gold animate-spin mb-4" />
               <span className="text-primary font-bold text-lg">Carregando serviços...</span>
             </div>
           ) : services.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm max-w-lg mx-auto">
-              <Icons.Inbox className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <Inbox className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-primary mb-2">Nenhum serviço disponível</h3>
               <p className="text-dark-gray px-6">No momento não há serviços avulsos cadastrados. Por favor, volte mais tarde ou fale diretamente conosco.</p>
             </div>
@@ -138,7 +176,7 @@ export default function ServicesList() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-md shadow-[#25D366]/20"
           >
-            <Icons.MessageCircle className="w-5 h-5" />
+            <MessageCircle className="w-5 h-5" />
             <span>Falar Conosco no WhatsApp</span>
           </a>
         </div>

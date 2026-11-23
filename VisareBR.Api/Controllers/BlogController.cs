@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
+using VisareBR.Api.Services;
 using VisareBR.Core.Data;
 using VisareBR.Core.Entities;
 using VisareBR.Core.Events;
@@ -158,6 +159,17 @@ public class BlogController : ControllerBase
         var existingImageBlocksByOrder = article.ContentBlocks
             .OfType<ImageBlock>()
             .ToDictionary(b => b.Order, b => b.ImageUrl);
+
+        var existingInlineTextImages = new Dictionary<(int Order, int Index), string>();
+        foreach (var tb in article.ContentBlocks.OfType<TextBlock>())
+        {
+            var inlineList = ArticleHtmlHelper.ExtractInlineBase64Images(tb.Content);
+            for (int i = 0; i < inlineList.Count; i++)
+            {
+                existingInlineTextImages[(tb.Order, i)] = inlineList[i];
+            }
+        }
+
         var existingFeaturedImage = article.FeaturedImageUrl;
 
         // Remove old blocks first to support replacement
@@ -170,6 +182,13 @@ public class BlogController : ControllerBase
             if (block is VideoBlock videoBlock)
             {
                 videoBlock.EmbedData = VideoParser.ParseEmbedUrl(videoBlock.SourceUrl);
+            }
+            else if (block is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Content))
+            {
+                textBlock.Content = ArticleHtmlHelper.RestoreProjectedInlineImagesToBase64(
+                    textBlock.Content,
+                    existingInlineTextImages
+                );
             }
             else if (block is ImageBlock imageBlock &&
                      !string.IsNullOrEmpty(imageBlock.ImageUrl) &&
@@ -303,6 +322,12 @@ public class BlogController : ControllerBase
 
     private static void ProjectArticleImageUrls(Article article)
     {
+        article.AuthorName = ArticleHtmlHelper.NormalizeAuthorName(article.AuthorName, article.Author?.FullName);
+        if (article.Author != null)
+        {
+            article.Author.FullName = ArticleHtmlHelper.NormalizeAuthorName(article.Author.FullName);
+        }
+
         if (!string.IsNullOrEmpty(article.FeaturedImageUrl) &&
             article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
         {
@@ -318,6 +343,15 @@ public class BlogController : ControllerBase
                 imgBlock.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
             {
                 imgBlock.ImageUrl = $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp";
+            }
+            else if (block is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Content))
+            {
+                textBlock.Content = ArticleHtmlHelper.ProjectInlineBase64ImagesToWebpUrls(
+                    textBlock.Content,
+                    article.Slug,
+                    textBlock.Order,
+                    article.Title
+                );
             }
         }
     }
