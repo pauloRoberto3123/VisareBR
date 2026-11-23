@@ -9,6 +9,19 @@ import { useSettings } from '../context/SettingsContext';
 
 const SITE_BASE_URL = 'https://www.visarebr.com.br';
 
+function normalizeAuthorName(rawName?: string, fallbackName?: string): string {
+  const candidate = (rawName || fallbackName || '').trim();
+  if (
+    !candidate ||
+    candidate.toLowerCase() === 'administrador visarebr' ||
+    candidate.toLowerCase() === 'admin' ||
+    candidate.toLowerCase() === 'visarebr'
+  ) {
+    return 'Gilceli Braga';
+  }
+  return candidate;
+}
+
 interface ParsedHeading {
   id: string;
   text: string;
@@ -38,10 +51,16 @@ function processBlocks(blocks: ArticleBlock[], articleTitle: string): {
       h1El.replaceWith(h2El);
     });
 
-    // Ensure any inline <img> inside rich text has alt, loading="lazy", and decoding="async"
+    // Ensure any inline <img> inside rich text has alt, width, height, loading="lazy", and decoding="async"
     doc.querySelectorAll('img').forEach((imgEl) => {
       if (!imgEl.getAttribute('alt')) {
         imgEl.setAttribute('alt', articleTitle || 'Imagem do artigo');
+      }
+      if (!imgEl.getAttribute('width')) {
+        imgEl.setAttribute('width', '800');
+      }
+      if (!imgEl.getAttribute('height')) {
+        imgEl.setAttribute('height', '450');
       }
       if (!imgEl.getAttribute('loading')) {
         imgEl.setAttribute('loading', 'lazy');
@@ -157,7 +176,6 @@ export default function BlogPost() {
     const metaDesc = post.metaDescription || post.summary;
     const canonicalUrl = `${SITE_BASE_URL}/artigos/${post.slug}`;
     const canonicalImage = resolveCanonicalImageUrl(post.featuredImageUrl, post.slug);
-    const authorDisplayName = post.authorName || post.author?.fullName || 'Gilceli Braga';
 
     // Update Page Title
     document.title = fullTitle;
@@ -216,7 +234,7 @@ export default function BlogPost() {
       dateModified: post.updatedAt || post.createdAt,
       author: {
         '@type': 'Person',
-        name: authorDisplayName,
+        name: 'Gilceli Braga',
         url: `${SITE_BASE_URL}/quem-somos`
       },
       publisher: {
@@ -325,7 +343,7 @@ export default function BlogPost() {
   if (loading) return <div className="py-20 text-center text-primary font-medium">Carregando artigo...</div>;
   if (!post) return <div className="py-20 text-center text-primary font-medium">Artigo não encontrado.</div>;
 
-  const authorDisplayName = post.authorName || post.author?.fullName || 'Gilceli Braga';
+  const authorDisplayName = normalizeAuthorName(post.authorName, post.author?.fullName);
   const coverSrc =
     post.featuredImageUrl && post.featuredImageUrl.startsWith('data:image/')
       ? `/imagens/artigos/${post.slug}.webp`

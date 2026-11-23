@@ -12,24 +12,30 @@ A **VisareBR** é uma plataforma completa de consultoria, assessoria e suporte p
 1. **Formulário Inteligente DS-160**:
    - Formulário interativo em 8 etapas para coleta detalhada de dados dos solicitantes.
    - Criptografia de ponta para dados sensíveis (número de passaporte criptografado via AES).
-   - Visualizador administrativo dedicado (`Ds160Visualizer.tsx`) para revisão, validação e aprovação dos dados pela equipe consular.
-2. **Sistema de Planos e Precificação Dinâmica**:
+   - Visualizador administrativo dedicado (`Ds160Visualizer.tsx`) para revisão, validação e aprovação dos dados pela equipe consular, com suporte a exportação completa para PDF/impressão incluindo a foto anexada do passaporte (`passportPhotoBase64`).
+2. **Ferramentas Interativas de Diagnóstico Consular (Captação de Leads)**:
+   - **Avaliação de Perfil (`ProfileEvaluation.tsx`)**: Diagnóstico interativo em 7 etapas (`/avaliacao-de-perfil` e `/avaliacao-de-perfil.html`) que avalia vínculos com o Brasil (`tiesScore`), histórico de viagens/recusas e caminhos específicos (`pathEval`), gerando protocolo único, estimativa de aprovação (limitada a até 90%), pontos fortes/de atenção e relatório formatado para envio direto ao WhatsApp configurado no `SettingsContext`.
+   - **Qual Visto Combina com Você (`VisaMatcher.tsx`)**: Simulador de compatibilidade (`/qual-visto-combina` e `/qual-visto-combina.html`) que cruza o perfil do solicitante com 14 categorias de visto americano (Não Imigrante e Green Card), exibindo checklist de requisitos (`✓ Já tem`, `✗ Falta`, `? A confirmar`), modais explicativos detalhados e diagnóstico pronto para envio via WhatsApp.
+3. **Sistema de Planos e Precificação Dinâmica**:
    - Planos escalonados com benefícios e prazos de processamento.
    - Faixas de preço (`PlanPricingTier`) com cálculo automático e descontos progressivos por quantidade de solicitantes.
    - Serviços avulsos (`StandaloneService`): preenchimento, antecipação de agendamento CASV/Consulado, passaportes, etc.
-3. **Headless CMS & Blog Especializado**:
+4. **Headless CMS, Blog Especializado & Motor de SEO Técnico**:
    - Sistema de artigos com blocos de conteúdo polimórficos (Texto, Imagens, Vídeos incorporados, Botões de chamada para ação e Recomendações automáticas de leitura).
    - Publicação direcionada: artigos podem ser configurados para alimentar dinamicamente os menus suspensos do Navbar (`ShowInVisaDropdown`, `ShowInOthersDropdown`).
-   - Otimizações para SEO (MetaTitle, MetaDescription, Tags, Slug único e tempo estimado de leitura).
-4. **Avaliações e Prova Social**:
+   - **Pré-renderização Server-Side (SSR HTML Injection)** via `SpaPrerenderService.cs`: o backend .NET intercepta requisições para `/`, páginas institucionais, `/artigos` e `/artigos/{slug}`, injetando no `index.html` o `<title>`, `<meta name="description">`, `<link rel="canonical">`, tags OpenGraph/Twitter, dados estruturados JSON-LD (`BlogPosting`, `BreadcrumbList`, `Organization`) e o HTML semântico completo do artigo dentro de `<div id="root">` antes de entregar ao navegador/Googlebot.
+   - **Imagens em WebP com URLs Limpas (`/imagens/artigos/{slug}.webp`)**: compressão automática em `image/webp` no upload (`imageCompressor.ts`) e projeção dinâmica no `BlogController.cs` + `SeoController.cs` para transformar imagens `Base64` persistidas no PostgreSQL em endpoints de arquivos `.webp` cacheados (`Cache-Control: public, max-age=604800`), mantendo o payload JSON de `GET /api/blog` enxuto e garantindo indexação no Google Imagens e preview no WhatsApp.
+   - **Sitemap e Robots Dinâmicos**: geração automática de `/sitemap.xml` (com `<lastmod>` sincronizado com `UpdatedAt ?? CreatedAt`) e `/robots.txt` via `SeoController.cs`.
+   - **Estrutura E-E-A-T nos Artigos**: garantia de `<h1>` único por página (demovendo `<h1>` internos do editor para `<h2>`), breadcrumb semântico e bloco de autoria da especialista consular (**Gilceli Braga**) com link para `/quem-somos`.
+5. **Avaliações e Prova Social**:
    - Sistema de depoimentos e notas (1 a 5 estrelas) com moderação e aprovação administrativa prévia antes da publicação.
-5. **Integração com YouTube e Mídias**:
+6. **Integração com YouTube e Mídias**:
    - Carrossel dinâmico de vídeos informativos com busca pelo canal oficial e suporte a vídeos em destaque personalizados.
-6. **Painel Administrativo Completo (`AdminDashboard`)**:
+7. **Painel Administrativo Completo (`AdminDashboard`)**:
    - Gestão de artigos e blocos de conteúdo.
    - Gestão de envios de formulários DS-160 e status de revisão.
    - Gerenciamento de planos, faixas de preço e serviços avulsos.
-   - Moderação de avaliações, FAQs, carrosséis e configurações globais do site (WhatsApp, métricas da home, CNPJ, analytics).
+   - Moderação de avaliações, FAQs, carrosséis, otimizador retroativo de imagens do banco e configurações globais do site (WhatsApp, métricas da home, CNPJ, analytics).
 
 ---
 
@@ -110,10 +116,18 @@ VisareBR/
 
 ### 4.5. Event-Driven Cache Invalidation
 - O `BlogController` despacha eventos via `IArticleEventDispatcher` (`ArticlePublishedOrUpdatedEvent`).
-- O serviço `ArticleCacheInvalidator` escuta esses eventos e limpa as chaves relevantes do `IMemoryCache`, garantindo leituras ultra-rápidas sem dados obsoletos.
+- O serviço `ArticleCacheInvalidator` escuta esses eventos e limpa as chaves relevantes do `IMemoryCache` (`article_slug_{slug}`, `article_prerender_{slug}`, `article_img_{slug}`, `articles_list_all`, `sitemap_xml`), garantindo leituras ultra-rápidas sem dados obsoletos tanto na API quanto no HTML pré-renderizado e no `sitemap.xml`.
 
 ### 4.6. Precificação Flexível em Camadas (`Tiered Pricing`)
 - Os planos possuem `ICollection<PlanPricingTier>`, permitindo que a administração defina preços baseados na quantidade exata de pessoas por processo familiar/grupo, sem fórmulas rígidas no código.
+
+### 4.7. Pré-renderização Server-Side (SSR Híbrido) e Projeção de Imagens `.webp`
+- Como o container de produção no Render possui sistema de arquivos efêmero, as imagens enviadas no CMS continuam persistidas com segurança no PostgreSQL (comprimidas em `image/webp`), mas o `BlogController` projeta os campos `FeaturedImageUrl` e `ImageBlock.ImageUrl` nas respostas JSON para rotas públicas limpas (`/imagens/artigos/{slug}.webp` e `/imagens/artigos/{slug}-bloco-{order}.webp`) servidas pelo `SeoController`. Ao atualizar um artigo no `UpdateArticle`, caso a URL recebida aponte para `/imagens/artigos/...`, o `BlogController` preserva o Base64 original armazenado no banco.
+- O fallback do ASP.NET Core (`Program.cs`) utiliza o `SpaPrerenderService` para injetar metadados SEO, `<link rel="canonical">`, schemas JSON-LD e o corpo semântico pré-renderizado dentro de `<div id="root">` no `index.html`, eliminando o problema de conteúdo invisível para motores de busca e crawlers de redes sociais.
+
+### 4.8. Resiliência no Frontend (`Array.isArray` & `ErrorBoundary`)
+- Todas as listagens que consomem respostas da API devem validar `Array.isArray(res?.data)` antes de invocar métodos de array (`.filter()`, `.map()`, `.slice()`), evitando falhas de tela branca (`TypeError: .filter is not a function`) durante *cold starts* ou oscilações de rede.
+- O componente `ErrorBoundary.tsx` envolve o `<Outlet />` principal em `MainLayout.tsx` e sub-blocos dinâmicos em `BlogPost.tsx` para isolar eventuais erros de renderização.
 
 ---
 

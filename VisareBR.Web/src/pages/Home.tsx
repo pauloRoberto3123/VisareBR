@@ -97,7 +97,12 @@ export default function Home() {
                   {/* Background Image */}
                   <img
                     src={slide.imageUrl}
-                    alt={slide.title || 'Slide Image'}
+                    alt={slide.title || 'VisareBR Assessoria de Visto Americano'}
+                    width={1920}
+                    height={600}
+                    fetchPriority={index === 0 ? 'high' : 'auto'}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
 

@@ -41,6 +41,10 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers(); // Add this line
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IArticleEventDispatcher, ArticleEventDispatcher>();
 builder.Services.AddScoped<IArticleEventListener, ArticleCacheInvalidator>();
@@ -89,8 +93,23 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseResponseCompression();
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var path = ctx.Context.Request.Path.Value ?? string.Empty;
+        if (path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+        }
+        else
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=86400";
+        }
+    }
+});
 
 app.UseCors("AllowReactApp");
 

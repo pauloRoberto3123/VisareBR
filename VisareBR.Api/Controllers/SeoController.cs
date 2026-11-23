@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
 using System.Text;
 using System.Xml;
+using VisareBR.Api.Services;
 using VisareBR.Core.Data;
 using VisareBR.Core.Entities;
 
@@ -113,9 +116,47 @@ public class SeoController : ControllerBase
         return Content(xmlContent, "application/xml", Encoding.UTF8);
     }
 
+    [HttpGet("/imagens/artigos/{slug}-texto-{order:int}-{index:int}.webp")]
+    public async Task<IActionResult> GetArticleInlineTextImage(string slug, int order, int index)
+    {
+        string cacheKey = $"article_img_{slug}_txt_{order}_{index}";
+        if (_cache.TryGetValue(cacheKey, out byte[]? cachedWebpBytes) && cachedWebpBytes != null)
+        {
+            Response.Headers["Cache-Control"] = "public, max-age=604800";
+            return File(cachedWebpBytes, "image/webp");
+        }
+
+        var article = await _context.Articles
+            .AsNoTracking()
+            .Include(a => a.ContentBlocks)
+            .FirstOrDefaultAsync(a => a.Slug == slug);
+
+        if (article == null) return NotFound();
+
+        var textBlock = article.ContentBlocks
+            .OfType<TextBlock>()
+            .FirstOrDefault(b => b.Order == order);
+
+        if (textBlock == null || string.IsNullOrWhiteSpace(textBlock.Content))
+            return NotFound();
+
+        var inlineImages = ArticleHtmlHelper.ExtractInlineBase64Images(textBlock.Content);
+        if (index < 0 || index >= inlineImages.Count)
+            return NotFound();
+
+        return ServeImageAsWebp(inlineImages[index], cacheKey);
+    }
+
     [HttpGet("/imagens/artigos/{slug}-bloco-{order:int}.webp")]
     public async Task<IActionResult> GetArticleBlockImage(string slug, int order)
     {
+        string cacheKey = $"article_img_{slug}_blk_{order}";
+        if (_cache.TryGetValue(cacheKey, out byte[]? cachedWebpBytes) && cachedWebpBytes != null)
+        {
+            Response.Headers["Cache-Control"] = "public, max-age=604800";
+            return File(cachedWebpBytes, "image/webp");
+        }
+
         var article = await _context.Articles
             .AsNoTracking()
             .Include(a => a.ContentBlocks)
@@ -130,47 +171,62 @@ public class SeoController : ControllerBase
         if (imgBlock == null || string.IsNullOrWhiteSpace(imgBlock.ImageUrl))
             return NotFound();
 
-        return ServeImageFromDataOrUrl(imgBlock.ImageUrl);
+        return ServeImageAsWebp(imgBlock.ImageUrl, cacheKey);
     }
 
     [HttpGet("/imagens/artigos/{slug}.webp")]
     public async Task<IActionResult> GetArticleFeaturedImage(string slug)
     {
         string cacheKey = $"article_img_{slug}";
-        if (!_cache.TryGetValue(cacheKey, out string? rawImage) || string.IsNullOrEmpty(rawImage))
+        if (_cache.TryGetValue(cacheKey, out byte[]? cachedWebpBytes) && cachedWebpBytes != null)
         {
-            rawImage = await _context.Articles
-                .AsNoTracking()
-                .Where(a => a.Slug == slug)
-                .Select(a => a.FeaturedImageUrl)
-                .FirstOrDefaultAsync();
-
-            if (string.IsNullOrWhiteSpace(rawImage))
-                return NotFound();
-
-            _cache.Set(cacheKey, rawImage, TimeSpan.FromHours(6));
+            Response.Headers["Cache-Control"] = "public, max-age=604800";
+            return File(cachedWebpBytes, "image/webp");
         }
 
-        return ServeImageFromDataOrUrl(rawImage);
+        var rawImage = await _context.Articles
+            .AsNoTracking()
+            .Where(a => a.Slug == slug)
+            .Select(a => a.FeaturedImageUrl)
+            .FirstOrDefaultAsync();
+
+        if (string.IsNullOrWhiteSpace(rawImage))
+            return NotFound();
+
+        return ServeImageAsWebp(rawImage, cacheKey);
     }
 
-    private IActionResult ServeImageFromDataOrUrl(string dataOrUrl)
+    private IActionResult ServeImageAsWebp(string dataOrUrl, string cacheKey)
     {
         if (dataOrUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
         {
             int commaIndex = dataOrUrl.IndexOf(',');
             if (commaIndex < 0) return NotFound();
 
-            string header = dataOrUrl.Substring(5, commaIndex - 5); // e.g., "image/webp;base64"
-            string mimeType = header.Split(';')[0];
-            if (string.IsNullOrWhiteSpace(mimeType)) mimeType = "image/webp";
-
+            string header = dataOrUrl.Substring(5, commaIndex - 5); // e.g., "image/webp;base64" or "image/jpeg;base64"
+            string mimeType = header.Split(';')[0].Trim().ToLowerInvariant();
             string base64Data = dataOrUrl.Substring(commaIndex + 1);
+
             try
             {
-                byte[] bytes = Convert.FromBase64String(base64Data);
+                byte[] rawBytes = Convert.FromBase64String(base64Data);
+                byte[] webpBytes;
+
+                if (mimeType == "image/webp")
+                {
+                    webpBytes = rawBytes;
+                }
+                else
+                {
+                    using var image = Image.Load(rawBytes);
+                    using var outStream = new MemoryStream();
+                    image.SaveAsWebp(outStream, new WebpEncoder { Quality = 78 });
+                    webpBytes = outStream.ToArray();
+                }
+
+                _cache.Set(cacheKey, webpBytes, TimeSpan.FromHours(6));
                 Response.Headers["Cache-Control"] = "public, max-age=604800";
-                return File(bytes, mimeType);
+                return File(webpBytes, "image/webp");
             }
             catch
             {
@@ -187,4 +243,3 @@ public class SeoController : ControllerBase
         return NotFound();
     }
 }
-
