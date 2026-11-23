@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import type { ArticleBlock, Article } from '../api/blogService';
-import 'react-quill-new/dist/quill.snow.css';
 
 interface BlockRendererProps {
   blocks: ArticleBlock[];

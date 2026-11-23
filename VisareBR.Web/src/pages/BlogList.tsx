@@ -109,7 +109,13 @@ export default function BlogList() {
                 <div className="p-6 flex flex-col flex-grow">
                   <div className="flex items-center gap-4 text-sm text-dark-gray mb-3">
                     <span className="flex items-center gap-1"><Calendar size={14} className="text-gray-500" /> {new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
-                    {(post.authorName || post.author) && <span className="flex items-center gap-1"><User size={14} className="text-gray-500" /> {post.authorName || post.author?.fullName}</span>}
+                    <span className="flex items-center gap-1">
+                      <User size={14} className="text-gray-500" />{' '}
+                      {(!post.authorName && !post.author?.fullName) ||
+                      (post.authorName || post.author?.fullName || '').toLowerCase() === 'administrador visarebr'
+                        ? 'Gilceli Braga'
+                        : post.authorName || post.author?.fullName}
+                    </span>
                   </div>
                   <h2 className="text-xl font-bold text-primary mb-3 line-clamp-2 group-hover:text-accent-gold transition-colors duration-200">{post.title}</h2>
                   <p className="text-dark-gray mb-6 line-clamp-3">{post.summary}</p>

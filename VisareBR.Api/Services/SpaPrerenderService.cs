@@ -96,71 +96,69 @@ public class SpaPrerenderService
         string metaDesc = string.IsNullOrWhiteSpace(article.MetaDescription) ? article.Summary : article.MetaDescription;
         string canonicalUrl = $"{BaseUrl}/artigos/{article.Slug}";
         string imageUrl = ResolveArticleAbsoluteImageUrl(article.FeaturedImageUrl, article.Slug);
-        string authorName = !string.IsNullOrWhiteSpace(article.AuthorName)
-            ? article.AuthorName!
-            : (!string.IsNullOrWhiteSpace(article.Author?.FullName) ? article.Author!.FullName : "Gilceli Braga");
+        string authorName = ArticleHtmlHelper.NormalizeAuthorName(article.AuthorName, article.Author?.FullName);
 
         var datePublished = article.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var dateModified = (article.UpdatedAt ?? article.CreatedAt).ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-        var blogPostingLd = new
+        var blogPostingLd = new Dictionary<string, object>
         {
-            @context = "https://schema.org",
-            @type = "BlogPosting",
-            mainEntityOfPage = new
+            ["@context"] = "https://schema.org",
+            ["@type"] = "BlogPosting",
+            ["mainEntityOfPage"] = new Dictionary<string, object>
             {
-                @type = "WebPage",
-                @id = canonicalUrl
+                ["@type"] = "WebPage",
+                ["@id"] = canonicalUrl
             },
-            headline = metaTitle,
-            description = metaDesc,
-            image = new[] { imageUrl },
-            datePublished,
-            dateModified,
-            author = new
+            ["headline"] = metaTitle,
+            ["description"] = metaDesc,
+            ["image"] = new[] { imageUrl },
+            ["datePublished"] = datePublished,
+            ["dateModified"] = dateModified,
+            ["author"] = new Dictionary<string, object>
             {
-                @type = "Person",
-                name = authorName,
-                url = $"{BaseUrl}/quem-somos"
+                ["@type"] = "Person",
+                ["name"] = "Gilceli Braga",
+                ["url"] = $"{BaseUrl}/quem-somos"
             },
-            publisher = new
+            ["publisher"] = new Dictionary<string, object>
             {
-                @type = "Organization",
-                name = "VisareBR",
-                logo = new
+                ["@type"] = "Organization",
+                ["name"] = "VisareBR",
+                ["logo"] = new Dictionary<string, object>
                 {
-                    @type = "ImageObject",
-                    url = DefaultLogoUrl
+                    ["@type"] = "ImageObject",
+                    ["url"] = DefaultLogoUrl
                 }
             }
         };
 
-        var breadcrumbLd = new
+        var breadcrumbLd = new Dictionary<string, object>
         {
-            @context = "https://schema.org",
-            @type = "BreadcrumbList",
-            itemListElement = new object[]
+            ["@context"] = "https://schema.org",
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new object[]
             {
-                new
+                new Dictionary<string, object>
                 {
-                    @type = "ListItem",
-                    position = 1,
-                    name = "Início",
-                    item = $"{BaseUrl}/"
+                    ["@type"] = "ListItem",
+                    ["position"] = 1,
+                    ["name"] = "Início",
+                    ["item"] = $"{BaseUrl}/"
                 },
-                new
+                new Dictionary<string, object>
                 {
-                    @type = "ListItem",
-                    position = 2,
-                    name = "Artigos",
-                    item = $"{BaseUrl}/artigos"
+                    ["@type"] = "ListItem",
+                    ["position"] = 2,
+                    ["name"] = "Artigos",
+                    ["item"] = $"{BaseUrl}/artigos"
                 },
-                new
+                new Dictionary<string, object>
                 {
-                    @type = "ListItem",
-                    position = 3,
-                    name = article.Title,
-                    item = canonicalUrl
+                    ["@type"] = "ListItem",
+                    ["position"] = 3,
+                    ["name"] = article.Title,
+                    ["item"] = canonicalUrl
                 }
             }
         };
@@ -203,8 +201,15 @@ public class SpaPrerenderService
         {
             if (block is TextBlock textBlock && !string.IsNullOrWhiteSpace(textBlock.Content))
             {
+                // Project any inline Base64 <img> tags inside Rich Text to clean /imagens/artigos/{slug}-texto-{order}-{index}.webp URLs
+                string projectedHtml = ArticleHtmlHelper.ProjectInlineBase64ImagesToWebpUrls(
+                    textBlock.Content,
+                    article.Slug,
+                    textBlock.Order,
+                    article.Title
+                );
                 // Ensure only 1 H1 per page by demoting any inner <h1> to <h2>
-                string sanitizedHtml = Regex.Replace(textBlock.Content, @"<h1(\b[^>]*)>", "<h2$1>", RegexOptions.IgnoreCase);
+                string sanitizedHtml = Regex.Replace(projectedHtml, @"<h1(\b[^>]*)>", "<h2$1>", RegexOptions.IgnoreCase);
                 sanitizedHtml = Regex.Replace(sanitizedHtml, @"</h1>", "</h2>", RegexOptions.IgnoreCase);
                 bodySb.Append($"<section>{sanitizedHtml}</section>");
             }
@@ -258,23 +263,23 @@ public class SpaPrerenderService
             ? settings!.CompanyEmail
             : "contato@visarebr.com.br";
 
-        var orgLd = new
+        var orgLd = new Dictionary<string, object>
         {
-            @context = "https://schema.org",
-            @type = "Organization",
-            name = "VisareBR",
-            legalName = "VisareBR Assessoria de Vistos",
-            url = $"{BaseUrl}/",
-            logo = DefaultLogoUrl,
-            telephone = phone,
-            email,
-            address = new
+            ["@context"] = "https://schema.org",
+            ["@type"] = "Organization",
+            ["name"] = "VisareBR",
+            ["legalName"] = "VisareBR Assessoria de Vistos",
+            ["url"] = $"{BaseUrl}/",
+            ["logo"] = DefaultLogoUrl,
+            ["telephone"] = phone,
+            ["email"] = email,
+            ["address"] = new Dictionary<string, object>
             {
-                @type = "PostalAddress",
-                addressLocality = settings?.Address ?? "Campinas / SP",
-                addressCountry = "BR"
+                ["@type"] = "PostalAddress",
+                ["addressLocality"] = settings?.Address ?? "Campinas / SP",
+                ["addressCountry"] = "BR"
             },
-            sameAs = new[]
+            ["sameAs"] = new[]
             {
                 "https://www.instagram.com/visarebr",
                 "https://www.youtube.com/@visarebr"

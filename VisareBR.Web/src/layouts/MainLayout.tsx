@@ -42,7 +42,7 @@ export default function MainLayout() {
             {/* Brand column */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="VisareBR Logo" className="h-12 w-auto" />
+                <img src="/logo.png" alt="VisareBR Logo" width={150} height={48} loading="lazy" decoding="async" className="h-12 w-auto" />
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Assessoria especializada em vistos americanos. Segurança, agilidade e alta taxa de aprovação para sua viagem aos Estados Unidos.

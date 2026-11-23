@@ -72,7 +72,7 @@ export default function Navbar() {
 
             {/* Logo (Left) */}
             <Link to="/" className="flex items-center shrink-0">
-              <img src="/logo.png" alt="VisareBR Logo" className="h-12 md:h-14 w-auto brightness-0 invert" />
+              <img src="/logo.png" alt="VisareBR Logo" width={160} height={56} className="h-12 md:h-14 w-auto brightness-0 invert" />
             </Link>
 
             {/* Navigation links (Center - Desktop only) */}
@@ -185,7 +185,7 @@ export default function Navbar() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="border border-white/20 rounded-full pl-4 pr-10 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-accent-gold lg:w-28 xl:w-40 transition-all bg-white/10 hover:bg-white/15"
                 />
-                <button type="submit" className="absolute right-3 text-slate-300 hover:text-accent-gold cursor-pointer">
+                <button type="submit" aria-label="Pesquisar" className="absolute right-3 text-slate-300 hover:text-accent-gold cursor-pointer">
                   <Search size={14} />
                 </button>
               </form>
@@ -231,6 +231,7 @@ export default function Navbar() {
               {/* Burger Button */}
               <button
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label="Abrir ou fechar menu"
                 className="p-2 text-white hover:text-accent-gold transition-colors cursor-pointer"
               >
                 {isOpen ? <X size={24} /> : <Menu size={24} />}
