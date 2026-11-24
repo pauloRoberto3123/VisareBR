@@ -74,8 +74,10 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
         await context.Database.MigrateAsync(); // Auto-apply migrations on Render startup
         await SeedData.Initialize(services);
+        await ArticleHtmlHelper.ConvertAllLegacyDatabaseImagesToWebpAsync(context, logger);
     }
     catch (Exception ex)
     {

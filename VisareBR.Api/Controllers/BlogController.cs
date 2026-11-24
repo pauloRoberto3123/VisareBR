@@ -106,12 +106,20 @@ public class BlogController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Unauthorized();
 
-        // Process any video embed URLs
+        // Process any video embed URLs and convert images to WebP
         foreach (var block in dto.ContentBlocks)
         {
             if (block is VideoBlock videoBlock)
             {
                 videoBlock.EmbedData = VideoParser.ParseEmbedUrl(videoBlock.SourceUrl);
+            }
+            else if (block is ImageBlock imageBlock && !string.IsNullOrEmpty(imageBlock.ImageUrl))
+            {
+                imageBlock.ImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(imageBlock.ImageUrl, 1000, 78);
+            }
+            else if (block is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Content))
+            {
+                textBlock.Content = ArticleHtmlHelper.ConvertInlineHtmlBase64ImagesToWebp(textBlock.Content, 1000, 78);
             }
         }
 
@@ -120,7 +128,7 @@ public class BlogController : ControllerBase
             Title = dto.Title,
             Summary = dto.Summary,
             ReadTimeMinutes = dto.ReadTimeMinutes,
-            FeaturedImageUrl = dto.FeaturedImageUrl,
+            FeaturedImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(dto.FeaturedImageUrl, 1200, 78),
             MetaTitle = dto.MetaTitle,
             MetaDescription = dto.MetaDescription,
             Tags = dto.Tags,
@@ -189,23 +197,26 @@ public class BlogController : ControllerBase
                     textBlock.Content,
                     existingInlineTextImages
                 );
+                textBlock.Content = ArticleHtmlHelper.ConvertInlineHtmlBase64ImagesToWebp(textBlock.Content, 1000, 78);
             }
-            else if (block is ImageBlock imageBlock &&
-                     !string.IsNullOrEmpty(imageBlock.ImageUrl) &&
-                     imageBlock.ImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase))
+            else if (block is ImageBlock imageBlock && !string.IsNullOrEmpty(imageBlock.ImageUrl))
             {
-                var match = Regex.Match(imageBlock.ImageUrl, @"-bloco-(\d+)\.webp$", RegexOptions.IgnoreCase);
-                if (match.Success && int.TryParse(match.Groups[1].Value, out int oldOrder) &&
-                    existingImageBlocksByOrder.TryGetValue(oldOrder, out var oldBase64) &&
-                    !string.IsNullOrEmpty(oldBase64))
+                if (imageBlock.ImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase))
                 {
-                    imageBlock.ImageUrl = oldBase64;
+                    var match = Regex.Match(imageBlock.ImageUrl, @"-bloco-(\d+)\.webp$", RegexOptions.IgnoreCase);
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out int oldOrder) &&
+                        existingImageBlocksByOrder.TryGetValue(oldOrder, out var oldBase64) &&
+                        !string.IsNullOrEmpty(oldBase64))
+                    {
+                        imageBlock.ImageUrl = oldBase64;
+                    }
+                    else if (existingImageBlocksByOrder.TryGetValue(idx, out var sameIdxBase64) &&
+                             !string.IsNullOrEmpty(sameIdxBase64))
+                    {
+                        imageBlock.ImageUrl = sameIdxBase64;
+                    }
                 }
-                else if (existingImageBlocksByOrder.TryGetValue(idx, out var sameIdxBase64) &&
-                         !string.IsNullOrEmpty(sameIdxBase64))
-                {
-                    imageBlock.ImageUrl = sameIdxBase64;
-                }
+                imageBlock.ImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(imageBlock.ImageUrl, 1000, 78);
             }
         }
 
@@ -222,11 +233,11 @@ public class BlogController : ControllerBase
             dto.FeaturedImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase) &&
             !string.IsNullOrEmpty(existingFeaturedImage))
         {
-            article.FeaturedImageUrl = existingFeaturedImage;
+            article.FeaturedImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(existingFeaturedImage, 1200, 78);
         }
         else
         {
-            article.FeaturedImageUrl = dto.FeaturedImageUrl;
+            article.FeaturedImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(dto.FeaturedImageUrl, 1200, 78);
         }
         article.MetaTitle = dto.MetaTitle;
         article.MetaDescription = dto.MetaDescription;
