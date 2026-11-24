@@ -169,8 +169,41 @@ export interface Ds160Data {
     fraud: string; fraudExplain: string;
     deported: string; deportedExplain: string;
     declarationAccepted: boolean;
-    signature: string;
+    signature?: string;
+    termo_versao?: string;
+    termo_texto?: string;
+    termo_aceito_em?: string;
+    termo_ip?: string;
+    termo_user_agent?: string;
+    respostas_hash?: string;
   };
+}
+
+export const DS160_TERMO_VERSAO = '1.1';
+
+export const DS160_TERMO_ITEMS = [
+  'Forneci pessoalmente todas as informações deste formulário e elas são verdadeiras, completas e corretas.',
+  'Li e entendi todas as perguntas, inclusive as perguntas de segurança, e respondi com sinceridade.',
+  'Sei que a DS-160 é um formulário oficial do Departamento de Estado dos EUA e que informações falsas ou enganosas podem levar à recusa permanente do visto ou à proibição de entrada nos Estados Unidos.',
+  'Autorizo a VisareBR a usar estas informações para preparar, digitar e enviar a minha DS-160 no site oficial (CEAC), traduzindo-as para o inglês quando necessário, e a constar como preparadora do formulário.',
+  'Antes do envio, vou receber o PDF da minha DS-160, revisar todas as respostas, inclusive as perguntas de segurança, e avisar a VisareBR sobre qualquer erro.',
+  'Depois de revisar o PDF, autorizo a VisareBR a enviar o meu formulário DS-160, sabendo que o envio certifica perante o governo americano que li e entendi as perguntas e que as respostas são verdadeiras.',
+  'Sei que a responsabilidade pelo conteúdo das respostas é exclusivamente minha e que a VisareBR não garante a emissão do visto, que é decisão exclusiva do oficial consular.',
+  'Autorizo a VisareBR a tratar os meus dados pessoais, inclusive os dados de saúde informados nas perguntas de segurança, somente para preparar o meu processo de visto, conforme a Lei 13.709/2018 (LGPD) e a Política de Privacidade da VisareBR. Posso pedir acesso, correção ou exclusão dos meus dados a qualquer momento.'
+];
+
+export function buildDs160TermoText(fullName?: string, cpf?: string): string {
+  const nomeVal = (fullName || '').trim() || '{nome completo}';
+  const cpfVal = (cpf || '').trim() || '{CPF}';
+  const lines = [
+    'Termo de revisão, veracidade e autorização de preparo — DS-160',
+    '',
+    `Eu, ${nomeVal}, CPF ${cpfVal}, declaro que:`,
+    ...DS160_TERMO_ITEMS.map((item, idx) => `${idx + 1}. ${item}`),
+    '',
+    '[x] Li, revisei e autorizo a VisareBR a enviar o meu formulário DS-160.'
+  ];
+  return lines.join('\n');
 }
 
 const initialState: Ds160Data = {

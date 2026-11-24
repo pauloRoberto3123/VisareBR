@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using VisareBR.Core.Data;
@@ -49,21 +51,89 @@ public class Ds160Controller : ControllerBase
             }
         }
 
+        var applicantName = jsonObject?["step1"]?["fullName"]?.ToString()?.Trim() ?? "Desconhecido";
+        var applicantCpf = jsonObject?["step1"]?["cpf"]?.ToString()?.Trim() ?? "";
+        var serverNowUtc = DateTime.UtcNow;
+
+        // Compute SHA-256 hash of the submitted answers before injecting server audit metadata
+        var step8 = jsonObject?["step8"] as JsonObject ?? new JsonObject();
+        if (jsonObject != null && !jsonObject.ContainsKey("step8"))
+        {
+            jsonObject["step8"] = step8;
+        }
+
+        // Remove any client-supplied audit keys before computing canonical answers hash
+        step8.Remove("termo_aceito_em");
+        step8.Remove("termo_ip");
+        step8.Remove("termo_user_agent");
+        step8.Remove("respostas_hash");
+
+        string canonicalAnswersJson = jsonObject?.ToJsonString() ?? data.GetRawText();
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(canonicalAnswersJson));
+        string respostasHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+
+        string clientIp = GetClientIpAddress();
+        string userAgent = Request.Headers.UserAgent.ToString();
+        string termoTexto = BuildTermoV11Text(applicantName, applicantCpf);
+
+        step8["termo_versao"] = "1.1";
+        step8["termo_texto"] = termoTexto;
+        step8["termo_aceito_em"] = serverNowUtc.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        step8["termo_ip"] = clientIp;
+        step8["termo_user_agent"] = userAgent;
+        step8["respostas_hash"] = respostasHash;
+
         // We extract a few key properties to store in standard columns for easy sorting/listing in the Admin Dashboard.
         // The raw JSON is safely dumped into PostgreSQL's native JSONB column.
         var submission = new Ds160Submission
         {
-            ApplicantName = jsonObject?["step1"]?["fullName"]?.ToString() ?? "Desconhecido",
+            ApplicantName = applicantName,
             Email = jsonObject?["step2"]?["primaryEmail"]?.ToString() ?? "Sem Email",
             PassportNumber = jsonObject?["step3"]?["passportNumber"]?.ToString() ?? "",
             JsonData = jsonObject?.ToJsonString() ?? data.GetRawText(),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = serverNowUtc
         };
 
         _context.Ds160Submissions.Add(submission);
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Formulário recebido e criptografado com segurança." });
+    }
+
+    private string GetClientIpAddress()
+    {
+        var cfIp = Request.Headers["CF-Connecting-IP"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(cfIp))
+            return cfIp.Trim();
+
+        var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(forwardedFor))
+        {
+            var firstIp = forwardedFor.Split(',')[0].Trim();
+            if (!string.IsNullOrWhiteSpace(firstIp))
+                return firstIp;
+        }
+
+        return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Não identificado";
+    }
+
+    private static string BuildTermoV11Text(string fullName, string cpf)
+    {
+        string nomeVal = string.IsNullOrWhiteSpace(fullName) ? "{nome completo}" : fullName.Trim();
+        string cpfVal = string.IsNullOrWhiteSpace(cpf) ? "{CPF}" : cpf.Trim();
+
+        return
+            "Termo de revisão, veracidade e autorização de preparo — DS-160\n\n" +
+            $"Eu, {nomeVal}, CPF {cpfVal}, declaro que:\n" +
+            "1. Forneci pessoalmente todas as informações deste formulário e elas são verdadeiras, completas e corretas.\n" +
+            "2. Li e entendi todas as perguntas, inclusive as perguntas de segurança, e respondi com sinceridade.\n" +
+            "3. Sei que a DS-160 é um formulário oficial do Departamento de Estado dos EUA e que informações falsas ou enganosas podem levar à recusa permanente do visto ou à proibição de entrada nos Estados Unidos.\n" +
+            "4. Autorizo a VisareBR a usar estas informações para preparar, digitar e enviar a minha DS-160 no site oficial (CEAC), traduzindo-as para o inglês quando necessário, e a constar como preparadora do formulário.\n" +
+            "5. Antes do envio, vou receber o PDF da minha DS-160, revisar todas as respostas, inclusive as perguntas de segurança, e avisar a VisareBR sobre qualquer erro.\n" +
+            "6. Depois de revisar o PDF, autorizo a VisareBR a enviar o meu formulário DS-160, sabendo que o envio certifica perante o governo americano que li e entendi as perguntas e que as respostas são verdadeiras.\n" +
+            "7. Sei que a responsabilidade pelo conteúdo das respostas é exclusivamente minha e que a VisareBR não garante a emissão do visto, que é decisão exclusiva do oficial consular.\n" +
+            "8. Autorizo a VisareBR a tratar os meus dados pessoais, inclusive os dados de saúde informados nas perguntas de segurança, somente para preparar o meu processo de visto, conforme a Lei 13.709/2018 (LGPD) e a Política de Privacidade da VisareBR. Posso pedir acesso, correção ou exclusão dos meus dados a qualquer momento.\n\n" +
+            "[x] Li, revisei e autorizo a VisareBR a enviar o meu formulário DS-160.";
     }
 
     private async Task<string> UploadToBucketAsync(string base64Image, string bucketName)
