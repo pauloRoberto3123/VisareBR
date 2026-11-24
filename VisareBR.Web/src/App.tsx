@@ -21,6 +21,7 @@ const FaqList = lazy(() => import('./pages/FaqList'));
 const Contact = lazy(() => import('./pages/Contact'));
 const ProfileEvaluation = lazy(() => import('./pages/ProfileEvaluation'));
 const VisaMatcher = lazy(() => import('./pages/VisaMatcher'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 // Declarations for Google Analytics global window variables
 declare global {
@@ -148,6 +149,7 @@ function App() {
             <Route path="avaliacao-de-perfil.html" element={<ProfileEvaluation />} />
             <Route path="qual-visto-combina" element={<VisaMatcher />} />
             <Route path="qual-visto-combina.html" element={<VisaMatcher />} />
+            <Route path="privacidade" element={<PrivacyPolicy />} />
           </Route>
         </Routes>
       </Suspense>

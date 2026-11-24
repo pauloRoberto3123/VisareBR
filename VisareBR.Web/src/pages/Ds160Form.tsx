@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronRight, ChevronLeft, ShieldCheck, CheckCircle } from 'lucide-react';
 import api from '../api/blogService';
-import { Ds160Provider, useDs160 } from '../context/Ds160Context';
+import { Ds160Provider, useDs160, DS160_TERMO_VERSAO, buildDs160TermoText } from '../context/Ds160Context';
 import type { Ds160Data } from '../context/Ds160Context';
 import Step1PersonalInfo from '../context/Step1PersonalInfo';
 import Step2AddressContact from '../context/Step2AddressContact';
@@ -92,7 +92,7 @@ const isStepValid = (data: Ds160Data, stepIndex: number): boolean => {
       if (s8.terrorism === 'Yes' && !s8.terrorismExplain) return false;
       if (s8.fraud === 'Yes' && !s8.fraudExplain) return false;
       if (s8.deported === 'Yes' && !s8.deportedExplain) return false;
-      if (!s8.declarationAccepted || !s8.signature) return false;
+      if (!s8.declarationAccepted) return false;
       return true;
     }
     default:
@@ -153,7 +153,15 @@ function Ds160FormContent() {
     setIsSubmitting(true);
     
     try {
-      await api.post('/ds160', data);
+      const payload: Ds160Data = {
+        ...data,
+        step8: {
+          ...data.step8,
+          termo_versao: DS160_TERMO_VERSAO,
+          termo_texto: buildDs160TermoText(data.step1.fullName, data.step1.cpf),
+        },
+      };
+      await api.post('/ds160', payload);
       setIsSuccess(true);
     } catch (error) {
       console.error("Erro ao enviar o formulário DS-160:", error);
@@ -258,24 +266,15 @@ function Ds160FormContent() {
               <Step7WorkEducation />
             )}
 
-            {/* STEP 4: Review */}
+            {/* STEP 8: Security & Termo 1.1 */}
             {currentStep === 7 && (
               <>
                 <Step8Security />
-                <h2 className="text-2xl font-bold text-primary border-b border-light-gray pb-4">Termos e Envio</h2>
                 {!isFormValid && (
-                  <div className="bg-red-50 p-4 rounded-xl text-red-600 text-sm font-medium border border-red-200">
-                    ⚠️ Por favor, preencha todos os campos obrigatórios nas etapas anteriores para habilitar o envio.
+                  <div className="mt-4 bg-amber-50 p-4 rounded-xl text-amber-800 text-sm font-medium border border-amber-200">
+                    ⚠️ Responda todas as perguntas de segurança e marque a caixa de aceite do termo acima para liberar o botão de envio.
                   </div>
                 )}
-                <div className="bg-light-gray p-6 rounded-2xl text-dark-gray text-sm space-y-4">
-                  <p>
-                    Ao enviar este formulário, você concorda que os dados fornecidos são verdadeiros e autoriza a <strong>VisareBR</strong> a utilizá-nos estritamente para o preenchimento da sua solicitação oficial consular (Formulário DS-160).
-                  </p>
-                  <p className="font-bold text-primary">
-                    🔒 Suas informações são criptografadas e mantidas em sigilo absoluto de acordo com a LGPD.
-                  </p>
-                </div>
               </>
             )}
 
