@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Ds160Submission } from '../api/blogService';
+import { buildDs160TermoText } from '../context/Ds160Context';
 import type { Ds160Data, SocialMediaProfile, TravelCompanion, USRelative, PreviousEmployer, Education } from '../context/Ds160Context';
 import { 
   User, 
@@ -112,6 +113,37 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
     return str;
   };
 
+  // Format ISO date/time to DD/MM/AAAA HH:MM (Horário de Brasília)
+  const formatTermoDateTime = (isoStr?: string) => {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    const datePart = d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'America/Sao_Paulo',
+    });
+    const timePart = d.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'America/Sao_Paulo',
+    });
+    return `${datePart} ${timePart}`;
+  };
+
+  const hasTermoV11 = Boolean(formData.step8?.termo_versao || formData.step8?.termo_texto);
+  const termoVersao = formData.step8?.termo_versao || '1.1';
+  const termoAceitoEmFormatted = formatTermoDateTime(formData.step8?.termo_aceito_em || submission.createdAt);
+  const termoIp = formData.step8?.termo_ip || 'Não registrado';
+  const termoUserAgent = formData.step8?.termo_user_agent || '';
+  const respostasHash = formData.step8?.respostas_hash || '';
+  const termoTextoCompleto =
+    formData.step8?.termo_texto ||
+    buildDs160TermoText(formData.step1?.fullName || submission.applicantName, formData.step1?.cpf);
+  const termoSummaryLine = `Termo aceito em ${termoAceitoEmFormatted}, IP ${termoIp}, versão ${termoVersao}`;
+
   // Helper for print field items
   const PrintField = ({ label, value, fullWidth = false, highlight = false }: { label: string; value: React.ReactNode; fullWidth?: boolean; highlight?: boolean }) => (
     <div className={`p-2 bg-gray-50/70 border border-gray-200 rounded-lg text-xs break-inside-avoid ${
@@ -134,6 +166,21 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
 
   return (
     <div className="space-y-4">
+      {/* Resumo do Aceite do Termo (visível no topo do visualizador no Painel Admin) */}
+      {hasTermoV11 && (
+        <div className="print:hidden bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={16} className="text-emerald-700 shrink-0" />
+            <span>{termoSummaryLine}</span>
+          </div>
+          {respostasHash && (
+            <span className="font-mono text-[11px] text-emerald-700 bg-white px-2.5 py-0.5 rounded border border-emerald-200 truncate max-w-xs" title={`SHA-256: ${respostasHash}`}>
+              SHA-256: {respostasHash.slice(0, 16)}...
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Botão de Exportação para PDF (Visível apenas na tela) */}
       <div className="flex justify-end print:hidden mb-2">
         <button
@@ -930,11 +977,46 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
               </div>
             </div>
 
-            <SectionHeader title="Termo de Declaração e Assinatura Digital" icon={Heart} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DetailField label="Termo Aceito pelo Requerente?" value={renderBooleanBadge(formData.step8?.declarationAccepted)} />
-              <DetailField label="Assinatura Digital (Nome por Extenso)" value={formData.step8?.signature} highlight />
-            </div>
+            <SectionHeader title="Termo de Revisão, Veracidade e Autorização de Preparo" icon={Heart} />
+            {hasTermoV11 ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900">
+                  <span className="block text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">
+                    Prova Eletrônica de Aceite
+                  </span>
+                  <p className="text-sm font-extrabold">{termoSummaryLine}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <DetailField label="Termo Aceito pelo Requerente?" value={renderBooleanBadge(formData.step8?.declarationAccepted)} />
+                  <DetailField label="Versão do Termo" value={termoVersao} highlight />
+                  <DetailField label="Data e Hora do Servidor" value={termoAceitoEmFormatted} />
+                  <DetailField label="Endereço IP" value={termoIp} highlight />
+                  <DetailField label="Navegador / Dispositivo (User-Agent)" value={termoUserAgent || 'Não registrado'} fullWidth />
+                  {respostasHash && (
+                    <DetailField
+                      label="Hash SHA-256 das Respostas"
+                      value={<span className="font-mono text-xs break-all">{respostasHash}</span>}
+                      fullWidth
+                    />
+                  )}
+                </div>
+
+                <div className="p-5 bg-white border border-gray-200 rounded-2xl shadow-xs">
+                  <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    Texto Exato do Termo Aceito
+                  </span>
+                  <pre className="whitespace-pre-wrap font-sans text-xs text-primary leading-relaxed bg-slate-50 p-4 rounded-xl border border-gray-100">
+                    {termoTextoCompleto}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DetailField label="Termo Aceito pelo Requerente?" value={renderBooleanBadge(formData.step8?.declarationAccepted)} />
+                <DetailField label="Assinatura Digital (Nome por Extenso)" value={formData.step8?.signature || submission.applicantName} highlight />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1355,20 +1437,53 @@ export default function Ds160Visualizer({ submission }: Ds160VisualizerProps) {
             </div>
           </div>
 
-          <div className="mt-3 p-3 border-2 border-primary/20 bg-slate-50 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div>
-              <span className="block text-[10px] font-bold text-gray-500 uppercase">Termo de Declaração</span>
-              <strong className="text-primary">
-                {formData.step8?.declarationAccepted
-                  ? 'Termo aceito pelo requerente'
-                  : 'Termo não confirmado'}
-              </strong>
+          {hasTermoV11 ? (
+            <div className="mt-4 p-3.5 border-2 border-primary/25 bg-slate-50 rounded-xl space-y-2.5 text-xs break-inside-avoid">
+              <div className="flex flex-wrap justify-between items-center gap-2 border-b border-gray-300 pb-2">
+                <strong className="text-primary uppercase tracking-wider text-[11px]">
+                  Termo de Revisão, Veracidade e Autorização de Preparo — DS-160
+                </strong>
+                <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-[10px]">
+                  {termoSummaryLine}
+                </span>
+              </div>
+
+              <pre className="whitespace-pre-wrap font-sans text-[10.5px] text-gray-800 leading-relaxed bg-white p-3 rounded-lg border border-gray-200">
+                {termoTextoCompleto}
+              </pre>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[10px] text-gray-600">
+                <div>
+                  <strong className="text-gray-700 uppercase">Registro de Aceite:</strong> {termoSummaryLine}
+                </div>
+                {termoUserAgent && (
+                  <div className="truncate">
+                    <strong className="text-gray-700 uppercase">Dispositivo / Navegador:</strong> {termoUserAgent}
+                  </div>
+                )}
+                {respostasHash && (
+                  <div className="sm:col-span-2 font-mono break-all">
+                    <strong className="text-gray-700 uppercase font-sans">Hash SHA-256 das Respostas:</strong> {respostasHash}
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <span className="block text-[10px] font-bold text-gray-500 uppercase">Assinatura Digital (Nome Completo)</span>
-              <strong className="text-primary font-mono text-sm">{formData.step8?.signature || submission.applicantName}</strong>
+          ) : (
+            <div className="mt-3 p-3 border-2 border-primary/20 bg-slate-50 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="block text-[10px] font-bold text-gray-500 uppercase">Termo de Declaração</span>
+                <strong className="text-primary">
+                  {formData.step8?.declarationAccepted
+                    ? 'Termo aceito pelo requerente'
+                    : 'Termo não confirmado'}
+                </strong>
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold text-gray-500 uppercase">Assinatura Digital (Nome Completo)</span>
+                <strong className="text-primary font-mono text-sm">{formData.step8?.signature || submission.applicantName}</strong>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

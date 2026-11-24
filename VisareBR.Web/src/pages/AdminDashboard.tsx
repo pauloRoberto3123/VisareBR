@@ -2117,7 +2117,7 @@ export default function AdminDashboard() {
               <button onClick={() => setSelectedDs160(null)} className="mb-6 flex items-center gap-2 text-accent-red font-bold hover:underline print:hidden">
                 ← Voltar para a lista
               </button>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pb-8 border-b border-light-gray">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pb-8 border-b border-light-gray print:hidden">
                 <div>
                   <p className="text-sm text-dark-gray">Requerente</p>
                   <p className="font-bold text-primary text-lg">{selectedDs160.applicantName}</p>
