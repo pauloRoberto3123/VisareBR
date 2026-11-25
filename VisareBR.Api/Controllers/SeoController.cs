@@ -17,12 +17,14 @@ public class SeoController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
+    private readonly ISlugRedirectService? _slugRedirectService;
     private const string BaseSiteUrl = "https://www.visarebr.com.br";
 
-    public SeoController(ApplicationDbContext context, IMemoryCache cache)
+    public SeoController(ApplicationDbContext context, IMemoryCache cache, ISlugRedirectService? slugRedirectService = null)
     {
         _context = context;
         _cache = cache;
+        _slugRedirectService = slugRedirectService;
     }
 
     [HttpGet("/robots.txt")]
@@ -99,6 +101,7 @@ public class SeoController : ControllerBase
                 foreach (var art in articles)
                 {
                     if (string.IsNullOrWhiteSpace(art.Slug)) continue;
+                    if (_slugRedirectService?.TryGetTargetSlug(art.Slug, out _) == true) continue;
                     var modDate = art.UpdatedAt ?? art.CreatedAt;
                     writer.WriteStartElement("url");
                     writer.WriteElementString("loc", $"{BaseSiteUrl}/artigos/{art.Slug}");

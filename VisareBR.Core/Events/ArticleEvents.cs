@@ -4,7 +4,7 @@ using VisareBR.Core.Entities;
 
 namespace VisareBR.Core.Events;
 
-public record ArticlePublishedOrUpdatedEvent(Article Article, bool IsNew);
+public record ArticlePublishedOrUpdatedEvent(Article Article, bool IsNew, string? PreviousSlug = null);
 
 public interface IArticleEventDispatcher
 {

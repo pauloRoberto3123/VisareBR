@@ -19,6 +19,7 @@ public class BlogController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
     private readonly IArticleEventDispatcher _dispatcher;
+    private readonly ISlugRedirectService? _slugRedirectService;
 
     public class ArticleCreateDto
     {
@@ -35,11 +36,16 @@ public class BlogController : ControllerBase
         public bool ShowInOthersDropdown { get; set; }
     }
 
-    public BlogController(ApplicationDbContext context, IMemoryCache cache, IArticleEventDispatcher dispatcher)
+    public BlogController(
+        ApplicationDbContext context,
+        IMemoryCache cache,
+        IArticleEventDispatcher dispatcher,
+        ISlugRedirectService? slugRedirectService = null)
     {
         _context = context;
         _cache = cache;
         _dispatcher = dispatcher;
+        _slugRedirectService = slugRedirectService;
     }
 
     [HttpGet]
@@ -75,6 +81,11 @@ public class BlogController : ControllerBase
     [HttpGet("{slug}")]
     public async Task<ActionResult<Article>> GetArticleBySlug(string slug)
     {
+        if (_slugRedirectService != null && _slugRedirectService.TryGetTargetSlug(slug, out var redirectedSlug))
+        {
+            slug = redirectedSlug;
+        }
+
         string cacheKey = $"article_slug_{slug}";
         if (!_cache.TryGetValue(cacheKey, out Article? article))
         {
@@ -221,6 +232,7 @@ public class BlogController : ControllerBase
         }
 
         // Generate a new slug if the title has changed
+        string previousSlug = article.Slug;
         if (article.Title != dto.Title)
         {
             article.Slug = await GetUniqueSlugAsync(dto.Title, article.Id);
@@ -257,8 +269,20 @@ public class BlogController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        // Dispatch cache invalidation event
-        await _dispatcher.DispatchAsync(new ArticlePublishedOrUpdatedEvent(article, IsNew: false));
+        // If the slug changed, register a permanent 301 redirect and invalidate the old slug cache too
+        string? changedFromSlug = null;
+        if (!string.IsNullOrWhiteSpace(previousSlug) &&
+            !previousSlug.Equals(article.Slug, StringComparison.OrdinalIgnoreCase))
+        {
+            changedFromSlug = previousSlug;
+            if (_slugRedirectService != null)
+            {
+                await _slugRedirectService.RegisterRedirectAsync(previousSlug, article.Slug);
+            }
+        }
+
+        // Dispatch cache invalidation event for the current article (and previous slug if changed)
+        await _dispatcher.DispatchAsync(new ArticlePublishedOrUpdatedEvent(article, IsNew: false, PreviousSlug: changedFromSlug));
 
         return NoContent();
     }

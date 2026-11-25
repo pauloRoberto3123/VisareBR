@@ -46,6 +46,7 @@ builder.Services.AddResponseCompression(options =>
     options.EnableForHttps = true;
 });
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ISlugRedirectService, SlugRedirectService>();
 builder.Services.AddScoped<IArticleEventDispatcher, ArticleEventDispatcher>();
 builder.Services.AddScoped<IArticleEventListener, ArticleCacheInvalidator>();
 builder.Services.AddScoped<SpaPrerenderService>();
@@ -75,8 +76,10 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         var logger = services.GetRequiredService<ILogger<Program>>();
+        var slugRedirectService = services.GetRequiredService<ISlugRedirectService>();
         await context.Database.MigrateAsync(); // Auto-apply migrations on Render startup
         await SeedData.Initialize(services);
+        await slugRedirectService.InitializeAsync(services);
         await ArticleHtmlHelper.ConvertAllLegacyDatabaseImagesToWebpAsync(context, logger);
     }
     catch (Exception ex)
@@ -96,6 +99,28 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseResponseCompression();
+
+// 301 Permanent Redirect Middleware for renamed article slugs (/artigos/{oldSlug})
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    if (path.StartsWith("/artigos/", StringComparison.OrdinalIgnoreCase))
+    {
+        string rawSlug = path.Substring("/artigos/".Length).Trim('/');
+        if (!string.IsNullOrWhiteSpace(rawSlug) && !rawSlug.Contains('/'))
+        {
+            var redirectSvc = context.RequestServices.GetRequiredService<ISlugRedirectService>();
+            if (redirectSvc.TryGetTargetSlug(rawSlug, out string targetSlug))
+            {
+                string query = context.Request.QueryString.HasValue ? context.Request.QueryString.Value! : string.Empty;
+                context.Response.StatusCode = StatusCodes.Status301MovedPermanently;
+                context.Response.Headers.Location = $"/artigos/{targetSlug}{query}";
+                return;
+            }
+        }
+    }
+    await next();
+});
 
 app.UseStaticFiles(new StaticFileOptions
 {
