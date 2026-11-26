@@ -19,6 +19,7 @@ public class BlogController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
     private readonly IArticleEventDispatcher _dispatcher;
+    private readonly ISlugRedirectService? _slugRedirectService;
 
     public class ArticleCreateDto
     {
@@ -35,11 +36,16 @@ public class BlogController : ControllerBase
         public bool ShowInOthersDropdown { get; set; }
     }
 
-    public BlogController(ApplicationDbContext context, IMemoryCache cache, IArticleEventDispatcher dispatcher)
+    public BlogController(
+        ApplicationDbContext context,
+        IMemoryCache cache,
+        IArticleEventDispatcher dispatcher,
+        ISlugRedirectService? slugRedirectService = null)
     {
         _context = context;
         _cache = cache;
         _dispatcher = dispatcher;
+        _slugRedirectService = slugRedirectService;
     }
 
     [HttpGet]
@@ -75,6 +81,11 @@ public class BlogController : ControllerBase
     [HttpGet("{slug}")]
     public async Task<ActionResult<Article>> GetArticleBySlug(string slug)
     {
+        if (_slugRedirectService != null && _slugRedirectService.TryGetTargetSlug(slug, out var redirectedSlug))
+        {
+            slug = redirectedSlug;
+        }
+
         string cacheKey = $"article_slug_{slug}";
         if (!_cache.TryGetValue(cacheKey, out Article? article))
         {
@@ -106,12 +117,20 @@ public class BlogController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Unauthorized();
 
-        // Process any video embed URLs
+        // Process any video embed URLs and convert images to WebP
         foreach (var block in dto.ContentBlocks)
         {
             if (block is VideoBlock videoBlock)
             {
                 videoBlock.EmbedData = VideoParser.ParseEmbedUrl(videoBlock.SourceUrl);
+            }
+            else if (block is ImageBlock imageBlock && !string.IsNullOrEmpty(imageBlock.ImageUrl))
+            {
+                imageBlock.ImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(imageBlock.ImageUrl, 1000, 78);
+            }
+            else if (block is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Content))
+            {
+                textBlock.Content = ArticleHtmlHelper.ConvertInlineHtmlBase64ImagesToWebp(textBlock.Content, 1000, 78);
             }
         }
 
@@ -120,7 +139,7 @@ public class BlogController : ControllerBase
             Title = dto.Title,
             Summary = dto.Summary,
             ReadTimeMinutes = dto.ReadTimeMinutes,
-            FeaturedImageUrl = dto.FeaturedImageUrl,
+            FeaturedImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(dto.FeaturedImageUrl, 1200, 78),
             MetaTitle = dto.MetaTitle,
             MetaDescription = dto.MetaDescription,
             Tags = dto.Tags,
@@ -189,27 +208,31 @@ public class BlogController : ControllerBase
                     textBlock.Content,
                     existingInlineTextImages
                 );
+                textBlock.Content = ArticleHtmlHelper.ConvertInlineHtmlBase64ImagesToWebp(textBlock.Content, 1000, 78);
             }
-            else if (block is ImageBlock imageBlock &&
-                     !string.IsNullOrEmpty(imageBlock.ImageUrl) &&
-                     imageBlock.ImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase))
+            else if (block is ImageBlock imageBlock && !string.IsNullOrEmpty(imageBlock.ImageUrl))
             {
-                var match = Regex.Match(imageBlock.ImageUrl, @"-bloco-(\d+)\.webp$", RegexOptions.IgnoreCase);
-                if (match.Success && int.TryParse(match.Groups[1].Value, out int oldOrder) &&
-                    existingImageBlocksByOrder.TryGetValue(oldOrder, out var oldBase64) &&
-                    !string.IsNullOrEmpty(oldBase64))
+                if (imageBlock.ImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase))
                 {
-                    imageBlock.ImageUrl = oldBase64;
+                    var match = Regex.Match(imageBlock.ImageUrl, @"-bloco-(\d+)\.webp(?:\?.*)?$", RegexOptions.IgnoreCase);
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out int oldOrder) &&
+                        existingImageBlocksByOrder.TryGetValue(oldOrder, out var oldBase64) &&
+                        !string.IsNullOrEmpty(oldBase64))
+                    {
+                        imageBlock.ImageUrl = oldBase64;
+                    }
+                    else if (existingImageBlocksByOrder.TryGetValue(idx, out var sameIdxBase64) &&
+                             !string.IsNullOrEmpty(sameIdxBase64))
+                    {
+                        imageBlock.ImageUrl = sameIdxBase64;
+                    }
                 }
-                else if (existingImageBlocksByOrder.TryGetValue(idx, out var sameIdxBase64) &&
-                         !string.IsNullOrEmpty(sameIdxBase64))
-                {
-                    imageBlock.ImageUrl = sameIdxBase64;
-                }
+                imageBlock.ImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(imageBlock.ImageUrl, 1000, 78);
             }
         }
 
         // Generate a new slug if the title has changed
+        string previousSlug = article.Slug;
         if (article.Title != dto.Title)
         {
             article.Slug = await GetUniqueSlugAsync(dto.Title, article.Id);
@@ -222,11 +245,11 @@ public class BlogController : ControllerBase
             dto.FeaturedImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase) &&
             !string.IsNullOrEmpty(existingFeaturedImage))
         {
-            article.FeaturedImageUrl = existingFeaturedImage;
+            article.FeaturedImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(existingFeaturedImage, 1200, 78);
         }
         else
         {
-            article.FeaturedImageUrl = dto.FeaturedImageUrl;
+            article.FeaturedImageUrl = ArticleHtmlHelper.ConvertBase64DataUrlToWebpDataUrl(dto.FeaturedImageUrl, 1200, 78);
         }
         article.MetaTitle = dto.MetaTitle;
         article.MetaDescription = dto.MetaDescription;
@@ -246,8 +269,20 @@ public class BlogController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        // Dispatch cache invalidation event
-        await _dispatcher.DispatchAsync(new ArticlePublishedOrUpdatedEvent(article, IsNew: false));
+        // If the slug changed, register a permanent 301 redirect and invalidate the old slug cache too
+        string? changedFromSlug = null;
+        if (!string.IsNullOrWhiteSpace(previousSlug) &&
+            !previousSlug.Equals(article.Slug, StringComparison.OrdinalIgnoreCase))
+        {
+            changedFromSlug = previousSlug;
+            if (_slugRedirectService != null)
+            {
+                await _slugRedirectService.RegisterRedirectAsync(previousSlug, article.Slug);
+            }
+        }
+
+        // Dispatch cache invalidation event for the current article (and previous slug if changed)
+        await _dispatcher.DispatchAsync(new ArticlePublishedOrUpdatedEvent(article, IsNew: false, PreviousSlug: changedFromSlug));
 
         return NoContent();
     }
@@ -328,10 +363,12 @@ public class BlogController : ControllerBase
             article.Author.FullName = ArticleHtmlHelper.NormalizeAuthorName(article.Author.FullName);
         }
 
+        string versionParam = ArticleHtmlHelper.GetImageVersionParam(article.CreatedAt, article.UpdatedAt);
+
         if (!string.IsNullOrEmpty(article.FeaturedImageUrl) &&
             article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
         {
-            article.FeaturedImageUrl = $"/imagens/artigos/{article.Slug}.webp";
+            article.FeaturedImageUrl = $"/imagens/artigos/{article.Slug}.webp?v={versionParam}";
         }
 
         if (article.ContentBlocks == null) return;
@@ -342,7 +379,7 @@ public class BlogController : ControllerBase
                 !string.IsNullOrEmpty(imgBlock.ImageUrl) &&
                 imgBlock.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
             {
-                imgBlock.ImageUrl = $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp";
+                imgBlock.ImageUrl = $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp?v={versionParam}";
             }
             else if (block is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Content))
             {
@@ -350,7 +387,8 @@ public class BlogController : ControllerBase
                     textBlock.Content,
                     article.Slug,
                     textBlock.Order,
-                    article.Title
+                    article.Title,
+                    versionParam
                 );
             }
         }

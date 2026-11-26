@@ -24,6 +24,15 @@ public class ArticleCacheInvalidator : IArticleEventListener
         _memoryCache.Remove($"article_slug_{@event.Article.Slug}");
         _memoryCache.Remove($"article_prerender_{@event.Article.Slug}");
         _memoryCache.Remove($"article_img_{@event.Article.Slug}");
+
+        if (!string.IsNullOrWhiteSpace(@event.PreviousSlug) &&
+            !@event.PreviousSlug.Equals(@event.Article.Slug, System.StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Invalidating blog cache for previous slug: {PreviousSlug}", @event.PreviousSlug);
+            _memoryCache.Remove($"article_slug_{@event.PreviousSlug}");
+            _memoryCache.Remove($"article_prerender_{@event.PreviousSlug}");
+            _memoryCache.Remove($"article_img_{@event.PreviousSlug}");
+        }
         
         // Remove the cached list of all articles and sitemap
         _memoryCache.Remove("articles_list_all");
