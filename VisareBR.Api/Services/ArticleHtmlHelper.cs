@@ -20,9 +20,16 @@ public static class ArticleHtmlHelper
     );
 
     private static readonly Regex ImgTagWithProjectedUrlRegex = new(
-        @"src\s*=\s*[""']/imagens/artigos/[^""']*?-texto-(\d+)-(\d+)\.webp[""']",
+        @"src\s*=\s*[""']/imagens/artigos/[^""']*?-texto-(\d+)-(\d+)\.webp(?:\?[^""']*)?[""']",
         RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled
     );
+
+    public static string GetImageVersionParam(DateTime createdAt, DateTime? updatedAt)
+    {
+        var dt = updatedAt ?? createdAt;
+        var utc = dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+        return new DateTimeOffset(utc).ToUnixTimeSeconds().ToString();
+    }
 
     public static string NormalizeAuthorName(string? authorName, string? fallbackFullName = null)
     {
@@ -57,19 +64,20 @@ public static class ArticleHtmlHelper
         return result;
     }
 
-    public static string ProjectInlineBase64ImagesToWebpUrls(string? htmlContent, string slug, int blockOrder, string articleTitle)
+    public static string ProjectInlineBase64ImagesToWebpUrls(string? htmlContent, string slug, int blockOrder, string articleTitle, string? versionParam = null)
     {
         if (string.IsNullOrWhiteSpace(htmlContent)) return string.Empty;
 
         int imgIndex = 0;
         string safeAlt = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(articleTitle) ? "Imagem do artigo" : articleTitle);
+        string vSuffix = !string.IsNullOrWhiteSpace(versionParam) ? $"?v={versionParam}" : string.Empty;
 
         return ImgTagWithBase64Regex.Replace(htmlContent, match =>
         {
             string beforeSrc = match.Groups[1].Value;
             string afterSrc = match.Groups[3].Value;
             string combinedAttrs = $"{beforeSrc} {afterSrc}";
-            string cleanUrl = $"/imagens/artigos/{slug}-texto-{blockOrder}-{imgIndex++}.webp";
+            string cleanUrl = $"/imagens/artigos/{slug}-texto-{blockOrder}-{imgIndex++}.webp{vSuffix}";
 
             var extraAttrs = new List<string>();
             if (!Regex.IsMatch(combinedAttrs, @"\balt\s*=", RegexOptions.IgnoreCase))

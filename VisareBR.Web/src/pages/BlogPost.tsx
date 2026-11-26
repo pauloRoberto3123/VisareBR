@@ -109,7 +109,10 @@ function resolveCanonicalImageUrl(featuredImageUrl: string | undefined, slug: st
   if (!featuredImageUrl) {
     return `${SITE_BASE_URL}/logo%20fundo%20transparente.png`;
   }
-  if (featuredImageUrl.startsWith('data:image/') || featuredImageUrl.startsWith('/imagens/artigos/')) {
+  if (featuredImageUrl.startsWith('/imagens/artigos/')) {
+    return `${SITE_BASE_URL}${featuredImageUrl}`;
+  }
+  if (featuredImageUrl.startsWith('data:image/')) {
     return `${SITE_BASE_URL}/imagens/artigos/${slug}.webp`;
   }
   if (featuredImageUrl.startsWith('http://') || featuredImageUrl.startsWith('https://')) {

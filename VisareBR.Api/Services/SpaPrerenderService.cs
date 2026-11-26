@@ -95,7 +95,8 @@ public class SpaPrerenderService
         string fullTitle = $"{metaTitle} | VisareBR";
         string metaDesc = string.IsNullOrWhiteSpace(article.MetaDescription) ? article.Summary : article.MetaDescription;
         string canonicalUrl = $"{BaseUrl}/artigos/{article.Slug}";
-        string imageUrl = ResolveArticleAbsoluteImageUrl(article.FeaturedImageUrl, article.Slug);
+        string versionParam = ArticleHtmlHelper.GetImageVersionParam(article.CreatedAt, article.UpdatedAt);
+        string imageUrl = ResolveArticleAbsoluteImageUrl(article.FeaturedImageUrl, article.Slug, versionParam);
         string authorName = ArticleHtmlHelper.NormalizeAuthorName(article.AuthorName, article.Author?.FullName);
 
         var datePublished = article.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -177,7 +178,7 @@ public class SpaPrerenderService
             readTimeMinutes = article.ReadTimeMinutes,
             featuredImageUrl = !string.IsNullOrWhiteSpace(article.FeaturedImageUrl) &&
                                article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
-                ? $"/imagens/artigos/{article.Slug}.webp"
+                ? $"/imagens/artigos/{article.Slug}.webp?v={versionParam}"
                 : article.FeaturedImageUrl,
             metaTitle = article.MetaTitle,
             metaDescription = article.MetaDescription,
@@ -199,7 +200,8 @@ public class SpaPrerenderService
                             tb.Content,
                             article.Slug,
                             tb.Order,
-                            article.Title
+                            article.Title,
+                            versionParam
                         )
                     };
                 }
@@ -213,7 +215,7 @@ public class SpaPrerenderService
                         type = "image",
                         imageUrl = !string.IsNullOrWhiteSpace(ib.ImageUrl) &&
                                    ib.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
-                            ? $"/imagens/artigos/{article.Slug}-bloco-{ib.Order}.webp"
+                            ? $"/imagens/artigos/{article.Slug}-bloco-{ib.Order}.webp?v={versionParam}"
                             : ib.ImageUrl,
                         altText = ib.AltText
                     };
@@ -281,7 +283,7 @@ public class SpaPrerenderService
         if (!string.IsNullOrWhiteSpace(article.FeaturedImageUrl))
         {
             string relCover = article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
-                ? $"/imagens/artigos/{article.Slug}.webp"
+                ? $"/imagens/artigos/{article.Slug}.webp?v={versionParam}"
                 : article.FeaturedImageUrl;
             bodySb.Append($"<figure><img src=\"{WebUtility.HtmlEncode(relCover)}\" alt=\"{WebUtility.HtmlEncode(article.Title)}\" width=\"1200\" height=\"630\" /></figure>");
         }
@@ -300,7 +302,8 @@ public class SpaPrerenderService
                     textBlock.Content,
                     article.Slug,
                     textBlock.Order,
-                    article.Title
+                    article.Title,
+                    versionParam
                 );
                 // Ensure only 1 H1 per page by demoting any inner <h1> to <h2>
                 string sanitizedHtml = Regex.Replace(projectedHtml, @"<h1(\b[^>]*)>", "<h2$1>", RegexOptions.IgnoreCase);
@@ -310,7 +313,7 @@ public class SpaPrerenderService
             else if (block is ImageBlock imgBlock && !string.IsNullOrWhiteSpace(imgBlock.ImageUrl))
             {
                 string blockImgUrl = imgBlock.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
-                    ? $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp"
+                    ? $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp?v={versionParam}"
                     : imgBlock.ImageUrl;
                 string alt = !string.IsNullOrWhiteSpace(imgBlock.AltText) ? imgBlock.AltText : article.Title;
                 bodySb.Append($"<figure><img src=\"{WebUtility.HtmlEncode(blockImgUrl)}\" alt=\"{WebUtility.HtmlEncode(alt)}\" width=\"800\" height=\"450\" loading=\"lazy\" /></figure>");
@@ -499,7 +502,7 @@ public class SpaPrerenderService
         };
     }
 
-    private static string ResolveArticleAbsoluteImageUrl(string? featuredImageUrl, string slug)
+    private static string ResolveArticleAbsoluteImageUrl(string? featuredImageUrl, string slug, string versionParam)
     {
         if (string.IsNullOrWhiteSpace(featuredImageUrl))
         {
@@ -509,7 +512,7 @@ public class SpaPrerenderService
         if (featuredImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase) ||
             featuredImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase))
         {
-            return $"{BaseUrl}/imagens/artigos/{slug}.webp";
+            return $"{BaseUrl}/imagens/artigos/{slug}.webp?v={versionParam}";
         }
 
         if (featuredImageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||

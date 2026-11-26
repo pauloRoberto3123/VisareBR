@@ -214,7 +214,7 @@ public class BlogController : ControllerBase
             {
                 if (imageBlock.ImageUrl.StartsWith("/imagens/artigos/", StringComparison.OrdinalIgnoreCase))
                 {
-                    var match = Regex.Match(imageBlock.ImageUrl, @"-bloco-(\d+)\.webp$", RegexOptions.IgnoreCase);
+                    var match = Regex.Match(imageBlock.ImageUrl, @"-bloco-(\d+)\.webp(?:\?.*)?$", RegexOptions.IgnoreCase);
                     if (match.Success && int.TryParse(match.Groups[1].Value, out int oldOrder) &&
                         existingImageBlocksByOrder.TryGetValue(oldOrder, out var oldBase64) &&
                         !string.IsNullOrEmpty(oldBase64))
@@ -363,10 +363,12 @@ public class BlogController : ControllerBase
             article.Author.FullName = ArticleHtmlHelper.NormalizeAuthorName(article.Author.FullName);
         }
 
+        string versionParam = ArticleHtmlHelper.GetImageVersionParam(article.CreatedAt, article.UpdatedAt);
+
         if (!string.IsNullOrEmpty(article.FeaturedImageUrl) &&
             article.FeaturedImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
         {
-            article.FeaturedImageUrl = $"/imagens/artigos/{article.Slug}.webp";
+            article.FeaturedImageUrl = $"/imagens/artigos/{article.Slug}.webp?v={versionParam}";
         }
 
         if (article.ContentBlocks == null) return;
@@ -377,7 +379,7 @@ public class BlogController : ControllerBase
                 !string.IsNullOrEmpty(imgBlock.ImageUrl) &&
                 imgBlock.ImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
             {
-                imgBlock.ImageUrl = $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp";
+                imgBlock.ImageUrl = $"/imagens/artigos/{article.Slug}-bloco-{block.Order}.webp?v={versionParam}";
             }
             else if (block is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Content))
             {
@@ -385,7 +387,8 @@ public class BlogController : ControllerBase
                     textBlock.Content,
                     article.Slug,
                     textBlock.Order,
-                    article.Title
+                    article.Title,
+                    versionParam
                 );
             }
         }
