@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getArticleBySlug, getArticles } from '../api/blogService';
 import type { Article, ArticleBlock } from '../api/blogService';
 import { ArrowLeft, Calendar, User, Clock, AlignLeft, ChevronRight, Award } from 'lucide-react';
@@ -109,7 +109,10 @@ function resolveCanonicalImageUrl(featuredImageUrl: string | undefined, slug: st
   if (!featuredImageUrl) {
     return `${SITE_BASE_URL}/logo%20fundo%20transparente.png`;
   }
-  if (featuredImageUrl.startsWith('data:image/') || featuredImageUrl.startsWith('/imagens/artigos/')) {
+  if (featuredImageUrl.startsWith('/imagens/artigos/')) {
+    return `${SITE_BASE_URL}${featuredImageUrl}`;
+  }
+  if (featuredImageUrl.startsWith('data:image/')) {
     return `${SITE_BASE_URL}/imagens/artigos/${slug}.webp`;
   }
   if (featuredImageUrl.startsWith('http://') || featuredImageUrl.startsWith('https://')) {
@@ -120,6 +123,7 @@ function resolveCanonicalImageUrl(featuredImageUrl: string | undefined, slug: st
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const initialPreloaded = getPreloadedArticle(slug);
   const initialProcessed = initialPreloaded && Array.isArray(initialPreloaded.contentBlocks)
     ? processBlocks(initialPreloaded.contentBlocks, initialPreloaded.title || '')
@@ -158,6 +162,10 @@ export default function BlogPost() {
           if (!article || typeof article !== 'object') {
             if (!preloaded) setPost(null);
             return;
+          }
+          // If the article was renamed and resolved via redirect, replace the browser URL with the canonical new slug
+          if (article.slug && article.slug !== slug) {
+            navigate(`/artigos/${article.slug}`, { replace: true });
           }
           setPost(article);
           if (Array.isArray(article.contentBlocks)) {
